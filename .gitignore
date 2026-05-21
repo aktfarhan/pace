@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+.next/
+.turbo/
+dist/
+build/
+*.log
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Model artifacts
+models/artifacts/*.pkl
+models/artifacts/*.bin
+!models/artifacts/.gitkeep
+
+# Raw data and caches
+data/raw/
+data/cache/
+*.duckdb
+*.sqlite
+
+# Eval intermediate outputs
+eval/runs/
+!eval/runs/.gitkeep
+
+# Secrets
+*.pem
+*.key
+
+# Planning docs
+docs/
+
+# LaTeX source
+pace.tex
+
+# LaTeX build artifacts
+*.aux
+*.fdb_latexmk
+*.fls
+*.out
+*.synctex.gz
