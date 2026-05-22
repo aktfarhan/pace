@@ -19,7 +19,7 @@ A single message with:
 
 ## Output
 
-Return one JSON object on one line.
+Return one JSON object on one line. No prose.
 
 Allowed `decision` values:
 
