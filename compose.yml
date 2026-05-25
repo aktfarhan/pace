@@ -1,0 +1,15 @@
+services:
+    db:
+        image: pgvector/pgvector:pg16
+        container_name: pace-db
+        ports:
+            - '1617:5432'
+        environment:
+            POSTGRES_USER: pace
+            POSTGRES_PASSWORD: pace1617
+            POSTGRES_DB: pace
+        volumes:
+            - pace-pgdata:/var/lib/postgresql/data
+
+volumes:
+    pace-pgdata:
