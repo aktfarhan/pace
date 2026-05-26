@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from data.chunk_types import RouteChunk, RouteMetadata, StopChunk, StopMetadata
+
 ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "data" / "raw"
 OUT = ROOT / "data" / "chunks"
@@ -131,8 +133,8 @@ def fare_zone_phrase(zone: str | None) -> str | None:
     return None
 
 
-def render_stop(stop: dict[str, Any], route_ids: list[str]) -> dict[str, Any]:
-    """Builds one stop chunk: text embeds and a metadata sidecar.
+def render_stop(stop: dict[str, Any], route_ids: list[str]) -> StopChunk:
+    """Builds one stop chunk: text embeds and metadata fields.
 
     Args:
         stop: A stop record from stops.json.
@@ -172,7 +174,7 @@ def render_stop(stop: dict[str, Any], route_ids: list[str]) -> dict[str, Any]:
     text = " ".join(sentences)
 
     # Metadata for the planner and filters
-    metadata = {
+    metadata: StopMetadata = {
         "stop_id": stop["id"],
         "name": attributes["name"],
         "lat": attributes["latitude"],
@@ -188,7 +190,7 @@ def render_stop(stop: dict[str, Any], route_ids: list[str]) -> dict[str, Any]:
     return {"id": f"stop:{stop['id']}", "text": text, "metadata": metadata}
 
 
-def render_route(route: dict[str, Any]) -> dict[str, Any]:
+def render_route(route: dict[str, Any]) -> RouteChunk:
     """Builds one route chunk: head, direction wording, stop summary, fare.
 
     Args:
@@ -242,7 +244,7 @@ def render_route(route: dict[str, Any]) -> dict[str, Any]:
 
     text = " ".join(sentences)
 
-    metadata = {
+    metadata: RouteMetadata = {
         "route_id": route_id,
         "short_name": attributes["short_name"],
         "long_name": attributes["long_name"],
