@@ -29,23 +29,23 @@ def chunk_kind(chunk_id: str) -> str:
     """Returns a chunk's kind from its id prefix.
 
     Args:
-        chunk_id: A chunk id like "route:Red" or "stop:7954".
+        chunk_id: A chunk id like "route:Red" or "street-cleaning:42".
 
     Returns:
-        The prefix before the colon ("route" or "stop").
+        The prefix before the colon ("route", "stop", "street-cleaning").
     """
     return chunk_id.split(":", 1)[0]
 
 
 def load_chunks() -> list[Chunk]:
-    """Loads every route and stop chunk from data/chunks/.
+    """Loads every chunk from data/chunks/.
 
     Returns:
-        The combined chunks from routes.jsonl and stops.jsonl.
+        The combined chunks from every .jsonl file in data/chunks/.
     """
     chunks: list[Chunk] = []
-    for name in ("routes.jsonl", "stops.jsonl"):
-        for line in (CHUNKS / name).read_text(encoding="utf-8").splitlines():
+    for path in sorted(CHUNKS.glob("*.jsonl")):
+        for line in path.read_text(encoding="utf-8").splitlines():
             chunks.append(json.loads(line))
     return chunks
 

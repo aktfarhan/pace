@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 # Reads the .env
 load_dotenv()
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 ROUTES_PATH = ROOT / "data" / "raw" / "routes.json"
 ROUTE_STOPS_PATH = ROOT / "data" / "raw" / "route_stops.json"
 API_KEY = os.environ["MBTA_API_KEY"]

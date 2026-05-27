@@ -6,7 +6,7 @@ from typing import Any
 
 from data.chunk_types import RouteChunk, RouteMetadata, StopChunk, StopMetadata
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 RAW = ROOT / "data" / "raw"
 OUT = ROOT / "data" / "chunks"
 

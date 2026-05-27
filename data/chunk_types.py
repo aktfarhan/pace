@@ -33,8 +33,29 @@ class RouteMetadata(TypedDict):
     direction_names: list[str]
 
 
+class StreetCleaningMetadata(TypedDict):
+    """Structured fields for a Boston street-cleaning segment chunk."""
+
+    main_id: int
+    street: str
+    from_street: str | None
+    to_street: str | None
+    neighborhood: str | None
+    district: str | None
+    side: str | None
+    start_time: str
+    end_time: str
+    days: list[str]
+    weeks: list[int]
+    every_day: bool
+    year_round: bool
+    one_way: bool
+    north_end_pilot: bool
+    miles: float
+
+
 class StopChunk(TypedDict):
-    """A stop chunk as written to data/chunks/stops.jsonl by chunk.py."""
+    """A stop chunk as written to data/chunks/stops.jsonl by mbta/chunk.py."""
 
     id: str
     text: str
@@ -42,11 +63,19 @@ class StopChunk(TypedDict):
 
 
 class RouteChunk(TypedDict):
-    """A route chunk as written to data/chunks/routes.jsonl by chunk.py."""
+    """A route chunk as written to data/chunks/routes.jsonl by mbta/chunk.py."""
 
     id: str
     text: str
     metadata: RouteMetadata
 
 
-type Chunk = StopChunk | RouteChunk
+class StreetCleaningChunk(TypedDict):
+    """A segment chunk as written to data/chunks/street_cleaning.jsonl."""
+
+    id: str
+    text: str
+    metadata: StreetCleaningMetadata
+
+
+type Chunk = StopChunk | RouteChunk | StreetCleaningChunk
