@@ -1,7 +1,6 @@
 """Intent classifier: run every seed query through gpt-4o-mini using prompts/intent.md as system prompt; score against the gold domain label"""
 
 import json
-import re
 import time
 from pathlib import Path
 from datetime import datetime, timezone
@@ -10,12 +9,13 @@ from collections import defaultdict
 from openai import OpenAI
 from dotenv import load_dotenv
 
+from prompts.loader import load_prompt
+
 # Reads the .env
 load_dotenv()
 
 ROOT = Path(__file__).resolve().parent.parent
 SEED_PATH = ROOT / "eval" / "seed.jsonl"
-PROMPT_PATH = ROOT / "prompts" / "intent.md"
 RUNS_DIR = ROOT / "eval" / "runs"
 MODEL = "gpt-4o-mini"
 VALID_INTENTS = [
@@ -42,12 +42,6 @@ INTENT_SCHEMA = {
 }
 
 
-def strip_frontmatter(text: str) -> str:
-    """Remove a leading --- YAML --- block."""
-    match = re.match(r"^---\r?\n.*?\r?\n---\r?\n(.*)$", text, re.DOTALL)
-    return match.group(1).strip() if match else text.strip()
-
-
 def classify_deterministic(query):
     """Rules that bypass the LLM."""
     if query.get("image"):
@@ -63,7 +57,7 @@ today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 output_path = RUNS_DIR / f"intent-{today}.jsonl"
 
 # Load intent.md and drop its YAML header
-system_prompt = strip_frontmatter(PROMPT_PATH.read_text())
+system_prompt = load_prompt("intent.md")
 
 # Read API key
 openai_client = OpenAI()
