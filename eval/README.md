@@ -24,17 +24,17 @@ Each line in `seed.jsonl` is one query in JSON:
 
 Fields:
 
-| Field             | Values                                                                               |
-| ----------------- | ------------------------------------------------------------------------------------ |
-| `id`              | unique string                                                                        |
-| `query`           | the user-facing question                                                             |
-| `domain`          | `route` \| `alert` \| `parking-rules` \| `parking-sign` \| `schedule` \| `off-topic` |
-| `style`           | `formal` \| `casual` \| `typo` \| `abbrev` \| `adversarial`                          |
-| `gold_answer`     | reference answer for LLM-as-judge scoring                                            |
-| `gold_sources`    | canonical sources that should appear in citations                                    |
-| `expected_action` | `answer` \| `refuse` \| `clarify`                                                    |
-| `expected_risk`   | `low` \| `mid` \| `high` \| `n/a`                                                    |
-| `notes`           | author commentary                                                                    |
+| Field             | Values                                                                                         |
+| ----------------- | ---------------------------------------------------------------------------------------------- |
+| `id`              | unique string                                                                                  |
+| `query`           | the user-facing question                                                                       |
+| `domain`          | `route` \| `alert` \| `parking-rules` \| `parking-sign` \| `schedule` \| `info` \| `off-topic` |
+| `style`           | `formal` \| `casual` \| `typo` \| `abbrev` \| `adversarial`                                    |
+| `gold_answer`     | reference answer for LLM-as-judge scoring                                                      |
+| `gold_sources`    | canonical sources that should appear in citations                                              |
+| `expected_action` | `answer` \| `refuse` \| `clarify`                                                              |
+| `expected_risk`   | `low` \| `mid` \| `high` \| `n/a`                                                              |
+| `notes`           | author commentary                                                                              |
 
 Parking sign queries also include `image: "signs/0042.jpg"`.
 
@@ -44,10 +44,11 @@ Parking sign queries also include `image: "signs/0042.jpg"`.
 
 | Domain        | Share |
 | ------------- | ----- |
-| route         | 35%   |
-| alert         | 20%   |
+| route         | 30%   |
+| alert         | 15%   |
 | parking-rules | 15%   |
 | schedule      | 15%   |
+| info          | 10%   |
 | parking-sign  | 10%   |
 | off-topic     | 5%    |
 

@@ -9,6 +9,7 @@ from collections import defaultdict
 from openai import OpenAI
 from dotenv import load_dotenv
 
+from backend.classify import INTENT_SCHEMA, VALID_INTENTS
 from prompts.loader import load_prompt
 
 # Reads the .env
@@ -18,28 +19,10 @@ ROOT = Path(__file__).resolve().parent.parent
 SEED_PATH = ROOT / "eval" / "seed.jsonl"
 RUNS_DIR = ROOT / "eval" / "runs"
 MODEL = "gpt-4o-mini"
-VALID_INTENTS = [
-    "route",
-    "alert",
-    "parking-rules",
-    "schedule",
-    "off-topic",
-]
 
 # gpt-4o-mini cost per 1M tokens
 INPUT_COST_PER_1M = 0.15
 OUTPUT_COST_PER_1M = 0.60
-
-# The model output schema
-INTENT_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "intent": {"type": "string", "enum": VALID_INTENTS},
-        "reason": {"type": "string"},
-    },
-    "required": ["intent", "reason"],
-    "additionalProperties": False,
-}
 
 
 def classify_deterministic(query):

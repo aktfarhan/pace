@@ -12,7 +12,7 @@ from prompts.loader import load_prompt
 load_dotenv()
 
 MODEL = "gpt-4o-mini"
-VALID_INTENTS = ["route", "alert", "parking-rules", "schedule", "off-topic"]
+VALID_INTENTS = ["route", "alert", "parking-rules", "schedule", "info", "off-topic"]
 
 INTENT_SCHEMA = {
     "type": "object",
