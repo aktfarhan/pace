@@ -1,8 +1,10 @@
 """Retrieve the most similar chunks to a query from the chunks table."""
 
+import re
 import sys
 from typing import Any
 
+import psycopg
 from openai import OpenAI
 from dotenv import load_dotenv
 from pgvector import Vector
@@ -19,6 +21,17 @@ SEARCH = """
     FROM chunks
     ORDER BY distance
     LIMIT %s;
+"""
+STATIONS = """
+    SELECT id, metadata->>'name' AS name
+    FROM chunks
+    WHERE metadata->>'location_type' = '1';
+"""
+FETCH = """
+    SELECT id, kind, text, metadata, embedding <=> %s AS distance
+    FROM chunks
+    WHERE id = ANY(%s)
+    ORDER BY distance;
 """
 
 # A retrieved row: (id, kind, text, metadata, distance)
@@ -41,15 +54,44 @@ def embed_query(client: OpenAI, query: str) -> list[float]:
     return response.data[0].embedding
 
 
-def retrieve(query: str, k: int = 5) -> list[Row]:
+def match_station_ids(cursor: psycopg.Cursor, query: str) -> list[str]:
+    """Finds stations named in the query.
+
+    Args:
+        cursor: An open cursor on the database.
+        query: The user's question.
+
+    Returns:
+        Chunk IDs of stations whose name appears in the query.
+    """
+    # Pull every station id and name from the chunks table
+    cursor.execute(STATIONS)
+
+    matched = []
+    lowered = query.lower()
+    for chunk_id, name in cursor.fetchall():
+        # Split slash names so "Kendall/MIT" matches "kendall" or "mit"
+        for part in name.lower().split("/"):
+            # Word boundaries so "central" hits "central square" but not "centralized"
+            if re.search(rf"\b{re.escape(part)}\b", lowered):
+                matched.append(chunk_id)
+                break
+    return matched
+
+
+def retrieve(query: str, k: int = 5, resolve: bool = True) -> list[Row]:
     """Returns the k chunks most similar to the query.
 
     Args:
         query: The user's question.
         k: How many chunks to return.
+        resolve: Whether to guarantee chunks for stations named in the
+            query. Off for parking queries, where station names collide
+            with street names and city names.
 
     Returns:
-        The top-k rows (id, kind, text, metadata, distance), closest first.
+        Up to k rows (id, kind, text, metadata, distance), resolved
+        stations first, then vector search fills the rest.
     """
     client = OpenAI()
     query_vector = Vector(embed_query(client, query))
@@ -59,8 +101,22 @@ def retrieve(query: str, k: int = 5) -> list[Row]:
     register_vector(connection)
 
     with connection.cursor() as cursor:
+        # Stations named in the query are fetched directly
+        rows = []
+        station_ids = match_station_ids(cursor, query) if resolve else []
+        if station_ids:
+            cursor.execute(FETCH, (query_vector, station_ids))
+            rows.extend(cursor.fetchall())
+
+        # Vector search fills the remaining slots
         cursor.execute(SEARCH, (query_vector, k))
-        return cursor.fetchall()
+
+        # Track resolved ids so vector results don't duplicate
+        seen = {row[0] for row in rows}
+        for row in cursor.fetchall():
+            if row[0] not in seen and len(rows) < k:
+                rows.append(row)
+        return rows[:k]
 
 
 if __name__ == "__main__":

@@ -27,7 +27,8 @@ def ask(query: str) -> Answer:
             "refuse_reason": "off-topic",
         }
 
-    chunks = retrieve(query)
+    # Station-name resolution is off for parking
+    chunks = retrieve(query, resolve=(intent != "parking-rules"))
     now = datetime.now().isoformat()
     return generate(query, chunks, intent, now)
 
