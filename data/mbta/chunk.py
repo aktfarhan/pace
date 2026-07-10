@@ -39,6 +39,7 @@ route_stops: dict[str, list[str]] = json.load(
 # Index lookups
 stop_by_id = {stop["id"]: stop for stop in stops}
 route_by_id = {route["id"]: route for route in routes}
+route_order = {route["id"]: index for index, route in enumerate(routes)}
 
 # Invert route -> [stop_ids] into stop -> [route_ids]
 stop_to_routes = {}
@@ -49,22 +50,6 @@ for route_id, stop_ids in route_stops.items():
 print(
     f"Loaded {len(stops)} stops, {len(routes)} routes, {len(stop_to_routes)} stops with routes"
 )
-
-
-def route_label(route_id: str) -> str:
-    """Returns the short label used in the served-by sentence.
-
-    Args:
-        route_id: A route ID from routes.json (e.g. "Red", "Green-B", "1").
-
-    Returns:
-        Branded long_name for non-bus routes ("Red Line", "Green Line B");
-        "Route X" for buses.
-    """
-    attributes = route_by_id[route_id]["attributes"]
-    if attributes["type"] != 3:
-        return attributes["long_name"]
-    return f"Route {attributes['short_name']}"
 
 
 def route_prefix(attributes: dict[str, Any]) -> str:
@@ -133,6 +118,63 @@ def fare_zone_phrase(zone: str | None) -> str | None:
     return None
 
 
+def connecting_route_ids(stop: dict[str, Any], route_ids: list[str]) -> list[str]:
+    """Collects routes boardable at a stop's connecting street stops.
+
+    Args:
+        stop: A stop record from stops.json.
+        route_ids: Route IDs already serving the stop directly.
+
+    Returns:
+        Route IDs found at the stop's connecting stops, minus the ones
+        already in route_ids. Empty when MBTA lists no connections.
+    """
+    # MBTA's list of street stops that belong to this station
+    refs = stop["relationships"]["connecting_stops"]["data"]
+
+    connecting = []
+    for ref in refs:
+        # Look up each connecting stop's routes; shuttle placeholders have none
+        for route_id in stop_to_routes.get(ref["id"], []):
+            # Keep routes the stop doesn't already have, without duplicates
+            if route_id not in route_ids and route_id not in connecting:
+                connecting.append(route_id)
+    return connecting
+
+
+def service_sentences(route_ids: list[str]) -> list[str]:
+    """Formats a stop's routes into served-by and bus sentences.
+
+    Args:
+        route_ids: Route IDs boardable at the stop, direct + connecting.
+
+    Returns:
+        Up to two sentences in MBTA route order: rail and ferry lines by
+        long_name ("Served by Red Line."), then bus short names ("Buses:
+        1, 47, 64.").
+    """
+    line_labels = []
+    bus_names = []
+
+    # Walk routes in MBTA's display order
+    for route_id in sorted(route_ids, key=lambda route_id: route_order[route_id]):
+        route_attributes = route_by_id[route_id]["attributes"]
+
+        # Buses go by short name ("1", "SL5"); rail and ferry by long name ("Red Line")
+        if route_attributes["type"] == 3:
+            bus_names.append(route_attributes["short_name"])
+        else:
+            line_labels.append(route_attributes["long_name"])
+
+    # A mode with no routes drops its sentence
+    sentences = []
+    if line_labels:
+        sentences.append(f"Served by {', '.join(line_labels)}.")
+    if bus_names:
+        sentences.append(f"Buses: {', '.join(bus_names)}.")
+    return sentences
+
+
 def render_stop(stop: dict[str, Any], route_ids: list[str]) -> StopChunk:
     """Builds one stop chunk: text embeds and metadata fields.
 
@@ -143,7 +185,7 @@ def render_stop(stop: dict[str, Any], route_ids: list[str]) -> StopChunk:
     Returns:
         A dict with:
         - id: "stop:{stop_id}"
-        - text: head sentence, served-by, accessibility, fare zone
+        - text: head sentence, served-by, buses, accessibility, fare zone
         - metadata: structured fields the planner reads directly
           (lat/lng, routes, vehicle_types, wheelchair_boarding, zone, ...)
     """
@@ -151,13 +193,15 @@ def render_stop(stop: dict[str, Any], route_ids: list[str]) -> StopChunk:
     mode, vehicle_types = stop_mode(stop, route_ids)
     kind = "station" if attributes["location_type"] == 1 else "stop"
 
+    # Only stations pull in connecting stops
+    connecting = connecting_route_ids(stop, route_ids) if kind == "station" else []
+
     # Build head: "{name} — {mode} {kind} in {municipality}."
     head = f"{attributes['name']} — {mode} {kind} in {attributes['municipality']}."
     sentences = [head]
 
-    # Served-by list
-    route_labels = [route_label(route_id) for route_id in route_ids]
-    sentences.append(f"Served by {', '.join(route_labels)}.")
+    # Served-by and bus sentences from direct + connecting routes
+    sentences.extend(service_sentences(route_ids + connecting))
 
     # Accessibility
     wheelchair_boarding = attributes["wheelchair_boarding"]
@@ -180,6 +224,7 @@ def render_stop(stop: dict[str, Any], route_ids: list[str]) -> StopChunk:
         "lat": attributes["latitude"],
         "lng": attributes["longitude"],
         "routes": route_ids,
+        "connecting_routes": connecting,
         "vehicle_types": vehicle_types,
         "wheelchair_boarding": wheelchair_boarding,
         "municipality": attributes["municipality"],

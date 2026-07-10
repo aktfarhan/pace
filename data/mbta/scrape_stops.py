@@ -25,7 +25,11 @@ while True:
     # Fetch one page
     response = httpx.get(
         f"{BASE_URL}/stops",
-        params={"page[limit]": PAGE_LIMIT, "page[offset]": offset},
+        params={
+            "page[limit]": PAGE_LIMIT,
+            "page[offset]": offset,
+            "include": "connecting_stops",
+        },
         headers={"X-API-Key": API_KEY},
     )
     response.raise_for_status()

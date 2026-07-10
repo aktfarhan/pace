@@ -11,6 +11,7 @@ class StopMetadata(TypedDict):
     lat: float
     lng: float
     routes: list[str]
+    connecting_routes: list[str]
     vehicle_types: list[int]
     wheelchair_boarding: int
     municipality: str
