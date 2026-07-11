@@ -4,6 +4,7 @@ import sys
 from datetime import datetime
 
 from backend.classify import classify
+from backend.alerts import fetch_alerts
 from backend.generate import Answer, generate
 from backend.retrieve import retrieve
 
@@ -29,6 +30,11 @@ def ask(query: str) -> Answer:
 
     # Station-name resolution is off for parking
     chunks = retrieve(query, resolve=(intent != "parking-rules"))
+
+    # Alert answers ground in live alerts
+    if intent == "alert":
+        chunks = fetch_alerts(query) + chunks
+
     now = datetime.now().isoformat()
     return generate(query, chunks, intent, now)
 
