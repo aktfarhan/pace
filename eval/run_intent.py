@@ -35,9 +35,9 @@ def classify_deterministic(query):
 # Create eval/runs/
 RUNS_DIR.mkdir(exist_ok=True)
 
-# Overwrite reruns on the same day, new file otherwise
-today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-output_path = RUNS_DIR / f"intent-{today}.jsonl"
+# One timestamped file per run
+run_stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d-%H%M%S")
+output_path = RUNS_DIR / f"intent-{run_stamp}.jsonl"
 
 # Load intent.md and drop its YAML header
 system_prompt = load_prompt("intent.md")
