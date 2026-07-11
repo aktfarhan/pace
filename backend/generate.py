@@ -43,7 +43,8 @@ def generate(
 
     Returns:
         The parsed answer JSON (answer, sources, risk, should_refuse,
-        refuse_reason).
+        refuse_reason). An answer citing a chunk that was never provided
+        comes back as a refusal.
     """
     # Shape the chunks the way generate.md expects
     chunk_inputs = []
@@ -68,7 +69,20 @@ def generate(
         ],
         response_format={"type": "json_object"},
     )
-    return json.loads(response.choices[0].message.content)
+    result: Answer = json.loads(response.choices[0].message.content)
+
+    # A cited source that was never retrieved means the answer is invented
+    chunk_ids = {chunk["id"] for chunk in chunk_inputs}
+    for source in result["sources"]:
+        if source not in chunk_ids:
+            return {
+                "answer": "",
+                "sources": [],
+                "risk": None,
+                "should_refuse": True,
+                "refuse_reason": "low-confidence",
+            }
+    return result
 
 
 if __name__ == "__main__":

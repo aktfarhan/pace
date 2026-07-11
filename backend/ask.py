@@ -28,6 +28,16 @@ def ask(query: str) -> Answer:
             "refuse_reason": "off-topic",
         }
 
+    # Trips need the planner — refuse until it's built
+    if intent == "route":
+        return {
+            "answer": "",
+            "sources": [],
+            "risk": None,
+            "should_refuse": True,
+            "refuse_reason": "low-confidence",
+        }
+
     # Station-name resolution is off for parking
     chunks = retrieve(query, resolve=(intent != "parking-rules"))
 

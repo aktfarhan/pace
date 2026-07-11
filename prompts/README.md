@@ -44,7 +44,7 @@ Every eval run records the prompt versions used.
 ## Editing flow
 
 1. Edit the prompt file
-2. Bump `version` and update `hash` to the new short git hash
-3. Run `python -m eval.run --suite all` and confirm metrics held or improved
+2. Bump `version` and update `hash` to the current short git hash
+3. Run the evals (`run_intent`, `run_retrieval`, `run_answers`) and confirm metrics held or improved
 4. If a regression: revert, do not ship the change
-5. Commit prompt + new eval run together — they're a pair
+5. Commit only after the re-run is green

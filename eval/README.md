@@ -89,6 +89,16 @@ Run with `python -m eval.run_retrieval`. Target is 100% at Recall@5. Re-run afte
 
 ---
 
+## Answer set
+
+`run_answers.py` runs every text query in `seed.jsonl` through the full pipeline and checks: answered when it should answer, refused when it should refuse.
+
+Expected action comes from `expected_action`, except domains listed in `NOT_BUILT` inside the runner — their data layer doesn't exist yet, so refusing is correct until it ships. Skips `image` queries until the sign reader exists.
+
+Run with `python -m eval.run_answers`. Re-run after any prompt change.
+
+---
+
 ## Splits
 
 - `seed.jsonl` — dev set, tune freely
