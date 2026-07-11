@@ -61,9 +61,38 @@ Within each domain, writing styles mix as:
 
 ---
 
+## Retrieval set
+
+Each line in `retrieval.jsonl` is one retrieval check: the expected chunk should come back in the top 5.
+
+```
+{
+  "id": "r-0001",
+  "query": "what buses stop at central",
+  "expected": ["stop:place-cntsq"],
+  "resolve": true,
+  "notes": "2026-07-10: ranked below 20; Lynn 426 and suburban Central St stops won"
+}
+```
+
+Fields:
+
+| Field      | Values                                              |
+| ---------- | --------------------------------------------------- |
+| `id`       | unique string                                       |
+| `query`    | the user-facing question                            |
+| `expected` | chunk ids that answer the query; hit if any returns |
+| `resolve`  | station-name resolution on or off                   |
+| `notes`    | author commentary                                   |
+
+Run with `python -m eval.run_retrieval`. Target is 100% at Recall@5. Re-run after any retrieval change.
+
+---
+
 ## Splits
 
 - `seed.jsonl` — dev set, tune freely
+- `retrieval.jsonl` — retrieval checks, re-run after any retrieval change
 - `holdout.jsonl` — final-number set, never tuned against
 - `signs/` — parking sign photos + `signs/labels.jsonl`
 

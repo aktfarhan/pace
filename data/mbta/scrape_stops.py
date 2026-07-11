@@ -18,7 +18,7 @@ PAGE_LIMIT = 200
 
 print(f"Scraping MBTA stops -> {OUT_PATH.name}")
 
-# Paginate until we get a short page (< 200)
+# Paginate until a short page (< 200)
 all_stops = []
 offset = 0
 while True:

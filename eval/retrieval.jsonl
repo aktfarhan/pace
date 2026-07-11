@@ -1,0 +1,19 @@
+{"id":"r-0001","query":"what buses stop at central","expected":["stop:place-cntsq"],"resolve":true,"notes":"2026-07-10: ranked below 20; Lynn 426 and suburban Central St stops won"}
+{"id":"r-0002","query":"what buses stop at central square","expected":["stop:place-cntsq"],"resolve":true,"notes":"2026-07-10: not in top 8 pre-resolver"}
+{"id":"r-0003","query":"is central square wheelchair accessible?","expected":["stop:place-cntsq"],"resolve":true,"notes":"q-0031 depends on this retrieval"}
+{"id":"r-0004","query":"what buses stop at harvard","expected":["stop:place-harsq"],"resolve":true,"notes":"2026-07-10: rank 15; Harvard Stadium stop won"}
+{"id":"r-0005","query":"what buses stop at harvard square","expected":["stop:place-harsq"],"resolve":true,"notes":"2026-07-10: rank 13 pre-resolver"}
+{"id":"r-0006","query":"what buses stop at davis","expected":["stop:place-davis"],"resolve":true,"notes":"2026-07-10: rank 10 pre-resolver"}
+{"id":"r-0007","query":"what buses stop at davis square","expected":["stop:place-davis"],"resolve":true,"notes":"2026-07-10: rank 8 pre-resolver"}
+{"id":"r-0008","query":"where is davis station located?","expected":["stop:place-davis"],"resolve":true,"notes":"q-0033 depends on this retrieval"}
+{"id":"r-0009","query":"what buses at kendall","expected":["stop:place-knncl"],"resolve":true,"notes":"slash name: Kendall/MIT must match bare kendall"}
+{"id":"r-0010","query":"is kendall square wheelchair accessible","expected":["stop:place-knncl"],"resolve":true,"notes":"slash name plus square form"}
+{"id":"r-0011","query":"what buses stop at nubian","expected":["stop:place-nubn"],"resolve":true,"notes":"bus-only station, no rail sentence"}
+{"id":"r-0012","query":"can i get a ferry at aquarium","expected":["stop:place-aqucl"],"resolve":true,"notes":"connecting ferries folded into the station chunk"}
+{"id":"r-0013","query":"does the red line go to alewife","expected":["route:Red","stop:place-alfcl"],"resolve":true,"notes":"either chunk answers it"}
+{"id":"r-0014","query":"how much is the red line","expected":["route:Red"],"resolve":true,"notes":"fare_class lives on the route chunk"}
+{"id":"r-0015","query":"is the red line messed up rn","expected":["route:Red"],"resolve":true,"notes":"no live alerts yet; route chunk is the fallback"}
+{"id":"r-0016","query":"when is street cleaning on beacon st between chestnut hill ave and the newton line","expected":["street-cleaning:502"],"resolve":false,"notes":"resolve off for parking"}
+{"id":"r-0017","query":"kendall to logan need to be there by 4pm","expected":["stop:place-knncl"],"resolve":true,"notes":"resolver runs on route intent too"}
+{"id":"r-0018","query":"where does the 66 bus go","expected":["route:66"],"resolve":true,"notes":"bus route chunk retrieval, no station named"}
+{"id":"r-0019","query":"what stops are on the green line b","expected":["route:Green-B"],"resolve":true,"notes":"branch naming: Green Line B chunk"}
