@@ -28,6 +28,13 @@ WHEELCHAIR_LABEL = {
 # Compass directions get a "bound" suffix ("Northbound")
 COMPASS = {"North", "South", "East", "West"}
 
+# Route fare_class to its GTFS fare product
+FARE_PRODUCTS = {
+    "Rapid Transit": "prod_rapid_transit_smartcard",
+    "Local Bus": "prod_local_bus_smartcard",
+    "Inner Express": "prod_express_bus_smartcard",
+}
+
 # Load raw MBTA records — the external boundary. Validation belongs at the
 # backend ingestion step, not this audited one-shot prep.
 stops: list[dict[str, Any]] = json.load((RAW / "stops.json").open(encoding="utf-8"))
@@ -35,6 +42,7 @@ routes: list[dict[str, Any]] = json.load((RAW / "routes.json").open(encoding="ut
 route_stops: dict[str, list[str]] = json.load(
     (RAW / "route_stops.json").open(encoding="utf-8")
 )
+fares: dict[str, Any] = json.load((RAW / "fares.json").open(encoding="utf-8"))
 
 # Index lookups
 stop_by_id = {stop["id"]: stop for stop in stops}
@@ -104,18 +112,87 @@ def stop_mode(stop: dict[str, Any], route_ids: list[str]) -> tuple[str, list[int
 
 
 def fare_zone_phrase(zone: str | None) -> str | None:
-    """Formats a stop's fare zone, or returns None when it adds nothing.
+    """Formats a stop's fare zone and price, or None when it adds nothing.
 
     Args:
         zone: A stop's fare zone id (e.g. "CR-zone-3", "LocalBus"), or None.
 
     Returns:
-        "Commuter Rail Zone N" for Commuter Rail stops, where the zone
-        is what sets the fare.
+        "Commuter Rail Zone 3 fare, $8.00 one way." for Commuter Rail
+        stops, where the zone is what sets the fare.
     """
-    if zone and zone.startswith("CR-zone-"):
-        return f"Commuter Rail Zone {zone.removeprefix('CR-zone-')}"
-    return None
+    if not zone or not zone.startswith("CR-zone-"):
+        return None
+
+    # "CR-zone-3" -> the prod_cr_zone_3 price
+    suffix = zone.removeprefix("CR-zone-")
+    product = fares.get(f"prod_cr_zone_{suffix.lower()}")
+    if product:
+        return f"Commuter Rail Zone {suffix} fare, ${product['amount']:.2f} one way."
+    return f"Commuter Rail Zone {suffix} fare."
+
+
+def zone_range(prefix: str) -> tuple[float, float]:
+    """Returns the lowest and highest amounts across a zone product family.
+
+    Args:
+        prefix: A fare product id prefix ("prod_cr_zone_").
+
+    Returns:
+        Tuple of (low, high) one-way amounts.
+    """
+    # Every product in the family
+    amounts = []
+    for product_id, product in fares.items():
+        if product_id.startswith(prefix):
+            amounts.append(product["amount"])
+    return min(amounts), max(amounts)
+
+
+def ferry_range() -> tuple[float, float]:
+    """Returns the lowest and highest one-way ferry fares.
+
+    Returns:
+        Tuple of (low, high) one-way amounts. Ferry products split across
+        two id families, and Georges Island is round-trip only.
+    """
+    amounts = []
+    for product_id, product in fares.items():
+        if not product_id.startswith(("prod_boat_", "prod_ferry_")):
+            continue
+        if "one-way" not in product["name"]:
+            continue
+        amounts.append(product["amount"])
+    return min(amounts), max(amounts)
+
+
+def fare_sentence(fare_class: str) -> str:
+    """Formats a route's fare with its price when the data has one.
+
+    Args:
+        fare_class: The route's fare_class ("Rapid Transit", "Local Bus").
+
+    Returns:
+        Flat fares get the price ("Rapid Transit fare, $2.40 one way with
+        a CharlieCard."); Commuter Rail and Ferry get their zone range;
+        anything else keeps the bare class ("Free fare.").
+    """
+    # Flat fares: subway and buses
+    product_id = FARE_PRODUCTS.get(fare_class)
+    if product_id and product_id in fares:
+        amount = fares[product_id]["amount"]
+        return f"{fare_class} fare, ${amount:.2f} one way with a CharlieCard."
+
+    # Zone fares: the range here; the stop chunk carries the exact zone price
+    if fare_class == "Commuter Rail":
+        low, high = zone_range("prod_cr_zone_")
+        return f"Commuter Rail fare, ${low:.2f}-${high:.2f} one way by zone."
+    if fare_class == "Ferry":
+        low, high = ferry_range()
+        return f"Ferry fare, ${low:.2f}-${high:.2f} one way by route."
+
+    # Free and Special keep the bare class
+    return f"{fare_class} fare."
 
 
 def connecting_route_ids(stop: dict[str, Any], route_ids: list[str]) -> list[str]:
@@ -213,7 +290,7 @@ def render_stop(stop: dict[str, Any], route_ids: list[str]) -> StopChunk:
     zone = zone_data["id"] if zone_data else None
     fare_zone = fare_zone_phrase(zone)
     if fare_zone:
-        sentences.append(f"{fare_zone} fare.")
+        sentences.append(fare_zone)
 
     text = " ".join(sentences)
 
@@ -284,8 +361,8 @@ def render_route(route: dict[str, Any]) -> RouteChunk:
     else:
         sentences.append(f"{stop_count} stops.")
 
-    # Fare class
-    sentences.append(f"{attributes['fare_class']} fare.")
+    # Fare class with the price when the data has one
+    sentences.append(fare_sentence(attributes["fare_class"]))
 
     text = " ".join(sentences)
 
