@@ -1,13 +1,13 @@
 """Fetch live departure predictions and scheduled times for the stops named in a query."""
 
 import os
-import re
 import sys
 from datetime import date, datetime, timedelta, timezone
 
 import httpx
 from dotenv import load_dotenv
 
+from backend.classify import ParsedQuery
 from backend.retrieve import Row, match_route_ids, match_station_ids
 from data.schema import connect
 
@@ -82,48 +82,35 @@ def service_day(now: datetime) -> tuple[str, str]:
     return now.date().isoformat(), f"{now.hour:02d}:{now.minute:02d}"
 
 
-def requested_date(query: str, now: datetime) -> str | None:
-    """Finds the day the query asks about.
+def requested_date(day: str | None, now: datetime) -> str | None:
+    """Turns the parsed query's day into a date.
 
     Args:
-        query: The user's question.
+        day: The parsed day ("saturday", "today", "tonight", "tomorrow"),
+            or None when the query named no day.
         now: The local time of the query.
 
     Returns:
         "YYYY-MM-DD" for a named weekday (the next one, counting today),
         today for "today"/"tonight", tomorrow for "tomorrow".
     """
-    lowered = query.lower()
-
-    # A named weekday, "sundays" included: the next one, counting today
-    for word, weekday in WEEKDAYS.items():
-        if re.search(rf"\b{word}s?\b", lowered):
-            # Days until that weekday, counting today as zero
-            ahead = (weekday - now.weekday()) % 7
-            return (now.date() + timedelta(days=ahead)).isoformat()
+    if day is None:
+        return None
 
     # Tomorrow's date
-    if re.search(r"\btomorrow\b", lowered):
+    if day == "tomorrow":
         return (now.date() + timedelta(days=1)).isoformat()
 
     # Today and tonight land on the same date
-    if re.search(r"\b(today|tonight)\b", lowered):
+    if day in ("today", "tonight"):
         return now.date().isoformat()
 
+    # A named weekday: the next one, counting today as zero days ahead
+    if day in WEEKDAYS:
+        ahead = (WEEKDAYS[day] - now.weekday()) % 7
+        return (now.date() + timedelta(days=ahead)).isoformat()
+
     return None
-
-
-def has_deadline(query: str) -> bool:
-    """Tells whether the query asks to arrive by a clock time.
-
-    Args:
-        query: The user's question.
-
-    Returns:
-        True for deadline asks ("by 10am", "before 5:30 pm").
-    """
-    deadline = r"\b(by|before|at)\s*\d{1,2}(:\d{2})?\s*(am|pm)\b"
-    return re.search(deadline, query.lower()) is not None
 
 
 def departure_groups(rows: list[dict]) -> dict[tuple[str, int], list[str]]:
@@ -284,11 +271,12 @@ def render_edge(
     return (row_id, "schedule", text, metadata, 0.0)
 
 
-def fetch_departures(query: str) -> list[Row]:
-    """Fetches upcoming departures for the stops named in a query.
+def fetch_departures(query: str, parsed: ParsedQuery) -> list[Row]:
+    """Fetches upcoming departures for the stop the user leaves from.
 
     Args:
         query: The user's question.
+        parsed: The classifier's read of the query.
 
     Returns:
         Departure rows shaped like retrieved chunks. Live predictions
@@ -299,10 +287,11 @@ def fetch_departures(query: str) -> list[Row]:
     now = datetime.now()
     retrieved_at = datetime.now(timezone.utc).isoformat()
 
-    # Match the stations and routes the query names
+    # The parsed origin names the boarding stop; routes match from the query
     connection = connect()
     with connection.cursor() as cursor:
-        station_ids = match_station_ids(cursor, query)
+        origin = parsed["origin"]
+        station_ids = match_station_ids(cursor, origin) if origin else []
         route_ids = match_route_ids(cursor, query)
         if not station_ids:
             return []
@@ -327,9 +316,8 @@ def fetch_departures(query: str) -> list[Row]:
         station_names = dict(cursor.fetchall())
 
     # First and last questions read the schedule instead of predictions
-    lowered = query.lower()
-    wants_first = re.search(r"\bfirst\b", lowered) is not None
-    wants_last = re.search(r"\blast\b", lowered) is not None
+    wants_first = parsed["edge"] in ("first", "both")
+    wants_last = parsed["edge"] in ("last", "both")
 
     rows = []
     for chunk_id in station_ids:
@@ -343,7 +331,7 @@ def fetch_departures(query: str) -> list[Row]:
 
         # First and last run on the schedule for the asked day
         if wants_first or wants_last:
-            target = requested_date(query, now) or now.date().isoformat()
+            target = requested_date(parsed["day"], now) or now.date().isoformat()
             day_name = date.fromisoformat(target).strftime("%A")
             # Last reads the day backward from 3 PM
             edges = []
@@ -412,6 +400,9 @@ def fetch_departures(query: str) -> list[Row]:
 
 
 if __name__ == "__main__":
+    from backend.classify import classify
+
     query = sys.argv[1]
-    for chunk_id, kind, text, metadata, distance in fetch_departures(query):
+    parsed = classify(query)
+    for chunk_id, kind, text, metadata, distance in fetch_departures(query, parsed):
         print(f"{chunk_id} {text}")

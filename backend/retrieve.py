@@ -146,7 +146,7 @@ def retrieve(query: str, k: int = 5, resolve: bool = True) -> list[Row]:
             cursor.execute(FETCH, (query_vector, station_ids))
             rows.extend(cursor.fetchall())
 
-        # Vector search fills the remaining slots
+        # Vector search fills the rest
         cursor.execute(SEARCH, (query_vector, k))
 
         # Track resolved ids so vector results don't duplicate

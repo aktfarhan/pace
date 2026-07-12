@@ -7,7 +7,7 @@ from backend.classify import classify
 from backend.alerts import fetch_alerts
 from backend.generate import Answer, generate
 from backend.retrieve import retrieve
-from backend.schedules import fetch_departures, has_deadline
+from backend.schedules import fetch_departures
 
 
 def ask(query: str) -> Answer:
@@ -19,7 +19,8 @@ def ask(query: str) -> Answer:
     Returns:
         The generator's answer JSON.
     """
-    intent = classify(query)
+    parsed = classify(query)
+    intent = parsed["intent"]
     if intent == "off-topic":
         return {
             "answer": "",
@@ -40,7 +41,7 @@ def ask(query: str) -> Answer:
         }
 
     # Leave-by-a-time questions need travel time — the planner; refuse until then
-    if intent == "schedule" and has_deadline(query):
+    if intent == "schedule" and parsed["deadline"]:
         return {
             "answer": "",
             "sources": [],
@@ -58,7 +59,7 @@ def ask(query: str) -> Answer:
 
     # Schedule answers ground in live departures
     if intent == "schedule":
-        chunks = fetch_departures(query) + chunks
+        chunks = fetch_departures(query, parsed) + chunks
 
     now = datetime.now().isoformat()
     return generate(query, chunks, intent, now)
