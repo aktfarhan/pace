@@ -18,7 +18,7 @@ SEED_PATH = ROOT / "eval" / "seed.jsonl"
 RUNS_DIR = ROOT / "eval" / "runs"
 
 # Domains whose data layer isn't built yet
-NOT_BUILT = {"route", "schedule", "parking-rules"}
+NOT_BUILT = {"route", "parking-rules"}
 
 # One timestamped file per run
 run_stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d-%H%M%S")

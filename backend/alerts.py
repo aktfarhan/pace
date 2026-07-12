@@ -1,15 +1,13 @@
 """Fetch live MBTA alerts for the routes and stations named in a query."""
 
 import os
-import re
 import sys
 from datetime import datetime, timezone
 
 import httpx
-import psycopg
 from dotenv import load_dotenv
 
-from backend.retrieve import Row, match_station_ids
+from backend.retrieve import Row, match_route_ids, match_station_ids
 from data.schema import connect
 
 # Reads the .env
@@ -20,48 +18,6 @@ BASE_URL = "https://api-v3.mbta.com"
 
 # System-wide fetches keep the biggest alerts only
 TOP_ALERTS = 8
-
-ROUTES = """
-    SELECT metadata->>'route_id' AS route_id,
-           metadata->>'long_name' AS long_name,
-           metadata->>'short_name' AS short_name
-    FROM chunks WHERE kind = 'route';
-"""
-
-
-def match_route_ids(cursor: psycopg.Cursor, query: str) -> list[str]:
-    """Finds routes named in the query.
-
-    Args:
-        cursor: An open cursor on the database.
-        query: The user's question.
-
-    Returns:
-        Route IDs whose long_name or short_name appears in the query.
-        Slash names match by part. A trailing branch letter is dropped.
-    """
-    cursor.execute(ROUTES)
-    matched = []
-    lowered = query.lower()
-    for route_id, long_name, short_name in cursor.fetchall():
-        # Name phrases this route answers to
-        phrases = long_name.lower().split("/")
-
-        # Drop trailing branch letter so "green line" matches Green Line B
-        first, _, last = long_name.lower().rpartition(" ")
-        if first and len(last) == 1:
-            phrases.append(first)
-
-        # Bus short names ("1", "66")
-        if short_name:
-            phrases.append(short_name.lower())
-
-        # Word-boundary match against the query
-        for phrase in phrases:
-            if re.search(rf"\b{re.escape(phrase)}\b", lowered):
-                matched.append(route_id)
-                break
-    return matched
 
 
 def render_alert(alert: dict, retrieved_at: str) -> Row:
