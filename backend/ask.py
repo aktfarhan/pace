@@ -31,16 +31,6 @@ def ask(query: str) -> Answer:
             "refuse_reason": "off-topic",
         }
 
-    # Leave-by-a-time questions need the arrive-by scan — refuse until it's built
-    if intent in ("route", "schedule") and parsed["deadline"]:
-        return {
-            "answer": "",
-            "sources": [],
-            "risk": None,
-            "should_refuse": True,
-            "refuse_reason": "low-confidence",
-        }
-
     # Station-name resolution is off for parking
     chunks = retrieve(query, resolve=(intent != "parking-rules"))
 
@@ -61,9 +51,21 @@ def ask(query: str) -> Answer:
     if intent == "alert":
         chunks = fetch_alerts(query) + chunks
 
-    # Schedule answers ground in live departures
+    # Schedule answers ground in live departures; leave-by questions in a plan
     if intent == "schedule":
-        chunks = fetch_departures(query, parsed) + chunks
+        if parsed["deadline"]:
+            plan = plan_trip(query, parsed)
+            if not plan:
+                return {
+                    "answer": "",
+                    "sources": [],
+                    "risk": None,
+                    "should_refuse": True,
+                    "refuse_reason": "low-confidence",
+                }
+            chunks = plan + chunks
+        else:
+            chunks = fetch_departures(query, parsed) + chunks
 
     now = datetime.now().isoformat()
     return generate(query, chunks, intent, now)

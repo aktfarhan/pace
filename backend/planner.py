@@ -19,6 +19,52 @@ from data.schema import connect
 INFINITY = float("inf")
 
 
+def parse_clock(text: str) -> int | None:
+    """Turns a classifier clock string into seconds since midnight.
+
+    Args:
+        text: A clock time like "10:17 PM".
+
+    Returns:
+        Seconds since midnight, or None.
+    """
+    try:
+        moment = datetime.strptime(text, "%I:%M %p")
+    except ValueError:
+        return None
+    return moment.hour * 3600 + moment.minute * 60
+
+
+def deadline_moment(deadline: str, day: str | None, now: datetime) -> tuple | None:
+    """Places a deadline clock time on its service day.
+
+    Args:
+        deadline: The classifier's clock string ("10:17 PM").
+        day: The parsed day word, or None.
+        now: The time of the query.
+
+    Returns:
+        Tuple of (service_date, deadline_seconds) or None.
+    """
+    clock_seconds = parse_clock(deadline)
+    if clock_seconds is None:
+        return None
+
+    # The calendar date: named day, today if still ahead, else tomorrow
+    if day:
+        target = date.fromisoformat(requested_date(day, now))
+    elif clock_seconds > now.hour * 3600 + now.minute * 60:
+        target = now.date()
+    else:
+        target = now.date() + timedelta(days=1)
+
+    # Before the rollover
+    if clock_seconds < SERVICE_ROLLOVER_HOUR * 3600:
+        return target - timedelta(days=1), clock_seconds + 24 * 3600
+
+    return target, clock_seconds
+
+
 def service_moment(service_date: date, seconds: int) -> datetime:
     """Turns seconds into a service day back into datetime.
 
@@ -57,6 +103,58 @@ def station_name(stop_id: str, names: dict, parents: dict) -> str:
         The parent station's name when it's available.
     """
     return names[parents.get(stop_id, stop_id)]
+
+
+def mirror_connections(connections: list[tuple]) -> list[tuple]:
+    """Flips the day's connections into reversed time.
+
+    Args:
+        connections: The day's connections, sorted by departure.
+
+    Returns:
+        The connections reversed in time and sorted.
+    """
+    mirrored = []
+    # Reversed so same-minute connections keep reverse riding order
+    for connection in reversed(connections):
+        (
+            departure_seconds,
+            departure_stop,
+            arrival_seconds,
+            arrival_stop,
+            trip_id,
+            boardable,
+            alightable,
+        ) = connection
+        mirrored.append(
+            (
+                -arrival_seconds,
+                arrival_stop,
+                -departure_seconds,
+                departure_stop,
+                trip_id,
+                alightable,
+                boardable,
+            )
+        )
+    mirrored.sort(key=lambda connection: connection[0])
+    return mirrored
+
+
+def mirror_footpaths(footpaths: dict) -> dict:
+    """Flips the walking map for a backward scan.
+
+    Args:
+        footpaths: The walking transfers out of each stop.
+
+    Returns:
+        The same walks pointing the other way.
+    """
+    mirrored = {}
+    for from_stop, walks in footpaths.items():
+        for to_stop, walk_seconds in walks:
+            mirrored.setdefault(to_stop, []).append((from_stop, walk_seconds))
+    return mirrored
 
 
 def scan(
@@ -196,6 +294,44 @@ def build_legs(
     # Flip into travel order
     legs.reverse()
     return legs
+
+
+def unmirror_legs(legs: list[dict]) -> list[dict]:
+    """Turns backward-scan legs back into real travel order.
+
+    Args:
+        legs: Legs built from a mirrored scan.
+
+    Returns:
+        The legs with times and destinations, in travel order.
+    """
+    unmirrored = []
+    for leg in legs:
+        if leg["kind"] == "walk":
+            unmirrored.append(
+                {
+                    "kind": "walk",
+                    "from_stop": leg["to_stop"],
+                    "to_stop": leg["from_stop"],
+                    "depart_seconds": -leg["arrive_seconds"],
+                    "arrive_seconds": -leg["depart_seconds"],
+                }
+            )
+        else:
+            unmirrored.append(
+                {
+                    "kind": "ride",
+                    "trip_id": leg["trip_id"],
+                    "board_stop": leg["alight_stop"],
+                    "alight_stop": leg["board_stop"],
+                    "depart_seconds": -leg["arrive_seconds"],
+                    "arrive_seconds": -leg["depart_seconds"],
+                }
+            )
+
+    # Flip into travel order
+    unmirrored.reverse()
+    return unmirrored
 
 
 def render_legs(
@@ -349,18 +485,29 @@ def plan_trip(query: str, parsed: ParsedQuery) -> list[Row]:
         text = "Origin and destination are the same stop."
         return [("plan:none", "plan", text, {"retrieved_at": retrieved_at}, 0.0)]
 
-    # The service day and the departure seconds on it
-    if parsed["day"]:
+    # The current moment in service time
+    if now.hour < SERVICE_ROLLOVER_HOUR:
+        # Past midnight the service clock keeps counting
+        now_date = now.date() - timedelta(days=1)
+        now_seconds = (now.hour + 24) * 3600 + now.minute * 60
+    else:
+        now_date = now.date()
+        now_seconds = now.hour * 3600 + now.minute * 60
+
+    # The service day: backward from a deadline, else forward
+    deadline = None
+    if parsed["deadline"]:
+        placed = deadline_moment(parsed["deadline"], parsed["day"], now)
+        if placed is None:
+            return []
+        service_date, deadline = placed
+    elif parsed["day"]:
         # A named day plans that date around the current time
         service_date = date.fromisoformat(requested_date(parsed["day"], now))
         depart_seconds = now.hour * 3600 + now.minute * 60
-    elif now.hour < SERVICE_ROLLOVER_HOUR:
-        # Past midnight the service clock keeps counting
-        service_date = now.date() - timedelta(days=1)
-        depart_seconds = (now.hour + 24) * 3600 + now.minute * 60
     else:
-        service_date = now.date()
-        depart_seconds = now.hour * 3600 + now.minute * 60
+        service_date = now_date
+        depart_seconds = now_seconds
 
     # The day's timetable
     routes = load_routes()
@@ -370,32 +517,58 @@ def plan_trip(query: str, parsed: ParsedQuery) -> list[Row]:
     connections = load_connections(trips)
     names, children, parents = load_stops()
 
-    # Sources and targets from the stations' platforms
-    sources = {}
+    # The stations' platforms on both sides
+    origin_platforms = []
+    destination_platforms = []
     for parent in origin_parents:
-        for child in children.get(parent, [parent]):
-            sources[child] = depart_seconds
-
-    # Arrival at any destination platform counts
-    targets = set()
+        origin_platforms.extend(children.get(parent, [parent]))
     for parent in destination_parents:
-        targets.update(children.get(parent, [parent]))
+        destination_platforms.extend(children.get(parent, [parent]))
 
-    # Find the earliest arrival
-    best_stop, earliest, arrived_via, boarded = scan(
-        connections, footpaths, sources, targets
-    )
+    # A deadline scans backward from the destination
+    if deadline is not None:
+        sources = {}
+        for platform in destination_platforms:
+            sources[platform] = -deadline
+        best_stop, earliest, arrived_via, boarded = scan(
+            mirror_connections(connections),
+            mirror_footpaths(footpaths),
+            sources,
+            set(origin_platforms),
+        )
+    else:
+        sources = {}
+        for platform in origin_platforms:
+            sources[platform] = depart_seconds
+        best_stop, earliest, arrived_via, boarded = scan(
+            connections, footpaths, sources, set(destination_platforms)
+        )
+
+    # A leave time already in the past is not makeable
+    if deadline is not None and best_stop is not None:
+        if service_date == now_date and -earliest[best_stop] < now_seconds:
+            best_stop = None
 
     # Nothing reachable on the day's timetable
     if best_stop is None:
-        text = (
-            f"No route found from {names[origin_parents[0]]} to "
-            f"{names[destination_parents[0]]} as of "
-            f"{service_clock(service_date, depart_seconds)}."
-        )
+        if deadline is not None:
+            text = (
+                f"No route from {names[origin_parents[0]]} arrives at "
+                f"{names[destination_parents[0]]} by "
+                f"{service_clock(service_date, deadline)}."
+            )
+        else:
+            text = (
+                f"No route found from {names[origin_parents[0]]} to "
+                f"{names[destination_parents[0]]} as of "
+                f"{service_clock(service_date, depart_seconds)}."
+            )
         return [("plan:none", "plan", text, {"retrieved_at": retrieved_at}, 0.0)]
 
     legs = build_legs(best_stop, earliest, arrived_via, boarded)
+    if deadline is not None:
+        legs = unmirror_legs(legs)
+
     return render_legs(legs, service_date, names, parents, routes, trips, retrieved_at)
 
 
