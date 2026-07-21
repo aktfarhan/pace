@@ -6,6 +6,7 @@ from datetime import datetime
 from backend.classify import classify
 from backend.alerts import fetch_alerts
 from backend.generate import Answer, generate
+from backend.planner import plan_trip
 from backend.retrieve import retrieve
 from backend.schedules import fetch_departures
 
@@ -30,18 +31,8 @@ def ask(query: str) -> Answer:
             "refuse_reason": "off-topic",
         }
 
-    # Trips need the planner — refuse until it's built
-    if intent == "route":
-        return {
-            "answer": "",
-            "sources": [],
-            "risk": None,
-            "should_refuse": True,
-            "refuse_reason": "low-confidence",
-        }
-
-    # Leave-by-a-time questions need travel time — the planner; refuse until then
-    if intent == "schedule" and parsed["deadline"]:
+    # Leave-by-a-time questions need the arrive-by scan — refuse until it's built
+    if intent in ("route", "schedule") and parsed["deadline"]:
         return {
             "answer": "",
             "sources": [],
@@ -52,6 +43,19 @@ def ask(query: str) -> Answer:
 
     # Station-name resolution is off for parking
     chunks = retrieve(query, resolve=(intent != "parking-rules"))
+
+    # Trip answers ground in a computed plan
+    if intent == "route":
+        plan = plan_trip(query, parsed)
+        if not plan:
+            return {
+                "answer": "",
+                "sources": [],
+                "risk": None,
+                "should_refuse": True,
+                "refuse_reason": "low-confidence",
+            }
+        chunks = plan + chunks
 
     # Alert answers ground in live alerts
     if intent == "alert":
