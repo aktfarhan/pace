@@ -4,7 +4,7 @@ import json
 from collections.abc import Callable, Iterator
 from pathlib import Path
 
-from data.places.normalize import normalize_street
+from data.places.normalize import normalize_street, title_case
 from data.schema import connect
 
 ROOT = Path(__file__).resolve().parent.parent.parent
@@ -64,11 +64,11 @@ def parse_massgis(row: dict) -> tuple | None:
 
     # The postal name
     postal = row.get("PC_NAME")
-    neighborhood = postal.title() if postal and postal != town else None
+    neighborhood = title_case(postal) if postal and postal != town else None
     return (
         town_id,
-        town.title(),
-        street.title(),
+        title_case(town),
+        title_case(street),
         neighborhood,
         number_text,
         number,
@@ -140,14 +140,17 @@ with connection.cursor() as cursor:
     cursor.execute(CREATE_STAGING)
 
     # Towns and streets, with every point copied
-    towns = {}
+    town_names = {}
     streets = {}
     copy_sql = "COPY staging (street_id, number_text, number, lat, lon) FROM STDIN"
     with cursor.copy(copy_sql) as copy:
         for filename, parse in SOURCES:
             for row in read_addresses(RAW_DIR / filename, parse):
                 town_id, town, street, neighborhood, number_text, number, lat, lon = row
-                towns[town_id] = town
+
+                # A few rows carry a neighbour's town name
+                seen = town_names.setdefault(town_id, {})
+                seen[town] = seen.get(town, 0) + 1
 
                 # A street is its name in one town, split by neighborhood
                 key = (town_id, normalize_street(street), neighborhood)
@@ -166,11 +169,12 @@ with connection.cursor() as cursor:
                 streets[key]["points"] += 1
                 copy.write_row((streets[key]["id"], number_text, number, lat, lon))
 
-    print(f"  {len(towns)} towns, {len(streets):,} streets")
+    print(f"  {len(town_names)} towns, {len(streets):,} streets")
 
     # Streets and points rebuild from scratch
     cursor.execute("TRUNCATE address_points, streets;")
-    for town_id, town in sorted(towns.items()):
+    for town_id, seen in sorted(town_names.items()):
+        town = max(seen, key=seen.get)
         cursor.execute(UPSERT_TOWN, (town_id, town.lower(), town))
 
     # The center is the middle of the street's own points
@@ -195,4 +199,6 @@ with connection.cursor() as cursor:
     point_count = cursor.fetchone()[0]
 connection.commit()
 
-print(f"Loaded {len(towns)} towns, {len(streets):,} streets, {point_count:,} points")
+print(
+    f"Loaded {len(town_names)} towns, {len(streets):,} streets, {point_count:,} points"
+)

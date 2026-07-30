@@ -76,8 +76,10 @@ CREATE_PLACES = """
     CREATE TABLE IF NOT EXISTS places (
         id         text PRIMARY KEY,
         kind       text NOT NULL,
+        category   text,
         name       text NOT NULL,
         display    text NOT NULL,
+        address    text,
         agency     text,
         station_id text,
         town_id    integer REFERENCES towns(id),
@@ -122,6 +124,6 @@ def ensure_schema(connection: psycopg.Connection) -> None:
 
 
 if __name__ == "__main__":
-    with connect() as connection: 
+    with connect() as connection:
         ensure_schema(connection)
     print("Schema ready: chunks, towns, streets, address_points, places")

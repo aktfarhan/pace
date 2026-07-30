@@ -1,4 +1,6 @@
-"""Normalize street names for matching."""
+"""Shape street names for matching and for display."""
+
+import re
 
 # Type words and their USPS short forms
 SUFFIXES = {
@@ -32,11 +34,23 @@ def normalize_street(name: str) -> str:
         name: A street name.
 
     Returns:
-        Lowercase, no periods, type words shortened.
+        Lowercase, no periods or apostrophes, type words shortened.
     """
-    words = name.lower().replace(".", "").split()
+    words = name.lower().replace(".", "").replace("'", "").split()
 
     shortened = []
     for word in words:
         shortened.append(SUFFIXES.get(word, word))
     return " ".join(shortened)
+
+
+def title_case(name: str) -> str:
+    """Cases a name for display.
+
+    Args:
+        name: A name in capitals.
+
+    Returns:
+        Title case with possessives left.
+    """
+    return re.sub(r"'S\b", "'s", name.title())
