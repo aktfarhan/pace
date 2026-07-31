@@ -6,6 +6,8 @@ from pathlib import Path
 import httpx
 import osmium
 
+from data.places.normalize import normalize_street
+
 ROOT = Path(__file__).resolve().parent.parent.parent
 RAW_DIR = ROOT / "data" / "raw" / "places"
 EXTRACT_PATH = RAW_DIR / "massachusetts-latest.osm.pbf"
@@ -52,8 +54,18 @@ SKIP_CATEGORIES = {
     "waste_disposal",
 }
 
-# The parts of a town people name
-PLACE_CATEGORIES = {"neighbourhood", "suburb", "quarter", "borough", "hamlet"}
+# Named places
+PLACE_CATEGORIES = {
+    "neighbourhood",
+    "suburb",
+    "quarter",
+    "borough",
+    "hamlet",
+    "town",
+    "city",
+    "village",
+    "square",
+}
 
 # Tags holding the other names a place goes by
 ALTERNATE_KEYS = ("short_name", "alt_name", "official_name")
@@ -121,6 +133,10 @@ def alternates(tags, name: str) -> list[str]:
         The other names, without the main or repeats.
     """
     names = []
+
+    # Names already covered
+    seen = {normalize_street(name)}
+
     for key in ALTERNATE_KEYS:
         value = tags.get(key)
         if not value:
@@ -129,7 +145,13 @@ def alternates(tags, name: str) -> list[str]:
         # Find and add alternate names to names
         for part in value.split(";"):
             part = part.strip()
-            if part and part != name and part not in names:
+            if not part:
+                continue
+
+            # Check if same name
+            shaped = normalize_street(part)
+            if shaped not in seen:
+                seen.add(shaped)
                 names.append(part)
     return names
 
@@ -210,6 +232,7 @@ with OUT_PATH.open("w", encoding="utf-8", newline="\n") as out_file:
             "street": feature.tags.get("addr:street"),
             "number": feature.tags.get("addr:housenumber"),
             "town": feature.tags.get("addr:city"),
+            "notable": feature.tags.get("wikipedia") is not None,
         }
         out_file.write(json.dumps(row, ensure_ascii=False) + "\n")
         kept += 1

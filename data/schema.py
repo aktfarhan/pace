@@ -77,6 +77,7 @@ CREATE_PLACES = """
         id         text PRIMARY KEY,
         kind       text NOT NULL,
         category   text,
+        notable    boolean NOT NULL DEFAULT false,
         name       text NOT NULL,
         display    text NOT NULL,
         address    text,

@@ -24,7 +24,11 @@ SUFFIXES = {
     "mount": "mt",
     "saint": "st",
     "point": "pt",
+    "plaza": "plz",
 }
+
+# For periods, apostrophes, and invisible characters
+NOISE = re.compile(r"[.'\u2019\u00ad\u200b\u200c\ufeff\x7f]")
 
 
 def normalize_street(name: str) -> str:
@@ -34,9 +38,10 @@ def normalize_street(name: str) -> str:
         name: A street name.
 
     Returns:
-        Lowercase, no periods or apostrophes, type words shortened.
+        Lowercase, no periods, apostrophes, or hidden
+        characters, with type words shortened.
     """
-    words = name.lower().replace(".", "").replace("'", "").split()
+    words = NOISE.sub("", name.lower()).split()
 
     shortened = []
     for word in words:

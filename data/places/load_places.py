@@ -24,8 +24,8 @@ STREET_NEIGHBORHOODS = """
 """
 INSERT_PLACE = """
     INSERT INTO places (id, kind, category, name, display, address,
-                        station_id, town_id, lat, lon, source)
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+                        station_id, town_id, lat, lon, notable, source)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
 """
 
 # OSM categories that name part of a town
@@ -35,7 +35,11 @@ NEIGHBOURHOOD_CATEGORIES = {
     "quarter",
     "borough",
     "hamlet",
+    "village",
 }
+
+# OSM categories that name a whole municipality
+TOWN_CATEGORIES = {"town", "city"}
 
 
 def build_grid(cursor) -> tuple[dict, dict]:
@@ -156,8 +160,14 @@ with connection.cursor() as cursor:
         if town_id is None:
             town_id = find_town(row["lat"], row["lon"], fine, coarse)
 
+        # Categorize
         category = row["category"]
-        kind = "neighborhood" if category in NEIGHBOURHOOD_CATEGORIES else "place"
+        if category in TOWN_CATEGORIES:
+            kind = "town"
+        elif category in NEIGHBOURHOOD_CATEGORIES:
+            kind = "neighborhood"
+        else:
+            kind = "place"
         address = street_address(row)
 
         # A row for the main name and every nickname
@@ -178,6 +188,7 @@ with connection.cursor() as cursor:
                     town_id,
                     row["lat"],
                     row["lon"],
+                    row["notable"],
                     "osm",
                 )
             )
@@ -204,6 +215,7 @@ with connection.cursor() as cursor:
                     find_town(lat, lon, fine, coarse),
                     lat,
                     lon,
+                    False,
                     "gtfs",
                 )
             )
@@ -226,6 +238,7 @@ with connection.cursor() as cursor:
                 town_id,
                 float(lat),
                 float(lon),
+                False,
                 "massgis",
             )
         )
