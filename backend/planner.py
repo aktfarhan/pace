@@ -190,6 +190,13 @@ def scan(
     best_arrival = INFINITY
     best_stop = None
 
+    # Check if the walk already reached a target
+    for stop in targets:
+        arrival = earliest.get(stop, INFINITY)
+        if arrival < best_arrival:
+            best_arrival = arrival
+            best_stop = stop
+
     for connection in connections:
         (
             departure_seconds,
