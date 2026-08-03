@@ -4,6 +4,8 @@ import csv
 from datetime import date
 from pathlib import Path
 
+INFINITY = float("inf")
+
 GTFS_DIR = Path(__file__).resolve().parent.parent / "data" / "raw" / "gtfs"
 
 WEEKDAY_COLUMNS = [
@@ -199,11 +201,58 @@ def load_connections(trips: dict) -> list[tuple]:
     return connections
 
 
+def close_footpaths(footpaths: dict) -> dict:
+    """Expands each stop's walks to every stop it can reach.
+
+    Args:
+        footpaths: stop_id -> list of (to_stop_id, walk_seconds).
+
+    Returns:
+        One shortest walk per reachable stop.
+    """
+    # Set of every walk start or end stop
+    stops = set(footpaths)
+    for walks in footpaths.values():
+        for to_stop, _ in walks:
+            stops.add(to_stop)
+
+    closed = {}
+    for start in stops:
+        # The shortest walk to every other stop this stop reaches
+        shortest = {start: 0}
+        pending = {start}
+        while pending:
+            # The closest stop not checked yet
+            stop = min(pending, key=lambda candidate: shortest[candidate])
+            pending.discard(stop)
+
+            # Add each walk to the time so far
+            for to_stop, walk_seconds in footpaths.get(stop, []):
+                arrival = shortest[stop] + walk_seconds
+
+                # Keep it only when it beats the time already found
+                if arrival < shortest.get(to_stop, INFINITY):
+                    shortest[to_stop] = arrival
+                    pending.add(to_stop)
+
+        # The reachable stops as a list
+        walks = []
+        for to_stop, walk_seconds in shortest.items():
+            if to_stop != start:
+                walks.append((to_stop, walk_seconds))
+
+        # A stop that goes nowhere gets no entry
+        if walks:
+            closed[start] = walks
+    return closed
+
+
 def load_footpaths() -> dict:
     """Builds the walking-transfer map from transfers.txt.
 
     Returns:
-        stop_id -> list of (to_stop_id, walk_seconds).
+        stop_id -> list of (to_stop_id, walk_seconds),
+        one per stop the walks reach.
     """
     footpaths = {}
     for row in read_table("transfers.txt"):
@@ -214,4 +263,6 @@ def load_footpaths() -> dict:
         footpaths.setdefault(row["from_stop_id"], []).append(
             (row["to_stop_id"], walk_seconds)
         )
-    return footpaths
+
+    # One entry for every stop reachable
+    return close_footpaths(footpaths)

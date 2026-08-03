@@ -158,7 +158,7 @@ def mirror_footpaths(footpaths: dict) -> dict:
 
 
 def scan(
-    connections: list[tuple], footpaths: dict, sources: dict, targets: set
+    connections: list[tuple], footpaths: dict, sources: dict, targets: dict
 ) -> tuple:
     """Finds the earliest way to reach a target stop.
 
@@ -166,7 +166,7 @@ def scan(
         connections: The day's connections, sorted by departure.
         footpaths: The walking transfers at each stop.
         sources: The starting platforms, each with the trip's start time.
-        targets: The stops that count as reaching the destination.
+        targets: The ending platforms, each with the walk still to go.
 
     Returns:
         Tuple of (best_stop, earliest, arrived_via, boarded):
@@ -191,8 +191,8 @@ def scan(
     best_stop = None
 
     # Check if the walk already reached a target
-    for stop in targets:
-        arrival = earliest.get(stop, INFINITY)
+    for stop, walk_seconds in targets.items():
+        arrival = earliest.get(stop, INFINITY) + walk_seconds
         if arrival < best_arrival:
             best_arrival = arrival
             best_stop = stop
@@ -224,10 +224,12 @@ def scan(
             earliest[arrival_stop] = arrival_seconds
             arrived_via[arrival_stop] = ("ride", connection)
 
-            # Update the best
-            if arrival_stop in targets and arrival_seconds < best_arrival:
-                best_arrival = arrival_seconds
-                best_stop = arrival_stop
+            # Update the best, compared after the walk
+            if arrival_stop in targets:
+                total_seconds = arrival_seconds + targets[arrival_stop]
+                if total_seconds < best_arrival:
+                    best_arrival = total_seconds
+                    best_stop = arrival_stop
 
             # Walks from the new arrival
             for to_stop, walk_seconds in footpaths.get(arrival_stop, []):
@@ -236,10 +238,12 @@ def scan(
                     earliest[to_stop] = walk_arrival
                     arrived_via[to_stop] = ("walk", arrival_stop, walk_seconds)
 
-                    # Update the best
-                    if to_stop in targets and walk_arrival < best_arrival:
-                        best_arrival = walk_arrival
-                        best_stop = to_stop
+                    # Update the best, compared after the walk
+                    if to_stop in targets:
+                        total_seconds = walk_arrival + targets[to_stop]
+                        if total_seconds < best_arrival:
+                            best_arrival = total_seconds
+                            best_stop = to_stop
 
     return best_stop, earliest, arrived_via, boarded
 
@@ -532,28 +536,37 @@ def plan_trip(query: str, parsed: ParsedQuery) -> list[Row]:
     for parent in destination_parents:
         destination_platforms.extend(children.get(parent, [parent]))
 
+    # A station endpoint has no walk after it
+    origin_walks = {}
+    for platform in origin_platforms:
+        origin_walks[platform] = 0
+    destination_walks = {}
+    for platform in destination_platforms:
+        destination_walks[platform] = 0
+
     # A deadline scans backward from the destination
     if deadline is not None:
         sources = {}
-        for platform in destination_platforms:
-            sources[platform] = -deadline
+        for platform, walk_seconds in destination_walks.items():
+            sources[platform] = -deadline + walk_seconds
         best_stop, earliest, arrived_via, boarded = scan(
             mirror_connections(connections),
             mirror_footpaths(footpaths),
             sources,
-            set(origin_platforms),
+            origin_walks,
         )
     else:
         sources = {}
-        for platform in origin_platforms:
-            sources[platform] = depart_seconds
+        for platform, walk_seconds in origin_walks.items():
+            sources[platform] = depart_seconds + walk_seconds
         best_stop, earliest, arrived_via, boarded = scan(
-            connections, footpaths, sources, set(destination_platforms)
+            connections, footpaths, sources, destination_walks
         )
 
     # A leave time already in the past is not makeable
     if deadline is not None and best_stop is not None:
-        if service_date == now_date and -earliest[best_stop] < now_seconds:
+        leave_seconds = -earliest[best_stop] - origin_walks[best_stop]
+        if service_date == now_date and leave_seconds < now_seconds:
             best_stop = None
 
     # Nothing reachable on the day's timetable
