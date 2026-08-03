@@ -1,0 +1,60 @@
+{"id": "p-0001", "query": "the garden", "expected": ["osm:way:25123637"], "display": "TD Garden", "notes": "2026-07-31: leading article cost the match"}
+{"id": "p-0002", "query": "downtown crossing", "expected": ["osm:node:158809257", "station:place-dwnxg"], "display": "Downtown Crossing", "notes": "2026-07-31: verified working, kept as a regression guard. Normalizes to 'downtown xing'"}
+{"id": "p-0003", "query": "park street", "expected": ["station:place-pktrm"], "display": "Park Street", "notes": "2026-07-31: stored as 'park st'; strict match failed on 'street'"}
+{"id": "p-0004", "query": "davis square", "expected": ["osm:node:2448023618"], "display": "Davis Square", "notes": "2026-07-31: stored as 'davis sq'; query must normalize too"}
+{"id": "p-0005", "query": "harvard square", "expected": ["osm:node:69504598"], "display": "Harvard Square", "notes": "2026-08-01: normalizes to 'harvard sq' and must not fall to Harvard station"}
+{"id": "p-0006", "query": "childrens hospital", "expected": ["osm:way:228885544"], "display": "Boston Children's Hospital", "notes": "2026-07-31: possessive dropped by the user"}
+{"id": "p-0007", "query": "mit", "expected": ["osm:relation:65066"], "display": "Massachusetts Institute of Technology", "notes": "2026-07-31: three-letter alias"}
+{"id": "p-0008", "query": "bu", "expected": ["osm:relation:6587738"], "display": "Boston University", "notes": "2026-07-31: two-letter alias, and the shortest query MIN_LENGTH allows"}
+{"id": "p-0009", "query": "southie", "expected": ["osm:node:158846869", "village:35:south boston"], "display": "South Boston", "notes": "2026-07-31: alias row, display differs from the query"}
+{"id": "p-0010", "query": "brigham", "expected": ["osm:relation:3061383"], "display": "Brigham and Women's Hospital", "notes": "2026-07-31: verified working, kept as a regression guard"}
+{"id": "p-0011", "query": "harvard", "expected": ["station:place-harsq"], "display": "Harvard", "notes": "2026-07-31: town of Harvard MA, 35 km out, outranked the station"}
+{"id": "p-0012", "query": "airport", "expected": ["station:place-aport"], "display": "Airport", "notes": "2026-07-31: aerodromes statewide outranked the Blue Line stop"}
+{"id": "p-0013", "query": "fenway", "expected": ["station:place-fenwy"], "display": "Fenway", "notes": "2026-07-31: colocated station, neighborhood and park"}
+{"id": "p-0014", "query": "central", "expected": ["station:place-cntsq"], "display": "Central", "notes": "2026-07-31: from eval/seed.jsonl. Woburn, Waltham, Somerville and Lynn all hold a Central Square"}
+{"id": "p-0015", "query": "copley", "expected": ["station:place-coecl"], "display": "Copley", "notes": "2026-07-31: verified working, kept as a regression guard"}
+{"id": "p-0016", "query": "symphony", "expected": ["station:place-symcl"], "display": "Symphony", "notes": "2026-07-31: verified working, kept as a regression guard. Symphony Hall competes"}
+{"id": "p-0017", "query": "aquarium", "expected": ["station:place-aqucl"], "display": "Aquarium", "notes": "2026-07-31: verified working, kept as a regression guard. New England Aquarium competes"}
+{"id": "p-0018", "query": "back bay", "expected": ["station:place-bbsta"], "display": "Back Bay", "notes": "2026-07-31: three neighborhood rows tie the station. 2026-08-01: the neighborhood dropped from expected, since it sits 306 m off and accepting it would let the station lose without the row noticing"}
+{"id": "p-0019", "query": "south station", "expected": ["osm:way:29742438", "station:place-sstat"], "display": "South Station", "notes": "2026-07-31: OSM duplicates the GTFS station"}
+{"id": "p-0020", "query": "north station", "expected": ["osm:way:474893799", "station:place-north"], "display": "North Station", "notes": "2026-07-31: OSM duplicates the GTFS station"}
+{"id": "p-0021", "query": "alewife", "expected": ["osm:node:356122226", "station:place-alfcl"], "display": "Alewife", "notes": "2026-07-31: from eval/seed.jsonl"}
+{"id": "p-0022", "query": "forest hills", "expected": ["osm:relation:20313704", "station:place-forhl"], "display": "Forest Hills", "notes": "2026-07-31: from eval/retrieval.jsonl"}
+{"id": "p-0023", "query": "government center", "expected": ["osm:node:7629903524", "station:place-gover"], "display": "Government Center", "notes": "2026-07-31: verified working, kept as a regression guard"}
+{"id": "p-0024", "query": "northeastern", "expected": ["osm:way:301210399", "station:place-nuniv"], "display": "Northeastern University", "notes": "2026-07-31: Northeastern EXP won on shorter name"}
+{"id": "p-0025", "query": "logan", "expected": ["osm:way:291828579"], "display": "Logan International Airport", "notes": "2026-07-31: Logan Park won on shorter name"}
+{"id": "p-0026", "query": "logan airport", "expected": ["osm:way:291828579"], "display": "Logan International Airport", "notes": "2026-07-31: a Hilton won the two-word query"}
+{"id": "p-0027", "query": "boston common", "expected": ["osm:relation:17995454"], "display": "Boston Common", "notes": "2026-07-31: hard kind priority sent this to Boston College"}
+{"id": "p-0028", "query": "fenway park", "expected": ["osm:relation:11188464"], "display": "Fenway Park", "notes": "2026-07-31: baseline; must not drift to the station"}
+{"id": "p-0029", "query": "boston public library", "expected": ["osm:relation:63755"], "display": "Boston Public Library", "notes": "2026-07-31: Boylston Public Library is the near miss"}
+{"id": "p-0030", "query": "faneuil hall", "expected": ["osm:way:29551702"], "display": "Faneuil Hall", "notes": "2026-07-31: Cheers Faneuil Hall is the near miss"}
+{"id": "p-0031", "query": "mass general", "expected": ["osm:way:117853077"], "display": "Massachusetts General Hospital", "notes": "2026-07-31: Mass General Brigham is the near miss. The word filter passes because 'mass' is a substring of 'massachusetts'"}
+{"id": "p-0032", "query": "emerson college", "expected": ["osm:node:1325838579"], "display": "Emerson College", "notes": "2026-07-31: bare 'emerson' still loses to Emerson Hospital"}
+{"id": "p-0033", "query": "arnold arboretum", "expected": ["osm:relation:64871"], "display": "Arnold Arboretum", "notes": "2026-07-31: verified working, kept as a regression guard"}
+{"id": "p-0034", "query": "castle island", "expected": ["osm:node:11415452230", "osm:relation:11192367"], "display": "Castle Island", "notes": "2026-07-31: verified working, kept as a regression guard. 2026-08-01: a relation row holds the same place, so either id answers"}
+{"id": "p-0035", "query": "quincy market", "expected": ["osm:way:29573399"], "display": "Quincy Market", "notes": "2026-07-31: verified working, kept as a regression guard. Quincy holds a row of the same name that is not notable"}
+{"id": "p-0036", "query": "copley square", "expected": ["osm:way:1239199995"], "display": "Copley Square", "notes": "2026-07-31: needed place=square in the scrape"}
+{"id": "p-0037", "query": "riverside", "expected": ["osm:way:487815858", "station:place-river"], "display": "Riverside", "notes": "2026-08-01: eleven towns hold one. Cambridge sits 4.5 km out and Newton 16 km, so the kind bonus has to survive the distance penalty. Guards the NEIGHBORHOOD_NAMED ordering fix"}
+{"id": "p-0038", "query": "south end", "expected": ["osm:node:2074055269", "osm:relation:4033683"], "display": "South End", "notes": "2026-07-31: hard kind priority sent this to South Street"}
+{"id": "p-0039", "query": "jamaica plain", "expected": ["osm:node:158817206", "village:35:jamaica plain"], "display": "Jamaica Plain", "notes": "2026-07-31: from eval/seed.jsonl"}
+{"id": "p-0040", "query": "brookline", "expected": ["osm:node:158860357"], "display": "Brookline", "notes": "2026-07-31: town was never scraped; returned nothing"}
+{"id": "p-0041", "query": "cambridge", "expected": ["osm:node:158842525"], "display": "Cambridge", "notes": "2026-07-31: without a town bonus this returns a mosque"}
+{"id": "p-0042", "query": "somerville", "expected": ["osm:node:158861032"], "display": "Somerville", "notes": "2026-08-01: Medford and Cambridge both hold a village named Somerville"}
+{"id": "p-0043", "query": "target", "expected": ["osm:node:7808903598"], "display": "Target", "notes": "2026-07-31: 51 locations. 2026-08-01: pinned to the nearest, 0.63 km out, so the chain ranking is what gets tested"}
+{"id": "p-0044", "query": "whole foods", "expected": ["osm:node:2700809532"], "display": "Whole Foods Market", "notes": "2026-07-31: 32 locations. 2026-08-01: stored as 'whole foods market', so the query reaches the chain gate on trigram, not exact name"}
+{"id": "p-0045", "query": "planet fitness", "expected": ["osm:node:7644419295"], "display": "Planet Fitness", "notes": "2026-07-31: 57 locations. 2026-08-01: pinned to the nearest, 0.09 km out"}
+{"id": "p-0046", "query": "700 boylston st", "expected": ["700 Boylston St, Boston"], "display": "700 Boylston St, Boston", "notes": "2026-08-01: address rows carry no id, so the label is the key"}
+{"id": "p-0047", "query": "355 main st cambridge", "expected": ["355 Main Street, Cambridge"], "display": "355 Main Street, Cambridge", "notes": "2026-08-01: six towns hold a 355 Main Street; the trailing town has to peel"}
+{"id": "p-0048", "query": "131 washington st", "expected": ["131 Washington Street, Cambridge"], "display": "131 Washington Street, Cambridge", "notes": "2026-08-01: eight towns hold one; only distance ordering picks Cambridge at 3 km. Guards the ADDRESS_MATCH ordering fix. Adding 'boston' would leave two rows sharing one label, which no key can tell apart"}
+{"id": "p-0049", "query": "massachusetts ave", "expected": ["osm:way:29600101"], "display": "Massachusetts Avenue", "notes": "2026-08-01: the road carries a wikipedia entry, so a notable place row scores 1.30, clears PLACE_WINS and suppresses the street table. Cambridge and Medford hold the name too and must lose"}
+{"id": "p-0050", "query": "newbury street", "expected": ["Newbury St"], "display": "Newbury St", "notes": "2026-08-01: normalizes to 'newbury st'"}
+{"id": "p-0051", "query": "beacon st brookline", "expected": ["Beacon Street"], "display": "Beacon Street", "notes": "2026-08-01: peels the town, then two Brookline segments share one display"}
+{"id": "p-0052", "query": "harvurd", "expected": ["station:place-harsq"], "display": "Harvard", "notes": "2026-07-31: typo; returned nothing at threshold 0.60"}
+{"id": "p-0053", "query": "fenwey", "expected": ["station:place-fenwy"], "display": "Fenway", "notes": "2026-07-31: typo; returned nothing at threshold 0.60"}
+{"id": "p-0054", "query": "airpot", "expected": ["station:place-aport"], "display": "Airport", "notes": "2026-07-31: typo in eval/seed.jsonl, written by a real user"}
+{"id": "p-0055", "query": "asdfghjkl", "expected": [], "display": "no match", "notes": "2026-08-01: keyboard mash"}
+{"id": "p-0056", "query": "qwertyuiop", "expected": [], "display": "no match", "notes": "2026-08-01: keyboard mash"}
+{"id": "p-0057", "query": "xyzzy", "expected": [], "display": "no match", "notes": "2026-08-01: short junk, above the two-character floor"}
+{"id": "p-0058", "query": "zzzzzzzz", "expected": [], "display": "no match", "notes": "2026-08-01: repeated character"}
+{"id": "p-0059", "query": "what time is it", "expected": [], "display": "no match", "notes": "2026-08-01: a question, not a place"}
+{"id": "p-0060", "query": "12345678", "expected": [], "display": "no match", "notes": "2026-08-01: digits with no street name after them"}

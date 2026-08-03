@@ -89,6 +89,38 @@ Run with `python -m eval.run_retrieval`. Target is 100% at Recall@5. Re-run afte
 
 ---
 
+## Places set
+
+Each line in `places.jsonl` is one typed destination and the place it points to.
+
+```
+{
+  "id": "p-0037",
+  "query": "riverside",
+  "expected": ["osm:way:487815858", "station:place-river"],
+  "display": "Riverside",
+  "notes": "2026-08-01: eleven towns hold one. Cambridge sits 4.5 km out and Newton 16 km, so the kind bonus has to survive the distance penalty. Guards the NEIGHBORHOOD_NAMED ordering fix"
+}
+```
+
+Fields:
+
+| Field      | Values                                                |
+| ---------- | ----------------------------------------------------- |
+| `id`       | unique string                                         |
+| `query`    | what the user typed                                   |
+| `expected` | place ids that answer the query; empty means no match |
+| `display`  | the answer in words, for reading a failure            |
+| `notes`    | author commentary                                     |
+
+`expected` holds root ids, with the alias index dropped. Addresses and streets have no id, so their label is the key. Every id naming the same physical point is listed.
+
+Rows with an empty `expected` are scored on their own line, so a change that widens matching cannot hide inside the headline count.
+
+Run with `python -m eval.run_places`. Re-run after any change to ranking, normalization, or the places data.
+
+---
+
 ## Answer set
 
 `run_answers.py` runs every text query in `seed.jsonl` through the full pipeline and checks: answered when it should answer, refused when it should refuse.
@@ -103,6 +135,7 @@ Run with `python -m eval.run_answers`. Re-run after any prompt change.
 
 - `seed.jsonl` — dev set, tune freely
 - `retrieval.jsonl` — retrieval checks, re-run after any retrieval change
+- `places.jsonl` — destination resolution, re-run after any ranking or places-data change
 - `holdout.jsonl` — final-number set, never tuned against
 - `signs/` — parking sign photos + `signs/labels.jsonl`
 
