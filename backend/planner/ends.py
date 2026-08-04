@@ -64,7 +64,12 @@ def nearby_platforms(lat: float, lon: float, positions: dict) -> dict:
 
 
 def resolve_endpoint(
-    cursor: psycopg.Cursor, text: str, names: dict, children: dict, positions: dict
+    cursor: psycopg.Cursor,
+    text: str,
+    names: dict,
+    children: dict,
+    positions: dict,
+    near: tuple | None = None,
 ) -> Endpoint | None:
     """Reads one end of a trip as a place on the map.
 
@@ -74,11 +79,12 @@ def resolve_endpoint(
         names: stop_id -> name for every stop.
         children: parent station id -> boarding platform ids.
         positions: stop_id -> (lat, lon) for every boardable stop.
+        near: Where a chain is measured from, as (lat, lon).
 
     Returns:
         The endpoint, or None when the text names no place.
     """
-    found = resolve(text, cursor=cursor)
+    found = resolve(text, near=near, cursor=cursor)
     if found is None:
         return None
 

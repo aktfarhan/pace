@@ -104,13 +104,20 @@ def plan_trip(query: str, parsed: ParsedQuery) -> list[Row]:
     # Stop names and coordinates
     names, children, parents, positions = load_stops()
 
-    # Match the endpoints
+    # Match the endpoints, origin first
     connection = connect()
     with connection.cursor() as cursor:
         origin = resolve_endpoint(cursor, parsed["origin"], names, children, positions)
-        destination = resolve_endpoint(
-            cursor, parsed["destination"], names, children, positions
-        )
+        destination = None
+        if origin is not None:
+            destination = resolve_endpoint(
+                cursor,
+                parsed["destination"],
+                names,
+                children,
+                positions,
+                origin["point"],
+            )
     if origin is None or destination is None:
         return []
 
