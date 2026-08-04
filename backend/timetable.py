@@ -76,26 +76,33 @@ def active_service_ids(target: date) -> set[str]:
     return active
 
 
-def load_stops() -> tuple[dict, dict, dict]:
-    """Loads stop names and the station-platform structure.
+def load_stops() -> tuple[dict, dict, dict, dict]:
+    """Loads stop names, the station-platform structure, and coordinates.
 
     Returns:
-        Tuple of (names, children, parents): stop_id -> name for every
-        stop, parent station id -> boarding platform ids, and platform
-        id -> parent station id.
+        Tuple of (names, children, parents, positions): stop_id -> name
+        for every stop, parent station id -> boarding platform ids,
+        platform id -> parent station id, and stop_id -> (lat, lon).
     """
     names = {}
     children = {}
     parents = {}
+    positions = {}
     for row in read_table("stops.txt"):
         # Every stop keeps its display name
         names[row["stop_id"]] = row["stop_name"]
 
+        # Location type 1 is a station, 3 is a pathway node
+        if row["location_type"] not in ("", "0"):
+            continue
+
+        positions[row["stop_id"]] = (float(row["stop_lat"]), float(row["stop_lon"]))
+
         # Boarding platforms link to their station
-        if row["parent_station"] and row["location_type"] in ("", "0"):
+        if row["parent_station"]:
             children.setdefault(row["parent_station"], []).append(row["stop_id"])
             parents[row["stop_id"]] = row["parent_station"]
-    return names, children, parents
+    return names, children, parents, positions
 
 
 def load_routes() -> dict:

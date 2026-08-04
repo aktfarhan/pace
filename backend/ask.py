@@ -6,7 +6,7 @@ from datetime import datetime
 from backend.classify import classify
 from backend.alerts import fetch_alerts
 from backend.generate import Answer, generate
-from backend.planner import plan_trip
+from backend.planner.trip import plan_trip
 from backend.retrieve import retrieve
 from backend.schedules import fetch_departures
 
