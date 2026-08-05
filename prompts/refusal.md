@@ -1,8 +1,8 @@
 ---
-version: 1
-hash: '1e10010'
-last_updated: 2026-05-21
-notes: initial draft
+version: 2
+hash: '2116bc8'
+last_updated: 2026-08-05
+notes: added outside-service-area for transit beyond the MBTA; dropped the advice tail from outside-coverage
 ---
 
 Refusal templates the system uses when it won't answer. Each one has a key, a trigger, and the exact text shown to the user.
@@ -52,9 +52,20 @@ That question can't be processed as written. Rephrase or ask something else.
 
 - **Key:** `outside-coverage`
 - **Trigger:** Parking-rules query for a city other than Boston or Cambridge.
-- **Placeholders:** `{city}` (required)
+- **Placeholders:** none.
 - **Template:**
 
 ```
-Pace covers Boston and Cambridge for parking rules. Transit answers extend to the rest of the MBTA service area. For {city}, try the local agency.
+Pace covers Boston and Cambridge for parking rules. Transit answers extend to the rest of the MBTA service area.
+```
+
+## outside-service-area
+
+- **Key:** `outside-service-area`
+- **Trigger:** Transit query whose origin or destination falls outside the MBTA service area.
+- **Placeholders:** none.
+- **Template:**
+
+```
+Pace only covers the MBTA service area.
 ```
