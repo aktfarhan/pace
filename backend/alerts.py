@@ -66,7 +66,7 @@ def fetch_alerts(query: str, route: str | None = None) -> list[Row]:
     # Match the routes and stations the query names
     connection = connect()
     with connection.cursor() as cursor:
-        route_ids = match_route_ids(cursor, route or query)
+        route_ids = match_route_ids(cursor, route) if route else []
         station_ids = match_station_ids(cursor, query)
 
     # Stations get accessibility alerts also

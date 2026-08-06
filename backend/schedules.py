@@ -271,11 +271,10 @@ def render_edge(
     return (row_id, "schedule", text, metadata, 0.0)
 
 
-def fetch_departures(query: str, parsed: ParsedQuery) -> list[Row]:
+def fetch_departures(parsed: ParsedQuery) -> list[Row]:
     """Fetches upcoming departures for the stop the user leaves from.
 
     Args:
-        query: The user's question.
         parsed: The classifier's read of the query.
 
     Returns:
@@ -287,14 +286,14 @@ def fetch_departures(query: str, parsed: ParsedQuery) -> list[Row]:
     now = datetime.now()
     retrieved_at = datetime.now(timezone.utc).isoformat()
 
-    # The parsed origin names the boarding stop; routes match from the query
+    # The boarding stop and the route come from parse
     connection = connect()
     with connection.cursor() as cursor:
         origin = parsed["origin"]
         station_ids = match_station_ids(cursor, origin) if origin else []
 
-        # The named route, or the whole query when none
-        route_ids = match_route_ids(cursor, parsed["route"] or query)
+        route = parsed["route"]
+        route_ids = match_route_ids(cursor, route) if route else []
         if not station_ids:
             return []
 
@@ -406,5 +405,5 @@ if __name__ == "__main__":
 
     query = sys.argv[1]
     parsed = classify(query)
-    for chunk_id, kind, text, metadata, distance in fetch_departures(query, parsed):
+    for chunk_id, kind, text, metadata, distance in fetch_departures(parsed):
         print(f"{chunk_id} {text}")

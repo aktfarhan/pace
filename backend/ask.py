@@ -65,7 +65,7 @@ def ask(query: str) -> Answer:
                 }
             chunks = plan + chunks
         else:
-            chunks = fetch_departures(query, parsed) + chunks
+            chunks = fetch_departures(parsed) + chunks
 
     now = datetime.now().isoformat()
     return generate(query, chunks, intent, now)
