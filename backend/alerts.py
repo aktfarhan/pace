@@ -52,11 +52,12 @@ def render_alert(alert: dict, retrieved_at: str) -> Row:
     return (f"alert:{alert['id']}", "alert", text, metadata, 0.0)
 
 
-def fetch_alerts(query: str) -> list[Row]:
+def fetch_alerts(query: str, route: str | None = None) -> list[Row]:
     """Fetches active alerts for whatever the query names.
 
     Args:
         query: The user's question.
+        route: The classifiers route read.
 
     Returns:
         Alert rows shaped like retrieved chunks. Zero alerts returns one
@@ -65,7 +66,7 @@ def fetch_alerts(query: str) -> list[Row]:
     # Match the routes and stations the query names
     connection = connect()
     with connection.cursor() as cursor:
-        route_ids = match_route_ids(cursor, query)
+        route_ids = match_route_ids(cursor, route or query)
         station_ids = match_station_ids(cursor, query)
 
     # Stations get accessibility alerts also

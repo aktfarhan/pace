@@ -292,7 +292,9 @@ def fetch_departures(query: str, parsed: ParsedQuery) -> list[Row]:
     with connection.cursor() as cursor:
         origin = parsed["origin"]
         station_ids = match_station_ids(cursor, origin) if origin else []
-        route_ids = match_route_ids(cursor, query)
+
+        # The named route, or the whole query when none
+        route_ids = match_route_ids(cursor, parsed["route"] or query)
         if not station_ids:
             return []
 

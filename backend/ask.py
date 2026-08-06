@@ -49,7 +49,7 @@ def ask(query: str) -> Answer:
 
     # Alert answers ground in live alerts
     if intent == "alert":
-        chunks = fetch_alerts(query) + chunks
+        chunks = fetch_alerts(query, parsed["route"]) + chunks
 
     # Schedule answers ground in live departures; leave-by questions in a plan
     if intent == "schedule":

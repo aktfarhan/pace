@@ -34,6 +34,7 @@ INTENT_SCHEMA = {
         "intent": {"type": "string", "enum": VALID_INTENTS},
         "origin": {"type": ["string", "null"]},
         "destination": {"type": ["string", "null"]},
+        "route": {"type": ["string", "null"]},
         "day": {"type": ["string", "null"], "enum": VALID_DAYS + [None]},
         "edge": {"type": ["string", "null"], "enum": VALID_EDGES + [None]},
         "deadline": {"type": ["string", "null"]},
@@ -43,6 +44,7 @@ INTENT_SCHEMA = {
         "intent",
         "origin",
         "destination",
+        "route",
         "day",
         "edge",
         "deadline",
@@ -60,6 +62,7 @@ class ParsedQuery(TypedDict):
     intent: str
     origin: str | None
     destination: str | None
+    route: str | None
     day: str | None
     edge: str | None
     deadline: str | None
