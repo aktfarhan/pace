@@ -17,6 +17,9 @@ WALK_DETOUR = 1.3
 # The longest walk offered at either end of a trip
 MAX_WALK_SECONDS = 25 * 60
 
+# A station reaches the street stops around it
+STATION_WALK_SECONDS = 4 * 60
+
 # How far apart the map and the timetable can mark one station
 SAME_STATION_METERS = 100
 
@@ -44,13 +47,14 @@ def walk_between(start: tuple, end: tuple) -> int:
     return int(meters * WALK_DETOUR / WALK_PACE)
 
 
-def nearby_platforms(lat: float, lon: float, positions: dict) -> dict:
+def nearby_platforms(lat: float, lon: float, positions: dict, cap: int) -> dict:
     """Finds the stops close enough to walk to from a point.
 
     Args:
         lat: The point's latitude.
         lon: The point's longitude.
         positions: stop_id -> (lat, lon) for every boardable stop.
+        cap: The longest walk to offer, in seconds.
 
     Returns:
         stop_id -> walk_seconds, for the stops inside the walking cap.
@@ -58,7 +62,7 @@ def nearby_platforms(lat: float, lon: float, positions: dict) -> dict:
     nearby = {}
     for stop, position in positions.items():
         walk_seconds = walk_between((lat, lon), position)
-        if walk_seconds <= MAX_WALK_SECONDS:
+        if walk_seconds <= cap:
             nearby[stop] = walk_seconds
     return nearby
 
@@ -108,21 +112,17 @@ def resolve_endpoint(
                 parent = station
                 break
 
-    # A station is boarded where it stands
+    # A station is boarded where it stands, and reaches the stops around it
     if parent is not None:
-        walks = {}
+        walks = nearby_platforms(point[0], point[1], positions, STATION_WALK_SECONDS)
         for platform in children.get(parent, [parent]):
             walks[platform] = 0
         return Endpoint(
             label=found["label"], point=point, walks=walks, stations={parent}
         )
 
-    return Endpoint(
-        label=found["label"],
-        point=point,
-        walks=nearby_platforms(point[0], point[1], positions),
-        stations=set(),
-    )
+    walks = nearby_platforms(point[0], point[1], positions, MAX_WALK_SECONDS)
+    return Endpoint(label=found["label"], point=point, walks=walks, stations=set())
 
 
 def trip_times(legs: list[dict], origin: Endpoint, destination: Endpoint) -> tuple:
