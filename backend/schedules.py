@@ -20,6 +20,9 @@ BASE_URL = "https://api-v3.mbta.com"
 # Upcoming departures shown per route and direction
 NEXT_DEPARTURES = 3
 
+# The row id used when the stop has nothing scheduled
+NO_DEPARTURES = "schedule:none"
+
 # Before this hour, "today" is still yesterday's MBTA service day
 SERVICE_ROLLOVER_HOUR = 3
 
@@ -320,6 +323,16 @@ def fetch_departures(parsed: ParsedQuery) -> list[Row]:
     wants_first = parsed["edge"] in ("first", "both")
     wants_last = parsed["edge"] in ("last", "both")
 
+    # The service date those questions read
+    spoken_date = ""
+    if wants_first or wants_last:
+        target = requested_date(parsed["day"], now) or now.date().isoformat()
+        asked = date.fromisoformat(target)
+        day_name = asked.strftime("%A")
+
+        # The date alone
+        spoken_date = asked.strftime("%B %d, %Y").replace(" 0", " ")
+
     rows = []
     for chunk_id in station_ids:
         stop_id = chunk_id.removeprefix("stop:")
@@ -332,8 +345,6 @@ def fetch_departures(parsed: ParsedQuery) -> list[Row]:
 
         # First and last run on the schedule for the asked day
         if wants_first or wants_last:
-            target = requested_date(parsed["day"], now) or now.date().isoformat()
-            day_name = date.fromisoformat(target).strftime("%A")
             # Last reads the day backward from 3 PM
             edges = []
             if wants_first:
@@ -393,10 +404,11 @@ def fetch_departures(parsed: ParsedQuery) -> list[Row]:
 
     # Nothing running and nothing scheduled
     if not rows:
-        text = f"No departures found for this stop as of {clock(now.isoformat())}."
-        return [
-            ("schedule:none", "schedule", text, {"retrieved_at": retrieved_at}, 0.0)
-        ]
+        if spoken_date:
+            text = f"No departures found for this stop on {spoken_date}."
+        else:
+            text = f"No departures found for this stop as of {clock(now.isoformat())}."
+        return [(NO_DEPARTURES, "schedule", text, {"retrieved_at": retrieved_at}, 0.0)]
     return rows
 
 

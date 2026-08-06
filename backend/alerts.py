@@ -19,6 +19,17 @@ BASE_URL = "https://api-v3.mbta.com"
 # System-wide fetches keep the biggest alerts only
 TOP_ALERTS = 8
 
+# Effects that leave a stop with nothing to board
+SERVICE_EFFECTS = {
+    "SUSPENSION",
+    "NO_SERVICE",
+    "CANCELLATION",
+    "STATION_CLOSURE",
+    "STOP_CLOSURE",
+    "STOP_MOVE",
+    "SHUTTLE",
+}
+
 
 def render_alert(alert: dict, retrieved_at: str) -> Row:
     """Builds one alert row shaped like a retrieved chunk.
@@ -52,12 +63,15 @@ def render_alert(alert: dict, retrieved_at: str) -> Row:
     return (f"alert:{alert['id']}", "alert", text, metadata, 0.0)
 
 
-def fetch_alerts(query: str, route: str | None = None) -> list[Row]:
-    """Fetches active alerts for whatever the query names.
+def fetch_alerts(
+    query: str, route: str | None = None, when: str | None = None
+) -> list[Row]:
+    """Fetches the alerts for whatever the query names.
 
     Args:
         query: The user's question.
         route: The classifiers route read.
+        when: An ISO moment to ask about.
 
     Returns:
         Alert rows shaped like retrieved chunks. Zero alerts returns one
@@ -70,7 +84,7 @@ def fetch_alerts(query: str, route: str | None = None) -> list[Row]:
         station_ids = match_station_ids(cursor, query)
 
     # Stations get accessibility alerts also
-    params = {"filter[datetime]": "NOW"}
+    params = {"filter[datetime]": when or "NOW"}
     if station_ids:
         stop_ids = [chunk_id.removeprefix("stop:") for chunk_id in station_ids]
         params["filter[stop]"] = ",".join(stop_ids)
@@ -99,7 +113,7 @@ def fetch_alerts(query: str, route: str | None = None) -> list[Row]:
             subject = "this station"
         else:
             subject = "the MBTA system"
-        text = f"No active alerts for {subject} as of {retrieved_at}."
+        text = f"No active alerts for {subject} as of {when or retrieved_at}."
         return [("alert:none", "alert", text, {"retrieved_at": retrieved_at}, 0.0)]
 
     # Shape each alert like a retrieved chunk
@@ -107,6 +121,31 @@ def fetch_alerts(query: str, route: str | None = None) -> list[Row]:
     for alert in alerts:
         rows.append(render_alert(alert, retrieved_at))
     return rows
+
+
+def blocking_alerts(query: str, route: str | None, when: str | None) -> list[Row]:
+    """Fetches the alerts that explain why nothing is scheduled.
+
+    Args:
+        query: The user's question.
+        route: The classifiers route read.
+        when: An ISO moment to ask about.
+
+    Returns:
+        Alert rows whose effect leaves nothing to board.
+    """
+    try:
+        alerts = fetch_alerts(query, route, when)
+    except httpx.HTTPError:
+        return []
+
+    # Keep the alerts that stop service
+    stopping = []
+    for row in alerts:
+        _, _, _, metadata, _ = row
+        if metadata.get("effect") in SERVICE_EFFECTS:
+            stopping.append(row)
+    return stopping
 
 
 if __name__ == "__main__":
