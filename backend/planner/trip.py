@@ -21,14 +21,16 @@ from backend.planner.rows import (
     render_walk,
 )
 from backend.retrieve import Row
-from backend.schedules import SERVICE_ROLLOVER_HOUR, requested_date
+from backend.schedules import requested_date
 from backend.timetable import (
-    active_service_ids,
-    load_connections,
+    gtfs_stamp,
     load_footpaths,
     load_routes,
+    load_service_day,
     load_stops,
-    load_trips,
+    place_on_service_day,
+    service_date_at,
+    service_seconds,
 )
 from data.schema import connect
 
@@ -75,11 +77,7 @@ def deadline_moment(deadline: str, day: str | None, now: datetime) -> tuple | No
     else:
         target = now.date() + timedelta(days=1)
 
-    # Before the rollover
-    if clock_seconds < SERVICE_ROLLOVER_HOUR * 3600:
-        return target - timedelta(days=1), clock_seconds + 24 * 3600
-
-    return target, clock_seconds
+    return place_on_service_day(target, clock_seconds)
 
 
 def plan_trip(query: str, parsed: ParsedQuery) -> list[Row]:
@@ -102,7 +100,7 @@ def plan_trip(query: str, parsed: ParsedQuery) -> list[Row]:
         return []
 
     # Stop names and coordinates
-    names, children, parents, positions = load_stops()
+    names, children, parents, positions = load_stops(gtfs_stamp())
 
     # Match the endpoints, origin first
     connection = connect()
@@ -126,13 +124,8 @@ def plan_trip(query: str, parsed: ParsedQuery) -> list[Row]:
         return render_same_stop(retrieved_at)
 
     # The current moment in service time
-    if now.hour < SERVICE_ROLLOVER_HOUR:
-        # Past midnight the service clock keeps counting
-        now_date = now.date() - timedelta(days=1)
-        now_seconds = (now.hour + 24) * 3600 + now.minute * 60
-    else:
-        now_date = now.date()
-        now_seconds = now.hour * 3600 + now.minute * 60
+    now_date = service_date_at(now)
+    now_seconds = service_seconds(now)
 
     # The service day: backward from a deadline, else forward
     deadline = None
@@ -155,11 +148,10 @@ def plan_trip(query: str, parsed: ParsedQuery) -> list[Row]:
     # A ride needs a stop within reach of both ends
     best_stop = None
     if origin_walks and destination_walks:
-        routes = load_routes()
-        footpaths = load_footpaths()
-        services = active_service_ids(service_date)
-        trips = load_trips(services)
-        connections = load_connections(trips)
+        stamp = gtfs_stamp()
+        routes = load_routes(stamp)
+        footpaths = load_footpaths(stamp)
+        trips, connections = load_service_day(service_date, stamp)
 
         # A deadline scans backward from the destination
         if deadline is not None:

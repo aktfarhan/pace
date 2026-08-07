@@ -1,12 +1,19 @@
-"""Load the GTFS timetable tables for one service day."""
+"""Load the GTFS timetable tables and read which service day is running."""
 
 import csv
-from datetime import date
+from datetime import date, datetime, timedelta
+from functools import lru_cache
 from pathlib import Path
 
 INFINITY = float("inf")
 
 GTFS_DIR = Path(__file__).resolve().parent.parent / "data" / "raw" / "gtfs"
+
+# Service days held in memory at once
+CACHED_DAYS = 2
+
+# Before this hour, "today" is still yesterday's MBTA service day
+SERVICE_ROLLOVER_HOUR = 3
 
 WEEKDAY_COLUMNS = [
     "monday",
@@ -46,6 +53,45 @@ def read_table(name: str) -> list[dict[str, str]]:
         return list(csv.DictReader(table_file))
 
 
+def place_on_service_day(target: date, clock_seconds: int) -> tuple[date, int]:
+    """Places a calendar date and clock time on the service day.
+
+    Args:
+        target: The calendar date the clock time falls on.
+        clock_seconds: Seconds since midnight on that date.
+
+    Returns:
+        Tuple of (service date, seconds since that service day began).
+    """
+    if clock_seconds < SERVICE_ROLLOVER_HOUR * 3600:
+        return target - timedelta(days=1), clock_seconds + 24 * 3600
+    return target, clock_seconds
+
+
+def service_date_at(now: datetime) -> date:
+    """Reads which service day is running at a local moment.
+
+    Args:
+        now: The local time.
+
+    Returns:
+        The date whose service is running.
+    """
+    return place_on_service_day(now.date(), now.hour * 3600 + now.minute * 60)[0]
+
+
+def service_seconds(now: datetime) -> int:
+    """Reads the service clock at a moment.
+
+    Args:
+        now: The local time.
+
+    Returns:
+        Seconds since the service day began.
+    """
+    return place_on_service_day(now.date(), now.hour * 3600 + now.minute * 60)[1]
+
+
 def active_service_ids(target: date) -> set[str]:
     """Finds the service ids running on a date.
 
@@ -76,8 +122,12 @@ def active_service_ids(target: date) -> set[str]:
     return active
 
 
-def load_stops() -> tuple[dict, dict, dict, dict]:
+@lru_cache(maxsize=1)
+def load_stops(scraped_at: float) -> tuple[dict, dict, dict, dict]:
     """Loads stop names, the station-platform structure, and coordinates.
+
+    Args:
+        scraped_at: When the tables were scraped.
 
     Returns:
         Tuple of (names, children, parents, positions): stop_id -> name
@@ -105,8 +155,12 @@ def load_stops() -> tuple[dict, dict, dict, dict]:
     return names, children, parents, positions
 
 
-def load_routes() -> dict:
+@lru_cache(maxsize=1)
+def load_routes(scraped_at: float) -> dict:
     """Loads the label fields for every route.
+
+    Args:
+        scraped_at: When the tables were scraped.
 
     Returns:
         route_id -> (short_name, long_name, route_type).
@@ -208,6 +262,31 @@ def load_connections(trips: dict) -> list[tuple]:
     return connections
 
 
+def gtfs_stamp() -> float:
+    """Reads when the GTFS tables were last scraped.
+
+    Returns:
+        The modification time of stop_times.txt.
+    """
+    return (GTFS_DIR / "stop_times.txt").stat().st_mtime
+
+
+@lru_cache(maxsize=CACHED_DAYS)
+def load_service_day(target: date, scraped_at: float) -> tuple[dict, list]:
+    """Loads the trips and connections running on a date.
+
+    Args:
+        target: The service date.
+        scraped_at: When the tables were scraped.
+
+    Returns:
+        Tuple of (trips, connections).
+    """
+    services = active_service_ids(target)
+    trips = load_trips(services)
+    return trips, load_connections(trips)
+
+
 def close_footpaths(footpaths: dict) -> dict:
     """Expands each stop's walks to every stop it can reach.
 
@@ -254,8 +333,12 @@ def close_footpaths(footpaths: dict) -> dict:
     return closed
 
 
-def load_footpaths() -> dict:
+@lru_cache(maxsize=1)
+def load_footpaths(scraped_at: float) -> dict:
     """Builds the walking-transfer map from transfers.txt.
+
+    Args:
+        scraped_at: When the tables were scraped.
 
     Returns:
         stop_id -> list of (to_stop_id, walk_seconds),
@@ -273,3 +356,12 @@ def load_footpaths() -> dict:
 
     # One entry for every stop reachable
     return close_footpaths(footpaths)
+
+
+def warm() -> None:
+    """Loads every cached table."""
+    stamp = gtfs_stamp()
+    load_stops(stamp)
+    load_routes(stamp)
+    load_footpaths(stamp)
+    load_service_day(service_date_at(datetime.now()), stamp)

@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 
 from backend.classify import ParsedQuery
 from backend.retrieve import Row, match_route_ids, match_station_ids
+from backend.timetable import service_date_at, service_seconds
 from data.schema import connect
 
 # Reads the .env
@@ -22,9 +23,6 @@ NEXT_DEPARTURES = 3
 
 # The row id used when the stop has nothing scheduled
 NO_DEPARTURES = "schedule:none"
-
-# Before this hour, "today" is still yesterday's MBTA service day
-SERVICE_ROLLOVER_HOUR = 3
 
 WEEKDAYS = {
     "monday": 0,
@@ -78,11 +76,8 @@ def service_day(now: datetime) -> tuple[str, str]:
         service day is still yesterday and hours count past 24, so a
         12:40 AM query asks for yesterday's date at 24:40.
     """
-    # Past midnight the service clock keeps counting: 12:40 AM is 24:40
-    if now.hour < SERVICE_ROLLOVER_HOUR:
-        yesterday = now.date() - timedelta(days=1)
-        return yesterday.isoformat(), f"{now.hour + 24}:{now.minute:02d}"
-    return now.date().isoformat(), f"{now.hour:02d}:{now.minute:02d}"
+    hour = service_seconds(now) // 3600
+    return service_date_at(now).isoformat(), f"{hour:02d}:{now.minute:02d}"
 
 
 def requested_date(day: str | None, now: datetime) -> str | None:

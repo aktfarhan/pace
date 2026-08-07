@@ -1,7 +1,8 @@
 """The HTTP server: streaming endpoint that answers a query."""
 
 import json
-from collections.abc import Iterator
+from collections.abc import AsyncGenerator, Iterator
+from contextlib import asynccontextmanager
 
 import psycopg
 from fastapi import FastAPI
@@ -10,6 +11,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend.ask import ask_stream
+from backend.timetable import warm
 from data.schema import connect
 
 # Where the frontend runs
@@ -23,9 +25,25 @@ STREAM_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
 
 CHUNK_COUNT = "SELECT count(*) FROM chunks;"
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Reads the timetable before the server accepts requests.
+
+    Args:
+        app: The server.
+
+    Yields:
+        Once, with the tables loaded.
+    """
+    warm()
+    yield
+
+
 # The server
 app = FastAPI(
     title="Pace",
+    lifespan=lifespan,
     docs_url="/v1/docs",
     openapi_url="/v1/openapi.json",
     redoc_url=None,
