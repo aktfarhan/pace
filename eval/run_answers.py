@@ -1,6 +1,7 @@
 """Answer eval: run every text seed query through the full ask() pipeline and score answer-or-refuse against the expected action."""
 
 import json
+import math
 import time
 from pathlib import Path
 from datetime import datetime, timezone
@@ -9,6 +10,7 @@ from collections import defaultdict
 from dotenv import load_dotenv
 
 from backend.ask import ask
+from backend.timetable import warm
 
 # Reads the .env
 load_dotenv()
@@ -37,11 +39,35 @@ total_queries = len(queries)
 
 print(f"Running answer eval: {total_queries} queries -> {output_path.name}")
 
+
+def percentile(values: list[int], share: float) -> int:
+    """Takes one percentile of a list, nearest rank.
+
+    Args:
+        values: The measurements.
+        share: The percentile as a fraction.
+
+    Returns:
+        The value at that rank, rounding up.
+    """
+    ordered = sorted(values)
+    return ordered[max(0, math.ceil(share * len(ordered)) - 1)]
+
+
 # Tallies for the final summary
 correct_count = 0
 error_count = 0
 failed_ids = []
 domain_counts = defaultdict(lambda: {"correct": 0, "total": 0})
+
+# Latency, and refusals on the rows that wanted an answer
+latencies = []
+route_latencies = []
+answerable_count = 0
+refusal_count = 0
+
+# The server warms at startup
+warm()
 
 run_start = time.perf_counter()
 
@@ -56,6 +82,16 @@ with output_path.open("w") as output_file:
             latency_ms = int((time.perf_counter() - start_time) * 1000)
             action = "refuse" if answer["should_refuse"] else "answer"
             is_correct = action == expected
+
+            latencies.append(latency_ms)
+            if domain == "route":
+                route_latencies.append(latency_ms)
+
+            # Only a row that wanted an answer can be wrongly refused
+            if expected == "answer":
+                answerable_count += 1
+                if action == "refuse":
+                    refusal_count += 1
 
             result = {
                 "query_id": query["id"],
@@ -115,6 +151,21 @@ print("Per-domain accuracy:")
 for domain, counts in sorted(domain_counts.items()):
     pct = 100 * counts["correct"] / counts["total"] if counts["total"] else 0
     print(f"  {domain:16s} {counts['correct']}/{counts['total']} ({pct:.1f}%)")
+
+if latencies:
+    print()
+    print("Latency (target p95 < 2000ms):")
+    print(f"  p50              {percentile(latencies, 0.50)}ms")
+    print(f"  p95              {percentile(latencies, 0.95)}ms")
+    if route_latencies:
+        print(f"  p50 route        {percentile(route_latencies, 0.50)}ms")
+        print(f"  p95 route        {percentile(route_latencies, 0.95)}ms")
+
+if answerable_count:
+    refusal_pct = 100 * refusal_count / answerable_count
+    print()
+    print("Refusal rate (target 5-10%), of the rows that wanted an answer:")
+    print(f"  {refusal_count}/{answerable_count} ({refusal_pct:.1f}%)")
 
 print()
 print(f"Runtime: {run_elapsed:.1f}s")
