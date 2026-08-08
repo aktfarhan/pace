@@ -6,14 +6,11 @@ from typing import Any
 
 import psycopg
 from openai import OpenAI
-from dotenv import load_dotenv
 from pgvector import Vector
 from pgvector.psycopg import register_vector
 
+from backend.llm import llm
 from data.schema import EMBEDDING_DIM, connect
-
-# Reads the .env
-load_dotenv()
 
 MODEL = "text-embedding-3-small"
 SEARCH = """
@@ -131,7 +128,7 @@ def retrieve(query: str, k: int = 5, resolve: bool = True) -> list[Row]:
         Up to k rows (id, kind, text, metadata, distance), resolved
         stations first, then vector search fills the rest.
     """
-    client = OpenAI()
+    client = llm()
     query_vector = Vector(embed_query(client, query))
 
     # Connect and pass Python lists as vectors

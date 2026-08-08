@@ -5,14 +5,9 @@ import sys
 from datetime import datetime
 from typing import TypedDict
 
-from openai import OpenAI
-from dotenv import load_dotenv
-
+from backend.llm import llm
 from backend.retrieve import Row, retrieve
 from prompts.loader import load_prompt
-
-# Reads the .env
-load_dotenv()
 
 MODEL = "gpt-4o-mini"
 
@@ -59,7 +54,7 @@ def generate(
         "now": now,
     }
 
-    client = OpenAI()
+    client = llm()
     response = client.chat.completions.create(
         model=MODEL,
         temperature=0,

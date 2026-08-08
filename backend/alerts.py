@@ -16,6 +16,9 @@ load_dotenv()
 API_KEY = os.environ["MBTA_API_KEY"]
 BASE_URL = "https://api-v3.mbta.com"
 
+# Longest an MBTA call may run before it is dropped
+MBTA_TIMEOUT = 5.0
+
 # System-wide fetches keep the biggest alerts only
 TOP_ALERTS = 8
 
@@ -94,7 +97,10 @@ def fetch_alerts(
 
     # Fetch the active alerts
     response = httpx.get(
-        f"{BASE_URL}/alerts", params=params, headers={"X-API-Key": API_KEY}
+        f"{BASE_URL}/alerts",
+        params=params,
+        headers={"X-API-Key": API_KEY},
+        timeout=MBTA_TIMEOUT,
     )
     response.raise_for_status()
     alerts = response.json()["data"]
