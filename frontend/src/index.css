@@ -1,0 +1,27 @@
+@import 'tailwindcss';
+
+/* Brass on ink, read off the design boards */
+@theme {
+    --color-ink: #0c0b0a;
+    --color-panel: #121110;
+    --color-rail: #100f0d;
+    --color-line: #211e19;
+    --color-field: #1b1916;
+    --color-edge: #2b2620;
+    --color-bubble: #221f1b;
+
+    --color-brass: #e8c77d;
+    --color-amber: #e7b04a;
+    --color-ember: #d93b2b;
+
+    --color-bright: #f5f0e6;
+    --color-cream: #efeae0;
+    --color-soft: #b8b0a2;
+    --color-muted: #a89f92;
+    --color-dim: #746d60;
+    --color-faint: #57514a;
+
+    --font-sans: Geist, ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'Geist Mono', ui-monospace, monospace;
+    --font-serif: Newsreader, Georgia, serif;
+}
