@@ -10,8 +10,8 @@ export function useAsk() {
     const [turns, setTurns] = useState<Turn[]>([]);
     const [busy, setBusy] = useState(false);
 
-    // The stages of the question
-    const [stages, setStages] = useState<Stage[]>([]);
+    // The stage the open question is on
+    const [stage, setStage] = useState<Stage | null>(null);
 
     // Busy is for rendering, and the ref for guarding a double send
     const running = useRef(false);
@@ -38,7 +38,7 @@ export function useAsk() {
             }
             running.current = true;
             setBusy(true);
-            setStages([]);
+            setStage(null);
 
             // Open the turn this question fills in
             const id = nextId.current;
@@ -46,9 +46,7 @@ export function useAsk() {
             setTurns((old) => [...old, { id, query: asked, answer: null, failed: false }]);
 
             try {
-                const answer = await ask(asked, (stage) => {
-                    setStages((old) => [...old, stage]);
-                });
+                const answer = await ask(asked, setStage);
                 amend(id, { answer });
             } catch (error) {
                 console.error(error);
@@ -62,5 +60,5 @@ export function useAsk() {
         [amend],
     );
 
-    return { turns, stages, busy, send };
+    return { turns, stage, busy, send };
 }

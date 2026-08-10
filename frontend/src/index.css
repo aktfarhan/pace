@@ -14,6 +14,8 @@
     --color-amber: #e7b04a;
     --color-ember: #d93b2b;
 
+    --color-onbrass: #1c160b;
+
     --color-bright: #f5f0e6;
     --color-cream: #efeae0;
     --color-soft: #b8b0a2;
@@ -24,6 +26,25 @@
     --font-sans: Geist, ui-sans-serif, system-ui, sans-serif;
     --font-mono: 'Geist Mono', ui-monospace, monospace;
     --font-serif: Newsreader, Georgia, serif;
+
+    --text-label: 0.625rem;
+    --text-label--line-height: 1.4;
+    --text-label--font-weight: 600;
+    --text-label--letter-spacing: 0.1em;
+
+    --radius-card: 1.25rem;
+
+    --animate-blink: blink 1.1s ease-in-out infinite;
+
+    @keyframes blink {
+        0%,
+        100% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.2;
+        }
+    }
 }
 
 @layer base {

@@ -1,4 +1,4 @@
-/** What /v1/ask returns */
+// What /v1/ask returns
 export interface Answer {
     answer: string;
     sources: string[];
@@ -7,5 +7,5 @@ export interface Answer {
     refuse_reason: string | null;
 }
 
-/** A stage the pipeline reports */
+// A stage the pipeline reports
 export type Stage = 'classify' | 'retrieve' | 'plan' | 'alerts' | 'departures' | 'generate';
