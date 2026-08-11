@@ -6,6 +6,7 @@ from datetime import datetime
 
 from backend.classify import ParsedQuery, classify
 from backend.alerts import blocking_alerts, fetch_alerts
+from backend.cards import build_card, card_sources
 from backend.generate import Answer, generate
 from backend.planner.trip import plan_trip
 from backend.retrieve import retrieve
@@ -62,6 +63,7 @@ def refused(reason: str) -> Answer:
         "risk": None,
         "should_refuse": True,
         "refuse_reason": reason,
+        "card": None,
     }
 
 
@@ -128,6 +130,11 @@ def ask_stream(query: str) -> Iterator[Event]:
     if answer["should_refuse"] and not answer["answer"]:
         yield ("answer", refused("low-confidence"))
         return
+
+    # The card the answer draws
+    card = build_card(intent, chunks)
+    answer["card"] = card
+    answer["sources"] = sorted(set(answer["sources"]) | card_sources(card))
     yield ("answer", answer)
 
 

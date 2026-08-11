@@ -42,6 +42,7 @@ ROUTE_INFO = """
            metadata->>'short_name' AS short_name,
            metadata->>'long_name' AS long_name,
            metadata->>'type' AS route_type,
+           metadata->>'color' AS color,
            metadata->'direction_destinations' AS direction_destinations
     FROM chunks WHERE kind = 'route';
 """
@@ -49,6 +50,9 @@ STATION_NAMES = """
     SELECT id, metadata->>'name' AS name
     FROM chunks WHERE id = ANY(%s);
 """
+
+# route_id -> (short_name, long_name, type, color, destinations)
+RouteInfo = dict[str, tuple[str, str, int, str, list[str]]]
 
 
 def fetch(path: str, params: dict) -> list[dict]:
@@ -184,7 +188,7 @@ def render_next(
     station_name: str,
     stop_id: str,
     live: bool,
-    route_info: dict,
+    route_info: RouteInfo,
     retrieved_at: str,
 ) -> Row:
     """Builds one next-departures row shaped like a retrieved chunk.
@@ -196,13 +200,13 @@ def render_next(
         station_name: The station's display name.
         stop_id: The station's MBTA id.
         live: Whether the times are live predictions.
-        route_info: route_id -> (short_name, long_name, type, destinations).
+        route_info: Route names, color, and destinations by route id.
         retrieved_at: When the fetch happened.
 
     Returns:
         A (id, kind, text, metadata, distance) row.
     """
-    short_name, long_name, route_type, destinations = route_info[route_id]
+    short_name, long_name, route_type, color, destinations = route_info[route_id]
     label = route_label(short_name, long_name, route_type)
     destination = destinations[direction_id]
     clocks = ", ".join(clock(time) for time in times)
@@ -217,7 +221,14 @@ def render_next(
         "route_id": route_id,
         "stop_id": stop_id,
         "direction_id": direction_id,
+        "short_name": short_name,
+        "label": label,
+        "route_type": route_type,
+        "color": color,
+        "station": station_name,
+        "destination": destination,
         "departure_times": times,
+        "edge": None,
         "live": live,
         "retrieved_at": retrieved_at,
     }
@@ -238,7 +249,7 @@ def render_edge(
     station_name: str,
     stop_id: str,
     day_name: str,
-    route_info: dict,
+    route_info: RouteInfo,
     retrieved_at: str,
 ) -> Row:
     """Builds one first-or-last departure row shaped like a retrieved chunk.
@@ -251,14 +262,15 @@ def render_edge(
         station_name: The station's display name.
         stop_id: The station's MBTA id.
         day_name: The weekday asked about ("Saturday").
-        route_info: route_id -> (short_name, long_name, type, destinations).
+        route_info: Route names, color, and destinations by route id.
         retrieved_at: When the fetch happened.
 
     Returns:
         A (id, kind, text, metadata, distance) row.
     """
-    short_name, long_name, route_type, destinations = route_info[route_id]
+    short_name, long_name, route_type, _, destinations = route_info[route_id]
     label = route_label(short_name, long_name, route_type)
+    edge = kind.lower()
     text = (
         f"{kind} {label} toward {destinations[direction_id]} from {station_name} "
         f"on {day_name}: {clock(time)}."
@@ -268,10 +280,11 @@ def render_edge(
         "stop_id": stop_id,
         "direction_id": direction_id,
         "departure_times": [time],
+        "edge": edge,
         "live": False,
         "retrieved_at": retrieved_at,
     }
-    row_id = f"schedule:{route_id}:{stop_id}:{direction_id}:{kind.lower()}"
+    row_id = f"schedule:{route_id}:{stop_id}:{direction_id}:{edge}"
     return (row_id, "schedule", text, metadata, 0.0)
 
 
@@ -303,18 +316,20 @@ def fetch_departures(parsed: ParsedQuery) -> list[Row]:
 
         # Labels and destinations for the row text
         cursor.execute(ROUTE_INFO)
-        route_info = {}
+        route_info: RouteInfo = {}
         for (
             route_id,
             short_name,
             long_name,
             route_type,
+            color,
             destinations,
         ) in cursor.fetchall():
             route_info[route_id] = (
                 short_name,
                 long_name,
                 int(route_type),
+                color,
                 destinations,
             )
         cursor.execute(STATION_NAMES, (station_ids,))
