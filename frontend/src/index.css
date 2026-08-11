@@ -16,12 +16,17 @@
 
     --color-onbrass: #1c160b;
 
+    --color-seam: #1d1a16;
+
     --color-bright: #f5f0e6;
     --color-cream: #efeae0;
     --color-soft: #b8b0a2;
     --color-muted: #a89f92;
+    --color-quiet: #9a9182;
+    --color-hush: #8a8172;
     --color-dim: #746d60;
     --color-faint: #57514a;
+    --color-ghost: #4a453e;
 
     --font-sans: Geist, ui-sans-serif, system-ui, sans-serif;
     --font-mono: 'Geist Mono', ui-monospace, monospace;
@@ -32,6 +37,28 @@
     --text-label--font-weight: 600;
     --text-label--letter-spacing: 0.1em;
 
+    --text-mark: 0.9375rem;
+    --text-mark--line-height: 1;
+    --text-mark--font-weight: 800;
+
+    --text-brand: 0.8125rem;
+    --text-brand--font-weight: 700;
+    --text-brand--letter-spacing: 0.2em;
+
+    --text-coverage: 0.53125rem;
+    --text-coverage--font-weight: 700;
+    --text-coverage--letter-spacing: 0.14em;
+
+    --text-device: 0.59375rem;
+    --text-device--font-weight: 600;
+    --text-device--letter-spacing: 0.06em;
+
+    --font-weight-strong: 650;
+
+    --spacing-hair: 0.21875rem;
+
+    --radius-mark: 0.5625rem;
+    --radius-row: 0.6875rem;
     --radius-card: 1.25rem;
 
     --animate-blink: blink 1.1s ease-in-out infinite;
@@ -52,4 +79,10 @@
         background-color: var(--color-ink);
         color-scheme: dark;
     }
+}
+
+/* The scrollbar, quieted */
+@utility scroll-quiet {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-edge) transparent;
 }
