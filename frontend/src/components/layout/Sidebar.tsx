@@ -16,8 +16,8 @@ function Sidebar() {
     return (
         <aside className="hidden w-88 shrink-0 flex-col border-r border-line bg-rail px-4.25 pt-5 pb-4.5 lg:flex">
             <div className="flex items-center gap-3 px-3">
-                <span className="relative grid size-7 shrink-0 place-items-center rounded-mark bg-brass">
-                    <span className="text-mark text-onbrass">p</span>
+                <span className="relative grid size-7 shrink-0 place-items-center rounded-mark bg-accent">
+                    <span className="text-mark text-onaccent">p</span>
                     <span className="absolute right-hair bottom-hair size-1.25 rounded-full bg-ember" />
                 </span>
                 <span className="text-brand text-bright uppercase">Pace</span>
@@ -35,7 +35,7 @@ function Sidebar() {
                             className={clsx(
                                 ROW,
                                 current
-                                    ? 'bg-brass/11 font-strong text-brass'
+                                    ? 'bg-accent/11 font-strong text-accent'
                                     : 'font-medium text-quiet',
                             )}
                         >

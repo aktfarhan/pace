@@ -16,7 +16,7 @@ interface ThinkingProps {
 function Thinking({ stage }: ThinkingProps) {
     return (
         <div className="flex items-center gap-2">
-            <span className="size-1.5 shrink-0 animate-blink rounded-full bg-brass" />
+            <span className="size-1.5 shrink-0 animate-blink rounded-full bg-accent" />
             <span className="text-xs text-dim">{LABELS[stage]}</span>
         </div>
     );

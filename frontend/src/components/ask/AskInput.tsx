@@ -34,7 +34,7 @@ function AskInput({ send, busy }: AskInputProps) {
                 onClick={submit}
                 disabled={blocked}
                 aria-label="Ask"
-                className="grid size-13 shrink-0 place-items-center rounded-xl bg-brass text-onbrass disabled:opacity-30"
+                className="grid size-13 shrink-0 place-items-center rounded-xl bg-accent text-onaccent disabled:opacity-30"
             >
                 <ArrowUp size={17} strokeWidth={2.2} aria-hidden="true" />
             </button>

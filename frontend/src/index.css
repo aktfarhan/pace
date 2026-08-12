@@ -1,32 +1,32 @@
 @import 'tailwindcss';
 
-/* Brass on ink, read off the design boards */
+/* Bone on graphite. Surfaces stay neutral so the route colours read. */
 @theme {
-    --color-ink: #0c0b0a;
-    --color-panel: #121110;
-    --color-rail: #100f0d;
-    --color-line: #211e19;
-    --color-field: #1b1916;
-    --color-edge: #2b2620;
-    --color-bubble: #221f1b;
+    --color-ink: #161617;
+    --color-panel: #212123;
+    --color-rail: #1c1c1e;
+    --color-line: #353639;
+    --color-field: #292a2d;
+    --color-edge: #43444a;
+    --color-bubble: #303134;
 
-    --color-brass: #e8c77d;
-    --color-amber: #e7b04a;
+    --color-accent: #e6e1d6;
+    --color-amber: #e0a94a;
     --color-ember: #d93b2b;
 
-    --color-onbrass: #1c160b;
+    --color-onaccent: #1b1a16;
 
-    --color-seam: #1d1a16;
+    --color-seam: #2e2f32;
 
-    --color-bright: #f5f0e6;
-    --color-cream: #efeae0;
-    --color-soft: #b8b0a2;
-    --color-muted: #a89f92;
-    --color-quiet: #9a9182;
-    --color-hush: #8a8172;
-    --color-dim: #746d60;
-    --color-faint: #57514a;
-    --color-ghost: #4a453e;
+    --color-bright: #f0efec;
+    --color-cream: #e8e7e3;
+    --color-soft: #b6b6bb;
+    --color-muted: #a8a8ae;
+    --color-quiet: #9b9ba1;
+    --color-hush: #8a8a90;
+    --color-dim: #77777d;
+    --color-faint: #6b6b70;
+    --color-ghost: #5a5a60;
 
     --font-sans: Geist, ui-sans-serif, system-ui, sans-serif;
     --font-mono: 'Geist Mono', ui-monospace, monospace;
