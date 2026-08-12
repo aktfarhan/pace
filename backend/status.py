@@ -64,7 +64,8 @@ class LineStatus(TypedDict):
     since: str | None
     until: str | None
     branch_ids: list[str]
-    route_count: int
+    directions: list[int]
+    stop_count: int
     alert_count: int
 
 
@@ -173,6 +174,37 @@ def delay_minutes(alert: dict[str, Any]) -> int | None:
     return int(found.group(1))
 
 
+def directions_of(alert: dict[str, Any]) -> list[int]:
+    """Returns the directions of travel an alert names.
+
+    Args:
+        alert: An alert record.
+
+    Returns:
+        0, 1, or both, sorted.
+    """
+    directions = set()
+    for entity in alert["attributes"]["informed_entity"]:
+        if "direction_id" in entity:
+            directions.add(entity["direction_id"])
+    return sorted(directions)
+
+
+def stops_of(alert: dict[str, Any]) -> int:
+    """Counts the stops an alert names.
+
+    Args:
+        alert: An alert record.
+
+    Returns:
+        How many distinct stops it touches.
+    """
+    stops = set()
+    for entity in alert["attributes"]["informed_entity"]:
+        stops.add(entity["stop"])
+    return len(stops)
+
+
 def rank(alert: dict[str, Any]) -> tuple[int, int, str]:
     """Sorts an alert against the others on its line.
 
@@ -231,18 +263,18 @@ def read_line(
             "since": None,
             "until": None,
             "branch_ids": [],
-            "route_count": 0,
+            "directions": [],
+            "stop_count": 0,
             "alert_count": 0,
         }
 
     worst = min(alerts, key=rank)
     attributes = worst["attributes"]
 
-    # Every route the line's alerts name
+    # Every route the worst alert names
     branches = set()
-    for alert in alerts:
-        for record in alert["relationships"]["routes"]["data"]:
-            branches.add(record["id"])
+    for record in worst["relationships"]["routes"]["data"]:
+        branches.add(record["id"])
 
     return {
         "line_id": line_id,
@@ -256,7 +288,8 @@ def read_line(
         "since": earliest_start(worst),
         "until": latest_end(worst),
         "branch_ids": sorted(branches),
-        "route_count": len(branches),
+        "directions": directions_of(worst),
+        "stop_count": stops_of(worst),
         "alert_count": len(alerts),
     }
 
