@@ -1,25 +1,13 @@
 """Fetch live departure predictions and scheduled times for the stops named in a query."""
 
-import os
 import sys
 from datetime import date, datetime, timedelta, timezone
 
-import httpx
-from dotenv import load_dotenv
-
 from backend.classify import ParsedQuery
+from backend.mbta import fetch
 from backend.retrieve import Row, match_route_ids, match_station_ids
 from backend.timetable import service_date_at, service_seconds
 from data.schema import connect
-
-# Reads the .env
-load_dotenv()
-
-API_KEY = os.environ["MBTA_API_KEY"]
-BASE_URL = "https://api-v3.mbta.com"
-
-# Longest an MBTA call may run before it is dropped
-MBTA_TIMEOUT = 5.0
 
 # Upcoming departures shown per route and direction
 NEXT_DEPARTURES = 3
@@ -53,26 +41,6 @@ STATION_NAMES = """
 
 # route_id -> (short_name, long_name, type, color, destinations)
 RouteInfo = dict[str, tuple[str, str, int, str, list[str]]]
-
-
-def fetch(path: str, params: dict) -> list[dict]:
-    """Returns the data rows for one MBTA API call.
-
-    Args:
-        path: The endpoint ("/predictions" or "/schedules").
-        params: Query parameters for the call.
-
-    Returns:
-        The response's data list.
-    """
-    response = httpx.get(
-        f"{BASE_URL}{path}",
-        params=params,
-        headers={"X-API-Key": API_KEY},
-        timeout=MBTA_TIMEOUT,
-    )
-    response.raise_for_status()
-    return response.json()["data"]
 
 
 def service_day(now: datetime) -> tuple[str, str]:
@@ -369,7 +337,8 @@ def fetch_departures(parsed: ParsedQuery) -> list[Row]:
                 last_extra = {"sort": "-departure_time", "filter[min_time]": "15:00"}
                 edges.append(("Last", last_extra, -1))
             for kind, extra, pick in edges:
-                records = fetch("/schedules", {**params, **extra, "date": target})
+                asked = {**params, **extra, "date": target}
+                records = fetch("/schedules", asked)["data"]
                 for (route_id, direction_id), times in departure_groups(
                     records
                 ).items():
@@ -393,13 +362,13 @@ def fetch_departures(parsed: ParsedQuery) -> list[Row]:
 
         # Next departures: live predictions, today's schedule as the fallback
         live = True
-        groups = departure_groups(fetch("/predictions", params))
+        groups = departure_groups(fetch("/predictions", params)["data"])
         if not groups:
             live = False
             target, minimum = service_day(now)
             records = fetch(
                 "/schedules", {**params, "date": target, "filter[min_time]": minimum}
-            )
+            )["data"]
             groups = departure_groups(records)
         for (route_id, direction_id), times in groups.items():
             # Diversion shuttles aren't in the routes table
