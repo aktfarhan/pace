@@ -1,4 +1,4 @@
-import type { State, AlertedLine, LineStatus, SystemStatus } from '@/types/status';
+import type { Chip, State, AlertedLine, LineStatus, SystemStatus } from '@/types/status';
 
 // A group of lines under one heading
 interface Section {
@@ -194,4 +194,28 @@ export function sublineOf(status: SystemStatus, now: number) {
         return `${ok} other lines on time · ${age}`;
     }
     return `${ok} lines on time · ${age}`;
+}
+
+// No direction on an alert means it covers every direction
+function bothDirections(line: LineStatus) {
+    return line.directions.length !== 1;
+}
+
+// The two facts under a card's title row
+export function chipsOf(line: LineStatus): Chip[] {
+    if (running(line)) {
+        return [
+            { text: 'Typical —', tone: 'blank' },
+            { text: 'Both directions', tone: 'quiet' },
+        ];
+    }
+
+    const scope: Chip = {
+        text: bothDirections(line) ? 'Both directions' : 'One direction',
+        tone: 'read',
+    };
+    if (line.alert_count > 1) {
+        return [scope, { text: `${line.alert_count} alerts`, tone: 'quiet' }];
+    }
+    return [scope, { text: 'Typical —', tone: 'blank' }];
 }
