@@ -1,6 +1,12 @@
 // How a line is running
 export type State = 'clear' | 'notice' | 'disrupted' | 'severe';
 
+// One fact under a card's title row
+export interface Chip {
+    text: string;
+    tone: 'read' | 'quiet' | 'blank';
+}
+
 // Fields every line has
 interface LineFields {
     line_id: string;

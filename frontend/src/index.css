@@ -18,6 +18,21 @@
 
     --color-seam: #2e2f32;
 
+    --color-red: #f0837a;
+    --color-red-fill: #e8594d;
+    --color-orange: #f0964a;
+    --color-orange-fill: #f0964a;
+    --color-green: #5fcf9a;
+    --color-green-fill: #27b47e;
+    --color-blue: #7fb2e8;
+    --color-blue-fill: #5ca0e0;
+    --color-commuter: #b3a6f0;
+    --color-commuter-fill: #9484e4;
+
+    --color-good: #3a9b6f;
+    --color-steady: #78918a;
+    --color-delay: #f0b44e;
+
     --color-bright: #f0efec;
     --color-cream: #e8e7e3;
     --color-soft: #b6b6bb;
@@ -53,13 +68,49 @@
     --text-device--font-weight: 600;
     --text-device--letter-spacing: 0.06em;
 
+    --text-badge: 0.625rem;
+    --text-badge--font-weight: 700;
+    --text-badge--letter-spacing: 0.06em;
+
+    --text-state: 0.59375rem;
+    --text-state--font-weight: 700;
+    --text-state--letter-spacing: 0.09em;
+
+    --text-pill: 0.5625rem;
+    --text-pill--font-weight: 700;
+    --text-pill--letter-spacing: 0.09em;
+
+    --text-chip: 0.53125rem;
+    --text-chip--font-weight: 700;
+    --text-chip--letter-spacing: 0.08em;
+
+    --text-heading: 0.5625rem;
+    --text-heading--font-weight: 700;
+    --text-heading--letter-spacing: 0.16em;
+
+    --text-branch: 0.84375rem;
+    --text-branch--font-weight: 500;
+
+    --text-hero: 1.5625rem;
+    --text-hero--line-height: 1;
+    --text-hero--font-weight: 700;
+    --text-hero--letter-spacing: -0.03em;
+
+    --text-unit: 0.5625rem;
+    --text-unit--font-weight: 600;
+
     --font-weight-strong: 650;
 
     --spacing-hair: 0.21875rem;
 
     --radius-mark: 0.5625rem;
     --radius-row: 0.6875rem;
+    --radius-chip: 0.3125rem;
+    --radius-tile: 0.875rem;
     --radius-card: 1.25rem;
+
+    --shadow-glow: 0 0 8px rgb(58 155 111 / 0.5);
+    --shadow-pulse: 0 0 9px rgb(224 169 74 / 0.7);
 
     --animate-blink: blink 1.1s ease-in-out infinite;
 
