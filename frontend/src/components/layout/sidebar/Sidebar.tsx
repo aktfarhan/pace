@@ -1,9 +1,8 @@
 import clsx from 'clsx';
-import { Bookmark, Clock, Lock, MapPin, MessageSquare, Settings } from 'lucide-react';
+import Status from './Status';
+import { Bookmark, Clock, MapPin, MessageSquare, Settings } from 'lucide-react';
 
 const ROW = 'flex items-center gap-3.25 rounded-row px-3 py-2.5 text-sm';
-
-const CURRENT = 'Ask';
 
 const NAV = [
     { label: 'Ask', Icon: MessageSquare },
@@ -14,8 +13,8 @@ const NAV = [
 
 function Sidebar() {
     return (
-        <aside className="hidden w-88 shrink-0 flex-col border-r border-line bg-rail px-4.25 pt-5 pb-4.5 lg:flex">
-            <div className="flex items-center gap-3 px-3">
+        <aside className="hidden w-90 shrink-0 flex-col overflow-y-auto border-r border-line bg-rail px-3 lg:flex">
+            <div className="sticky top-0 z-10 flex items-center gap-3 bg-rail px-1.5 pt-5 pb-1">
                 <span className="relative grid size-7 shrink-0 place-items-center rounded-mark bg-accent">
                     <span className="text-mark text-onaccent">p</span>
                     <span className="absolute right-hair bottom-hair size-1.25 rounded-full bg-ember" />
@@ -26,9 +25,9 @@ function Sidebar() {
                 </span>
             </div>
 
-            <nav className="mt-4 flex flex-col gap-0.5">
+            <nav className="mt-4 flex flex-col gap-0.5 px-1.5">
                 {NAV.map(({ label, Icon }) => {
-                    const current = label === CURRENT;
+                    const current = label === 'Ask';
                     return (
                         <div
                             key={label}
@@ -53,8 +52,10 @@ function Sidebar() {
                 })}
             </nav>
 
-            <div className="mt-auto flex flex-col gap-2.25 pt-3.5">
-                <div className="-mx-4.25 h-px bg-seam" />
+            <Status />
+
+            <div className="sticky bottom-0 mt-auto flex flex-col gap-3 bg-rail px-1.5 pt-3 pb-3">
+                <div className="-mx-1.5 h-px bg-seam" />
                 <div className={clsx(ROW, 'font-medium text-quiet')}>
                     <Settings
                         size={18}
@@ -63,10 +64,6 @@ function Sidebar() {
                         aria-hidden="true"
                     />
                     Settings
-                </div>
-                <div className="flex items-center gap-2.75 px-3 pb-0.5 text-faint">
-                    <Lock size={13} strokeWidth={1.8} aria-hidden="true" />
-                    <span className="font-mono text-device uppercase">No account</span>
                 </div>
             </div>
         </aside>

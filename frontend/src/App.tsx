@@ -1,7 +1,7 @@
 import { useAsk } from '@/hooks/useAsk';
 import TurnList from '@/components/ask/TurnList';
 import AskInput from '@/components/ask/AskInput';
-import Sidebar from '@/components/layout/Sidebar';
+import Sidebar from '@/components/layout/sidebar/Sidebar';
 
 function App() {
     const { turns, stage, busy, send } = useAsk();

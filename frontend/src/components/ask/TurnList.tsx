@@ -20,7 +20,7 @@ function TurnList({ turns, stage }: TurnListProps) {
     }, [turns]);
 
     return (
-        <div ref={list} className="flex flex-1 scroll-quiet flex-col gap-6 overflow-y-auto">
+        <div ref={list} className="flex flex-1 flex-col gap-6 overflow-y-auto">
             {turns.map((turn) => (
                 <div key={turn.id} className="flex flex-col gap-2">
                     <p className="max-w-md self-end rounded-2xl rounded-br-sm border border-edge bg-bubble px-4 py-2.5 text-sm text-cream">

@@ -53,8 +53,8 @@ const EFFECT_WORDS: Record<string, string> = {
     SHUTTLE: 'Shuttles',
     DETOUR: 'Detour',
     DELAY: 'Delayed',
-    TRACK_CHANGE: 'Track change',
-    SERVICE_CHANGE: 'Service change',
+    TRACK_CHANGE: 'Track',
+    SERVICE_CHANGE: 'Service',
     STOP_MOVE: 'Stop moved',
     STOP_MOVED: 'Stop moved',
 };
