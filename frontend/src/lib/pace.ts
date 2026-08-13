@@ -1,3 +1,4 @@
+import type { SystemStatus } from '@/types/status';
 import type { Answer, Stage } from '@/types/answer';
 
 const API = 'http://localhost:8000';
@@ -43,6 +44,15 @@ function applyFrame(frame: Frame, onStage: (name: Stage) => void): Answer | null
         return payload;
     }
     return null;
+}
+
+// Reads every line's state
+export async function readStatus(signal: AbortSignal): Promise<SystemStatus> {
+    const response = await fetch(`${API}/v1/status`, { signal });
+    if (!response.ok) {
+        throw new Error(`Pace returned ${response.status}`);
+    }
+    return response.json();
 }
 
 // Sends the question and reports each stage until the answer arrives
