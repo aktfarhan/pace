@@ -44,8 +44,11 @@ UNRANKED = len(EFFECT_ORDER)
 SEVERE_EFFECTS = {"SUSPENSION", "NO_SERVICE", "CANCELLATION"}
 DISRUPTED_EFFECTS = {"SHUTTLE", "DETOUR", "DELAY"}
 
-# The delay number in an alert's header
-DELAY_MINUTES = re.compile(r"delays of about (\d+) minutes")
+# The phrasings a delay number comes in
+DELAY_FIGURES = (
+    re.compile(r"(\d+)(?:[-–](\d+))? minutes behind schedule", re.IGNORECASE),
+    re.compile(r"delays of about (\d+)(?:[-–](\d+))? minutes", re.IGNORECASE),
+)
 
 State = Literal["clear", "notice", "disrupted", "severe"]
 
@@ -60,7 +63,7 @@ class LineStatus(TypedDict):
     effect: str | None
     cause: str | None
     headline: str | None
-    alert_delay_minutes: int | None
+    alert_delay_minutes: tuple[int, int] | None
     since: str | None
     until: str | None
     branch_ids: list[str]
@@ -155,23 +158,29 @@ def latest_end(alert: dict[str, Any]) -> str | None:
     return max(ends)
 
 
-def delay_minutes(alert: dict[str, Any]) -> int | None:
+def delay_minutes(alert: dict[str, Any]) -> tuple[int, int] | None:
     """Reads the delay number MBTA writes.
 
     Args:
         alert: An alert record.
 
     Returns:
-        The minutes, or None when the header carries no figure.
+        The fewest and most minutes, equal when the header names one number.
     """
     attributes = alert["attributes"]
     if attributes["effect"] != "DELAY":
         return None
 
-    found = DELAY_MINUTES.search(attributes["header"] or "")
-    if found is None:
-        return None
-    return int(found.group(1))
+    # The first phrasing that matches carries the number
+    header = attributes["header"] or ""
+    for pattern in DELAY_FIGURES:
+        found = pattern.search(header)
+        if found is not None:
+            spread = found.group(2)
+            fewest = int(found.group(1))
+            most = fewest if spread is None else int(spread)
+            return (fewest, most)
+    return None
 
 
 def directions_of(alert: dict[str, Any]) -> list[int]:
@@ -201,7 +210,8 @@ def stops_of(alert: dict[str, Any]) -> int:
     """
     stops = set()
     for entity in alert["attributes"]["informed_entity"]:
-        stops.add(entity["stop"])
+        if "stop" in entity:
+            stops.add(entity["stop"])
     return len(stops)
 
 
