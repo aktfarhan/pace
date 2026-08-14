@@ -1,3 +1,57 @@
+// One route leaving one stop in one direction
+export interface Departure {
+    route_id: string;
+    short_name: string;
+    label: string;
+    route_type: number;
+    station: string;
+    destination: string;
+    times: string[];
+    live: boolean;
+}
+
+// What is leaving a stop, soonest first
+export interface DeparturesCard {
+    kind: 'departures';
+    departures: Departure[];
+    retrieved_at: string;
+}
+
+// One walk, or a transfer inside a station
+export interface WalkLeg {
+    kind: 'walk';
+    destination: string;
+    transfer: boolean;
+    depart: string;
+    arrive: string;
+}
+
+// One ride from boarding to alighting
+export interface RideLeg {
+    kind: 'ride';
+    route_id: string;
+    label: string;
+    destination: string;
+    depart: string;
+    arrive: string;
+}
+
+// One planned trip
+export interface TripCard {
+    kind: 'trip';
+    origin: string;
+    destination: string;
+    depart: string;
+    arrive: string;
+    transfers: number;
+    live: boolean;
+    legs: (WalkLeg | RideLeg)[];
+    retrieved_at: string;
+}
+
+// The structure an answer draws
+export type Card = DeparturesCard | TripCard;
+
 // What /v1/ask returns
 export interface Answer {
     answer: string;
@@ -5,6 +59,7 @@ export interface Answer {
     risk: string | null;
     should_refuse: boolean;
     refuse_reason: string | null;
+    card: Card | null;
 }
 
 // A stage the pipeline reports

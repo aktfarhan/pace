@@ -32,7 +32,7 @@ class DeparturesCard(TypedDict):
 
 
 class WalkLeg(TypedDict):
-    """One walk on foot, or a transfer inside a station."""
+    """One walk, or a transfer inside a station."""
 
     kind: Literal["walk"]
     source: str
