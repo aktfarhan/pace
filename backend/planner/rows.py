@@ -214,6 +214,8 @@ def render_walk(
     metadata = {
         "origin_stop": None,
         "destination_stop": None,
+        "origin_label": origin["label"],
+        "destination_label": destination["label"],
         "depart": service_moment(service_date, depart_seconds).isoformat(),
         "arrive": service_moment(service_date, arrive_seconds).isoformat(),
         "transfers": 0,
@@ -297,6 +299,8 @@ def render_legs(
     metadata = {
         "origin_stop": start_stop,
         "destination_stop": end_stop,
+        "origin_label": origin["label"],
+        "destination_label": destination["label"],
         "depart": service_moment(service_date, depart_seconds).isoformat(),
         "arrive": service_moment(service_date, arrive_seconds).isoformat(),
         "transfers": transfers,
@@ -341,6 +345,8 @@ def render_legs(
             metadata = {
                 "from_stop": leg["from_stop"],
                 "to_stop": leg["to_stop"],
+                "from": from_name,
+                "to": to_name,
                 "depart": depart,
                 "arrive": arrive,
                 "retrieved_at": retrieved_at,
@@ -349,11 +355,12 @@ def render_legs(
             route_id, headsign = trips[leg["trip_id"]]
             short_name, long_name, route_type = routes[route_id]
             label = route_label(short_name, long_name, route_type)
+            alight_station = station_name(leg["alight_stop"], names, parents)
             text = (
                 f"{label} toward {headsign} from "
                 f"{station_name(leg['board_stop'], names, parents)}: board "
                 f"{service_clock(service_date, leg['depart_seconds'])}, off at "
-                f"{station_name(leg['alight_stop'], names, parents)} "
+                f"{alight_station} "
                 f"{service_clock(service_date, leg['arrive_seconds'])}."
             )
             metadata = {
@@ -361,6 +368,8 @@ def render_legs(
                 "trip_id": leg["trip_id"],
                 "board_stop": leg["board_stop"],
                 "alight_stop": leg["alight_stop"],
+                "label": label,
+                "alight_station": alight_station,
                 "depart": depart,
                 "arrive": arrive,
                 "live": False,
