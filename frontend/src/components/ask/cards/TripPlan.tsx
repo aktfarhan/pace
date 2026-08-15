@@ -25,7 +25,9 @@ function TripPlan({ card }: TripPlanProps) {
                 <div className="text-eyebrow text-ghost">{leave.label}</div>
                 <div className="mt-1 text-depart text-accent tabular-nums text-shadow-halo">
                     {leave.time}
-                    <span className="ml-1.75 text-depart-unit text-soft">{leave.unit}</span>
+                    {leave.unit !== null && (
+                        <span className="ml-1.75 text-depart-unit text-soft">{leave.unit}</span>
+                    )}
                 </div>
 
                 <div className="mt-3 flex flex-col gap-1.75">
@@ -35,6 +37,17 @@ function TripPlan({ card }: TripPlanProps) {
                             Risk —
                         </span>
                         <span className="flex-1" />
+                        {leave.kind === 'none' && (
+                            <>
+                                <span className="font-mono text-meta text-dim uppercase tabular-nums">
+                                    Next trip{' '}
+                                    <span className="text-meta-value text-cream">
+                                        {fullClock(card.depart)}
+                                    </span>
+                                </span>
+                                <span className="text-edge">·</span>
+                            </>
+                        )}
                         <span className="font-mono text-meta text-dim uppercase tabular-nums">
                             Arrive{' '}
                             <span className="text-meta-value text-cream">

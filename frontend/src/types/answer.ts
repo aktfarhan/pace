@@ -45,6 +45,8 @@ export interface TripCard {
     arrive: string;
     transfers: number;
     live: boolean;
+    service_date: string;
+    deadline: string | null;
     legs: (WalkLeg | RideLeg)[];
     retrieved_at: string;
 }

@@ -35,6 +35,9 @@ export const LINE_TILES: Record<Line, string> = {
 
 const LEAVE_NOW_MINUTES = 5;
 
+// Minutes of waiting before the wait means no service
+const NO_SERVICE_MINUTES = 60;
+
 // route_id -> the line, or null for buses
 export function lineOf(routeId: string): Line | null {
     if (routeId === 'Red' || routeId === 'Mattapan') {
@@ -83,13 +86,52 @@ export function minutesBetween(depart: string, arrive: string) {
     return Math.ceil((Date.parse(arrive) - Date.parse(depart)) / 60000);
 }
 
-// A clock time to leave by, or the trip length
+// The weekday a service date lands on
+export function dayOf(serviceDate: string) {
+    const day = new Date(`${serviceDate}T12:00:00`);
+    return day.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase();
+}
+
+// Whether the service day is past today
+function laterDay(serviceDate: string, now: number) {
+    const today = new Date(now);
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const dayNumber = String(today.getDate()).padStart(2, '0');
+    return serviceDate > `${today.getFullYear()}-${month}-${dayNumber}`;
+}
+
+// The leave line
 export function leaveOf(card: TripCard, now: number) {
+    // A boarded first ride ends the plan
+    const ride = card.legs.find((leg) => leg.kind === 'ride');
+    if (ride !== undefined && Date.parse(ride.depart) < now) {
+        return { kind: 'departed', label: 'THIS TRIP', time: 'DEPARTED', unit: null };
+    }
+
     const wait = (Date.parse(card.depart) - now) / 60000;
     if (wait <= LEAVE_NOW_MINUTES) {
         const minutes = minutesBetween(card.depart, card.arrive);
-        return { label: 'LEAVE NOW', time: `${minutes}`, unit: 'MIN' };
+        return { kind: 'now', label: 'LEAVE NOW', time: `${minutes}`, unit: 'MIN' };
     }
-    const { time, meridiem } = clockParts(card.depart);
-    return { label: 'LEAVE BY', time, unit: meridiem };
+
+    // Deadline plans show the latest time to leave, and the day if not today
+    if (card.deadline !== null) {
+        const day = laterDay(card.service_date, now) ? ` ${dayOf(card.service_date)}` : '';
+        const { time, meridiem } = clockParts(card.depart);
+        return { kind: 'by', label: `LEAVE BY${day}`, time, unit: meridiem };
+    }
+
+    // Plans for another day show that day
+    if (laterDay(card.service_date, now)) {
+        const { time, meridiem } = clockParts(card.depart);
+        return { kind: 'day', label: dayOf(card.service_date), time, unit: meridiem };
+    }
+
+    // Under an hour, show leave in minutes
+    if (wait <= NO_SERVICE_MINUTES) {
+        return { kind: 'in', label: 'LEAVE IN', time: `${Math.ceil(wait)}`, unit: 'MIN' };
+    }
+
+    // Over an hour, nothing is running
+    return { kind: 'none', label: 'RIGHT NOW', time: 'NO SERVICE', unit: null };
 }
