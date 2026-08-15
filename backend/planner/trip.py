@@ -213,7 +213,7 @@ def plan_trip(query: str, parsed: ParsedQuery) -> list[Row]:
                 leaves,
                 direct_seconds,
                 retrieved_at,
-                deadline is not None,
+                deadline,
             )
 
     # No stop near one of the ends
@@ -240,6 +240,7 @@ def plan_trip(query: str, parsed: ParsedQuery) -> list[Row]:
         routes,
         trips,
         retrieved_at,
+        deadline,
     )
 
 

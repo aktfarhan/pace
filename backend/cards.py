@@ -64,6 +64,8 @@ class TripCard(TypedDict):
     arrive: str
     transfers: int
     live: bool
+    service_date: str
+    deadline: str | None
     legs: list[WalkLeg | RideLeg]
     retrieved_at: str
 
@@ -192,6 +194,8 @@ def trip_card(chunks: list[Row]) -> TripCard | None:
         "arrive": summary["arrive"],
         "transfers": summary["transfers"],
         "live": summary["live"],
+        "service_date": summary["service_date"],
+        "deadline": summary["deadline"],
         "legs": legs,
         "retrieved_at": summary["retrieved_at"],
     }

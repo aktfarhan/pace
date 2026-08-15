@@ -33,6 +33,21 @@ def service_clock(service_date: date, seconds: int) -> str:
     return clock(service_moment(service_date, seconds).isoformat())
 
 
+def deadline_stamp(service_date: date, deadline: int | None) -> str | None:
+    """Turns a deadline into the ISO moment.
+
+    Args:
+        service_date: The service day planned on.
+        deadline: Seconds into that day, or None.
+
+    Returns:
+        The full datetime, or None.
+    """
+    if deadline is None:
+        return None
+    return service_moment(service_date, deadline).isoformat()
+
+
 def station_name(stop_id: str, names: dict, parents: dict) -> str:
     """Returns the station-level name for a stop.
 
@@ -182,7 +197,7 @@ def render_walk(
     depart_seconds: int,
     walk_seconds: int,
     retrieved_at: str,
-    to_deadline: bool,
+    deadline: int | None,
 ) -> list[Row]:
     """Turns a trip made entirely on foot into citable plan rows.
 
@@ -193,7 +208,7 @@ def render_walk(
         depart_seconds: When the walk starts.
         walk_seconds: How long the walk takes.
         retrieved_at: When the plan was computed.
-        to_deadline: Whether the plan was made backward from a deadline.
+        deadline: Seconds into the service day to arrive by, or None.
 
     Returns:
         A summary row and the walk itself.
@@ -207,7 +222,7 @@ def render_walk(
     )
 
     # A deadline compares departures, not arrivals
-    if to_deadline:
+    if deadline is not None:
         text += " No ride leaves later."
     else:
         text += " No ride gets there sooner."
@@ -220,6 +235,7 @@ def render_walk(
         "arrive": service_moment(service_date, arrive_seconds).isoformat(),
         "transfers": 0,
         "service_date": service_date.isoformat(),
+        "deadline": deadline_stamp(service_date, deadline),
         "estimated": True,
         "live": False,
         "retrieved_at": retrieved_at,
@@ -248,6 +264,7 @@ def render_legs(
     routes: dict,
     trips: dict,
     retrieved_at: str,
+    deadline: int | None,
 ) -> list[Row]:
     """Turns journey legs into citable plan rows.
 
@@ -261,6 +278,7 @@ def render_legs(
         routes: The label fields for every route.
         trips: The route and headsign for every trip.
         retrieved_at: When the plan was computed.
+        deadline: Seconds into the service day to arrive by, or None.
 
     Returns:
         Rows shaped like retrieved chunks.
@@ -305,6 +323,7 @@ def render_legs(
         "arrive": service_moment(service_date, arrive_seconds).isoformat(),
         "transfers": transfers,
         "service_date": service_date.isoformat(),
+        "deadline": deadline_stamp(service_date, deadline),
         "live": False,
         "retrieved_at": retrieved_at,
     }
