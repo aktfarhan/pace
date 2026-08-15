@@ -1,6 +1,5 @@
 @import 'tailwindcss';
 
-/* Bone on graphite. Surfaces stay neutral so the route colours read. */
 @theme {
     --color-ink: #161617;
     --color-panel: #212123;
@@ -108,6 +107,46 @@
     --text-unit: 0.5625rem;
     --text-unit--font-weight: 600;
 
+    --text-title: 1.0625rem;
+    --text-title--line-height: 1;
+    --text-title--font-weight: 650;
+    --text-title--letter-spacing: -0.01em;
+
+    --text-stamp: 0.59375rem;
+
+    --text-eyebrow: 0.65625rem;
+    --text-eyebrow--font-weight: 600;
+    --text-eyebrow--letter-spacing: 0.16em;
+
+    --text-depart: 2.875rem;
+    --text-depart--line-height: 1.05;
+    --text-depart--font-weight: 650;
+    --text-depart--letter-spacing: -0.025em;
+
+    --text-depart-unit: 1.1875rem;
+    --text-depart-unit--font-weight: 600;
+    --text-depart-unit--letter-spacing: 0em;
+
+    --text-axis: 0.5625rem;
+    --text-axis--line-height: 1;
+    --text-axis--font-weight: 600;
+    --text-axis--letter-spacing: 0.04em;
+
+    --text-tag: 0.625rem;
+    --text-tag--font-weight: 600;
+    --text-tag--letter-spacing: 0.08em;
+
+    --text-meta: 0.59375rem;
+    --text-meta--font-weight: 600;
+    --text-meta--letter-spacing: 0.08em;
+
+    --text-meta-value: 0.71875rem;
+    --text-meta-value--font-weight: 600;
+
+    --text-row: 0.8125rem;
+
+    --text-clock: 0.75rem;
+
     --font-weight-strong: 650;
 
     --spacing-hair: 0.21875rem;
@@ -121,8 +160,11 @@
     --shadow-glow: 0 0 8px rgb(58 155 111 / 0.5);
     --shadow-pulse: 0 0 9px rgb(224 169 74 / 0.7);
 
+    --text-shadow-halo: 0 0 26px rgb(230 225 214 / 0.22);
+
     --animate-blink: blink 1.1s ease-in-out infinite;
     --animate-beacon: blink 1.4s ease-in-out infinite;
+    --animate-pace: blink 2.2s ease-in-out infinite;
 
     @keyframes blink {
         0%,
@@ -141,7 +183,6 @@
         color-scheme: dark;
     }
 
-    /* Scrollbars, hidden app-wide */
     * {
         scrollbar-width: none;
     }
