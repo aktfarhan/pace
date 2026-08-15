@@ -3,6 +3,12 @@ import type { TripCard } from '@/types/answer';
 // The lines the tints key on
 export type Line = 'red' | 'orange' | 'green' | 'blue' | 'commuter' | 'bus';
 
+// One slice of the trip bar
+interface Segment {
+    fill: string;
+    share: number;
+}
+
 // The route name in a ride's row
 export const LINE_TEXT: Record<Line, string> = {
     red: 'text-red',
@@ -84,6 +90,30 @@ export function fullClock(iso: string) {
 // Whole minutes between two times
 export function minutesBetween(depart: string, arrive: string) {
     return Math.ceil((Date.parse(arrive) - Date.parse(depart)) / 60000);
+}
+
+// The legs and the waits between them
+export function segmentsOf(card: TripCard): Segment[] {
+    const start = Date.parse(card.depart);
+    const total = Date.parse(card.arrive) - start;
+
+    const segments: Segment[] = [];
+    let previousArrive = start;
+    for (const leg of card.legs) {
+        const depart = Date.parse(leg.depart);
+        const arrive = Date.parse(leg.arrive);
+
+        // The wait before this leg is its own slice
+        if (depart > previousArrive) {
+            segments.push({ fill: 'bg-edge', share: ((depart - previousArrive) / total) * 100 });
+        }
+
+        const line = leg.kind === 'ride' ? lineOf(leg.route_id) : null;
+        const fill = line === null ? 'bg-quiet' : LINE_FILLS[line];
+        segments.push({ fill, share: ((arrive - depart) / total) * 100 });
+        previousArrive = arrive;
+    }
+    return segments;
 }
 
 // The weekday a service date lands on
