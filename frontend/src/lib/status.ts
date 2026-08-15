@@ -170,7 +170,7 @@ export function headlineOf(status: SystemStatus) {
 }
 
 // How long ago the reading was taken
-function ageOf(retrievedAt: string, now: number) {
+export function ageOf(retrievedAt: string, now: number) {
     const seconds = Math.max(0, Math.round((now - Date.parse(retrievedAt)) / 1000));
     if (seconds < 60) {
         return `${seconds}s ago`;

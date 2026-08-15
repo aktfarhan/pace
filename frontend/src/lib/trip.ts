@@ -1,7 +1,7 @@
 import type { TripCard } from '@/types/answer';
 
 // The lines the tints key on
-export type Line = 'red' | 'orange' | 'green' | 'blue' | 'commuter';
+export type Line = 'red' | 'orange' | 'green' | 'blue' | 'commuter' | 'bus';
 
 // The route name in a ride's row
 export const LINE_TEXT: Record<Line, string> = {
@@ -10,6 +10,7 @@ export const LINE_TEXT: Record<Line, string> = {
     green: 'text-green',
     blue: 'text-blue',
     commuter: 'text-commuter',
+    bus: 'text-bus',
 };
 
 // A ride's chunk of the leg bar
@@ -19,6 +20,7 @@ export const LINE_FILLS: Record<Line, string> = {
     green: 'bg-green-fill',
     blue: 'bg-blue-fill',
     commuter: 'bg-commuter-fill',
+    bus: 'bg-bus-fill',
 };
 
 // A ride's icon tile
@@ -28,6 +30,7 @@ export const LINE_TILES: Record<Line, string> = {
     green: 'border-green/30 bg-green/12 text-green',
     blue: 'border-blue/28 bg-blue/12 text-blue',
     commuter: 'border-commuter/28 bg-commuter/12 text-commuter',
+    bus: 'border-bus/28 bg-bus/12 text-bus',
 };
 
 const LEAVE_NOW_MINUTES = 5;
@@ -48,6 +51,9 @@ export function lineOf(routeId: string): Line | null {
     }
     if (routeId.startsWith('CR-')) {
         return 'commuter';
+    }
+    if (/^\d+$/.test(routeId)) {
+        return 'bus';
     }
     return null;
 }
@@ -78,7 +84,7 @@ export function minutesBetween(depart: string, arrive: string) {
 }
 
 // A clock time to leave by, or the trip length
-export function heroOf(card: TripCard, now: number) {
+export function leaveOf(card: TripCard, now: number) {
     const wait = (Date.parse(card.depart) - now) / 60000;
     if (wait <= LEAVE_NOW_MINUTES) {
         const minutes = minutesBetween(card.depart, card.arrive);
