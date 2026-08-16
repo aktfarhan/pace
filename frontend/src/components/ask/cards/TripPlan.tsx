@@ -1,3 +1,4 @@
+import Leave from './Leave';
 import Stamp from './Stamp';
 import LegBar from './LegBar';
 import Timeline from './Timeline';
@@ -20,16 +21,8 @@ function TripPlan({ card }: TripPlanProps) {
                 </div>
                 <Stamp card={card} />
             </div>
-
             <div>
-                <div className="text-eyebrow text-ghost">{leave.label}</div>
-                <div className="mt-1 text-depart text-accent tabular-nums text-shadow-halo">
-                    {leave.time}
-                    {leave.unit !== null && (
-                        <span className="ml-1.75 text-depart-unit text-soft">{leave.unit}</span>
-                    )}
-                </div>
-
+                <Leave card={card} />
                 <div className="mt-3 flex flex-col gap-1.75">
                     <LegBar card={card} />
                     <div className="flex items-center gap-2 pt-0.75">
@@ -62,7 +55,6 @@ function TripPlan({ card }: TripPlanProps) {
                     </div>
                 </div>
             </div>
-
             <Timeline card={card} />
         </div>
     );
