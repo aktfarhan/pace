@@ -147,6 +147,7 @@ def plan_trip(query: str, parsed: ParsedQuery) -> list[Row]:
 
     # A ride needs a stop within reach of both ends
     best_stop = None
+    mirrored = deadline is not None
     if origin_walks and destination_walks:
         stamp = gtfs_stamp()
         routes = load_routes(stamp)
@@ -172,6 +173,20 @@ def plan_trip(query: str, parsed: ParsedQuery) -> list[Row]:
                 connections, footpaths, sources, destination_walks
             )
 
+            # Rescan backward so the leave is the latest for the same arrival
+            if best_stop is not None:
+                arrive_by = earliest[best_stop] + destination_walks[best_stop]
+                sources = {}
+                for platform, walk_seconds in destination_walks.items():
+                    sources[platform] = -arrive_by + walk_seconds
+                best_stop, earliest, arrived_via, boarded = scan(
+                    mirror_connections(connections),
+                    mirror_footpaths(footpaths),
+                    sources,
+                    origin_walks,
+                )
+                mirrored = True
+
     # A leave time already in the past is not makeable
     if deadline is not None and best_stop is not None:
         leave_seconds = -earliest[best_stop] - origin_walks[best_stop]
@@ -182,7 +197,7 @@ def plan_trip(query: str, parsed: ParsedQuery) -> list[Row]:
     legs = []
     if best_stop is not None:
         legs = build_legs(best_stop, earliest, arrived_via, boarded)
-        if deadline is not None:
+        if mirrored:
             legs = unmirror_legs(legs)
 
     # How long it takes to just walk there
