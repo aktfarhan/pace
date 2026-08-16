@@ -36,6 +36,14 @@ export interface RideLeg {
     arrive: string;
 }
 
+// A long wait between legs
+export interface Wait {
+    kind: 'wait';
+    station: string;
+    depart: string;
+    arrive: string;
+}
+
 // One planned trip
 export interface TripCard {
     kind: 'trip';

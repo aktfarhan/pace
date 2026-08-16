@@ -1,7 +1,7 @@
-import type { TripCard } from '@/types/answer';
+import type { Wait, TripCard, WalkLeg, RideLeg } from '@/types/answer';
 
 // The lines the tints key on
-export type Line = 'red' | 'orange' | 'green' | 'blue' | 'commuter' | 'bus';
+type Line = 'red' | 'orange' | 'green' | 'blue' | 'commuter' | 'bus';
 
 // One slice of the trip bar
 interface Segment {
@@ -20,7 +20,7 @@ export const LINE_TEXT: Record<Line, string> = {
 };
 
 // A ride's chunk of the leg bar
-export const LINE_FILLS: Record<Line, string> = {
+const LINE_FILLS: Record<Line, string> = {
     red: 'bg-red-fill',
     orange: 'bg-orange-fill',
     green: 'bg-green-fill',
@@ -43,6 +43,9 @@ const LEAVE_NOW_MINUTES = 5;
 
 // Minutes of waiting before the wait means no service
 const NO_SERVICE_MINUTES = 60;
+
+// Minutes of a gap between legs gets its own row
+const WAIT_ROW_MINUTES = 10;
 
 // route_id -> the line, or null for buses
 export function lineOf(routeId: string): Line | null {
@@ -71,7 +74,7 @@ export function lineOf(routeId: string): Line | null {
 const CLOCK = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' });
 
 // Split time and meridiem
-export function clockParts(iso: string) {
+function clockParts(iso: string) {
     const [time, meridiem] = CLOCK.format(new Date(iso)).split(/\s/);
     return { time, meridiem };
 }
@@ -116,8 +119,30 @@ export function segmentsOf(card: TripCard): Segment[] {
     return segments;
 }
 
+// The legs in travel order, with the long waits listed
+export function timelineOf(card: TripCard): (WalkLeg | RideLeg | Wait)[] {
+    const rows: (WalkLeg | RideLeg | Wait)[] = [];
+    let previous = null;
+    for (const leg of card.legs) {
+        if (previous !== null) {
+            const gap = Date.parse(leg.depart) - Date.parse(previous.arrive);
+            if (gap >= WAIT_ROW_MINUTES * 60000) {
+                rows.push({
+                    kind: 'wait',
+                    station: previous.destination,
+                    depart: previous.arrive,
+                    arrive: leg.depart,
+                });
+            }
+        }
+        rows.push(leg);
+        previous = leg;
+    }
+    return rows;
+}
+
 // The weekday a service date lands on
-export function dayOf(serviceDate: string) {
+function dayOf(serviceDate: string) {
     const day = new Date(`${serviceDate}T12:00:00`);
     return day.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase();
 }

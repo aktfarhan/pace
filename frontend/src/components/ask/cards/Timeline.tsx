@@ -1,6 +1,6 @@
 import LegRow from './LegRow';
-import { clock } from '@/lib/trip';
 import { MapPin } from 'lucide-react';
+import { clock, timelineOf } from '@/lib/trip';
 import type { TripCard } from '@/types/answer';
 
 interface TimelineProps {
@@ -10,7 +10,7 @@ interface TimelineProps {
 function Timeline({ card }: TimelineProps) {
     return (
         <div className="border-t border-seam">
-            {card.legs.map((leg, index) => (
+            {timelineOf(card).map((leg, index) => (
                 <LegRow key={index} leg={leg} bright={index === 0} />
             ))}
 

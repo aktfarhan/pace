@@ -1,10 +1,10 @@
 import clsx from 'clsx';
-import { Bus, SportShoe, TrainFront } from 'lucide-react';
+import { Bus, Clock, SportShoe, TrainFront } from 'lucide-react';
 import { LINE_TEXT, LINE_TILES, clock, lineOf, minutesBetween } from '@/lib/trip';
-import type { WalkLeg, RideLeg } from '@/types/answer';
+import type { Wait, WalkLeg, RideLeg } from '@/types/answer';
 
 interface LegRowProps {
-    leg: WalkLeg | RideLeg;
+    leg: WalkLeg | RideLeg | Wait;
     bright: boolean;
 }
 
@@ -13,7 +13,9 @@ function LegRow({ leg, bright }: LegRowProps) {
 
     // The icon for this leg
     let Icon = TrainFront;
-    if (leg.kind !== 'ride') {
+    if (leg.kind === 'wait') {
+        Icon = Clock;
+    } else if (leg.kind !== 'ride') {
         Icon = SportShoe;
     } else if (line === 'bus') {
         Icon = Bus;
@@ -21,7 +23,9 @@ function LegRow({ leg, bright }: LegRowProps) {
 
     // Rendering each leg
     let label;
-    if (leg.kind !== 'ride') {
+    if (leg.kind === 'wait') {
+        label = `Wait at ${leg.station}`;
+    } else if (leg.kind !== 'ride') {
         label = leg.transfer ? `Transfer at ${leg.destination}` : `Walk to ${leg.destination}`;
     } else {
         label = (
