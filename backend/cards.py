@@ -52,6 +52,7 @@ class RideLeg(TypedDict):
     destination: str
     depart: str
     arrive: str
+    next_departures: list[str]
 
 
 class TripCard(TypedDict):
@@ -169,6 +170,7 @@ def trip_card(chunks: list[Row]) -> TripCard | None:
                     "destination": metadata["alight_station"],
                     "depart": metadata["depart"],
                     "arrive": metadata["arrive"],
+                    "next_departures": [],
                 }
             )
         else:

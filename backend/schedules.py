@@ -15,6 +15,56 @@ NEXT_DEPARTURES = 3
 # The row id used when the stop has nothing scheduled
 NO_DEPARTURES = "schedule:none"
 
+
+def live_departures(route_id: str, board_stop: str, alight_stop: str) -> list[str]:
+    """Fetches the next live departures that reach the user's stop.
+
+    Args:
+        route_id: The route the rider boards.
+        board_stop: The boarding platform's id.
+        alight_stop: The alighting platform's id.
+
+    Returns:
+        Up to three ISO departure times, soonest first.
+    """
+    params = {
+        "filter[route]": route_id,
+        "filter[stop]": f"{board_stop},{alight_stop}",
+        "sort": "departure_time",
+        "page[limit]": 30,
+    }
+
+    # A train that works shows up at both stops
+    boards = {}
+    reaches = {}
+    for record in fetch("/predictions", params)["data"]:
+        stop = record["relationships"]["stop"]["data"]["id"]
+        trip = record["relationships"]["trip"]["data"]["id"]
+        attributes = record["attributes"]
+
+        # When this train leaves the boarding stop
+        if stop == board_stop and attributes["departure_time"] is not None:
+            boards[trip] = attributes["departure_time"]
+
+        # When this train reaches the rider's stop
+        if stop == alight_stop:
+            arrival = attributes["arrival_time"] or attributes["departure_time"]
+            if arrival is not None:
+                reaches[trip] = arrival
+
+    # Soonest boarding first
+    times = []
+    for trip, departure in sorted(boards.items(), key=lambda pair: pair[1]):
+        # Keep trains that board first and reach the rider's stop after
+        if trip in reaches and departure < reaches[trip]:
+            times.append(departure)
+
+        if len(times) == NEXT_DEPARTURES:
+            break
+
+    return times
+
+
 WEEKDAYS = {
     "monday": 0,
     "tuesday": 1,
