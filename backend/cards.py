@@ -31,6 +31,27 @@ class DeparturesCard(TypedDict):
     retrieved_at: str
 
 
+class EdgeDirection(TypedDict):
+    """One direction's first or last departure."""
+
+    source: str
+    destination: str
+    time: str
+
+
+class EdgeCard(TypedDict):
+    """The first or last departures at a stop, one per direction."""
+
+    kind: Literal["edge"]
+    edge: str
+    route_id: str
+    label: str
+    station: str
+    day: str
+    directions: list[EdgeDirection]
+    retrieved_at: str
+
+
 class WalkLeg(TypedDict):
     """One walk, or a transfer inside a station."""
 
@@ -71,7 +92,7 @@ class TripCard(TypedDict):
     retrieved_at: str
 
 
-type Card = DeparturesCard | TripCard
+type Card = DeparturesCard | EdgeCard | TripCard
 
 
 def card_sources(card: Card | None) -> set[str]:
@@ -85,11 +106,16 @@ def card_sources(card: Card | None) -> set[str]:
     """
     if card is None:
         return set()
+
     if card["kind"] == "trip":
         sources = {"plan:summary"}
         for leg in card["legs"]:
             sources.add(leg["source"])
         return sources
+
+    if card["kind"] == "edge":
+        return {direction["source"] for direction in card["directions"]}
+
     return {departure["source"] for departure in card["departures"]}
 
 
@@ -135,6 +161,59 @@ def departures_card(chunks: list[Row]) -> DeparturesCard | None:
         "kind": "departures",
         "departures": departures,
         "retrieved_at": retrieved_at,
+    }
+
+
+def edge_card(chunks: list[Row]) -> EdgeCard | None:
+    """Builds the card a first-or-last-departure answer carries.
+
+    Args:
+        chunks: The rows the answer stands on.
+
+    Returns:
+        The card, or None.
+    """
+    # Get the first-or-last rows
+    rows = []
+    for chunk_id, kind, _, metadata, _ in chunks:
+        if kind == "schedule" and metadata.get("edge") is not None:
+            rows.append((chunk_id, metadata))
+
+    if not rows:
+        return None
+
+    # A card reads as one route at one stop asking one question
+    first = rows[0][1]
+    for _, metadata in rows:
+        if (
+            metadata["route_id"] != first["route_id"]
+            or metadata["edge"] != first["edge"]
+            or metadata["stop_id"] != first["stop_id"]
+        ):
+            return None
+
+    # One column per destination
+    directions: list[EdgeDirection] = []
+    for chunk_id, metadata in sorted(
+        rows, key=lambda row: (row[1]["direction_id"], row[1]["destination"])
+    ):
+        directions.append(
+            {
+                "source": chunk_id,
+                "destination": metadata["destination"],
+                "time": metadata["departure_times"][0],
+            }
+        )
+
+    return {
+        "kind": "edge",
+        "edge": first["edge"],
+        "route_id": first["route_id"],
+        "label": first["label"],
+        "station": first["station"],
+        "day": first["day"],
+        "directions": directions,
+        "retrieved_at": first["retrieved_at"],
     }
 
 
@@ -218,7 +297,7 @@ def build_card(intent: str, chunks: list[Row]) -> Card | None:
 
     # Leave-by questions have a plan instead of departures
     if intent == "schedule":
-        return trip_card(chunks) or departures_card(chunks)
+        return trip_card(chunks) or edge_card(chunks) or departures_card(chunks)
     return None
 
 

@@ -259,10 +259,52 @@ def render_next(
     )
 
 
+def edge_groups(
+    records: list[dict], headsigns: dict[str, str]
+) -> dict[tuple[str, int, str], list[str]]:
+    """Groups catchable departures by route and headsign.
+
+    Args:
+        records: /schedules records.
+        headsigns: trip id -> the trip's headsign.
+
+    Returns:
+        (route_id, direction_id, headsign) -> ISO departure times.
+    """
+    groups = {}
+    for record in records:
+        attributes = record["attributes"]
+
+        # No departure time means the trip ends at this stop
+        if attributes["departure_time"] is None:
+            continue
+
+        # No headsign means the payload didn't include the trip
+        trip = record["relationships"]["trip"]["data"]["id"]
+        headsign = headsigns.get(trip)
+        if headsign is None:
+            continue
+
+        # Pile times by route, direction, and headsign
+        key = (
+            record["relationships"]["route"]["data"]["id"],
+            attributes["direction_id"],
+            headsign,
+        )
+        groups.setdefault(key, []).append(attributes["departure_time"])
+
+    # Sort
+    for times in groups.values():
+        times.sort(key=datetime.fromisoformat)
+
+    return groups
+
+
 def render_edge(
     kind: str,
     route_id: str,
     direction_id: int,
+    headsign: str,
     time: str,
     station_name: str,
     stop_id: str,
@@ -275,7 +317,8 @@ def render_edge(
     Args:
         kind: "First" or "Last".
         route_id: The route the departure belongs to.
-        direction_id: 0 or 1, indexes the route's destinations.
+        direction_id: 0 or 1, the direction the trip runs.
+        headsign: The destination the train shows.
         time: The ISO departure time.
         station_name: The station's display name.
         stop_id: The station's MBTA id.
@@ -286,23 +329,28 @@ def render_edge(
     Returns:
         A (id, kind, text, metadata, distance) row.
     """
-    short_name, long_name, route_type, _, destinations = route_info[route_id]
+    short_name, long_name, route_type, _, _ = route_info[route_id]
     label = route_label(short_name, long_name, route_type)
     edge = kind.lower()
     text = (
-        f"{kind} {label} toward {destinations[direction_id]} from {station_name} "
+        f"{kind} {label} toward {headsign} from {station_name} "
         f"on {day_name}: {clock(time)}."
     )
     metadata = {
         "route_id": route_id,
         "stop_id": stop_id,
         "direction_id": direction_id,
+        "label": label,
+        "station": station_name,
+        "destination": headsign,
+        "day": day_name,
         "departure_times": [time],
         "edge": edge,
         "live": False,
         "retrieved_at": retrieved_at,
     }
-    row_id = f"schedule:{route_id}:{stop_id}:{direction_id}:{edge}"
+    slug = headsign.lower().replace(" ", "-").replace("/", "-")
+    row_id = f"schedule:{route_id}:{stop_id}:{direction_id}:{edge}:{slug}"
     return (row_id, "schedule", text, metadata, 0.0)
 
 
@@ -387,11 +435,17 @@ def fetch_departures(parsed: ParsedQuery) -> list[Row]:
                 last_extra = {"sort": "-departure_time", "filter[min_time]": "15:00"}
                 edges.append(("Last", last_extra, -1))
             for kind, extra, pick in edges:
-                asked = {**params, **extra, "date": target}
-                records = fetch("/schedules", asked)["data"]
-                for (route_id, direction_id), times in departure_groups(
-                    records
-                ).items():
+                asked = {**params, **extra, "date": target, "include": "trip"}
+                payload = fetch("/schedules", asked)
+
+                # The headsign each trip shows
+                headsigns = {}
+                for included in payload.get("included", []):
+                    if included["type"] == "trip":
+                        headsigns[included["id"]] = included["attributes"]["headsign"]
+
+                groups = edge_groups(payload["data"], headsigns)
+                for (route_id, direction_id, headsign), times in groups.items():
                     # Diversion shuttles aren't in the routes table
                     if route_id not in route_info:
                         continue
@@ -400,6 +454,7 @@ def fetch_departures(parsed: ParsedQuery) -> list[Row]:
                             kind,
                             route_id,
                             direction_id,
+                            headsign,
                             times[pick],
                             station_name,
                             stop_id,
