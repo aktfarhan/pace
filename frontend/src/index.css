@@ -168,6 +168,8 @@
     --text-board--font-weight: 650;
     --text-board--letter-spacing: -0.02em;
 
+    --grid-template-columns-directions: repeat(auto-fit, minmax(12rem, 1fr));
+
     --font-weight-strong: 650;
 
     --spacing-hair: 0.21875rem;

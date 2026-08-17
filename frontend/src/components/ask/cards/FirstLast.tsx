@@ -33,7 +33,7 @@ function FirstLast({ card }: FirstLastProps) {
                 </span>
             </div>
 
-            <div className="grid grid-cols-3">
+            <div className="grid grid-cols-directions">
                 {card.directions.map((direction, index) => {
                     const { time, meridiem } = clockParts(direction.time);
                     const passed = Date.parse(direction.time) < moment;
