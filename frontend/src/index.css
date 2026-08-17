@@ -114,7 +114,9 @@
     --text-title--font-weight: 650;
     --text-title--letter-spacing: -0.01em;
 
-    --text-stamp: 0.59375rem;
+    --text-stamp: 0.625rem;
+    --text-stamp--font-weight: 600;
+    --text-stamp--letter-spacing: 0.06em;
 
     --text-eyebrow: 0.65625rem;
     --text-eyebrow--font-weight: 600;

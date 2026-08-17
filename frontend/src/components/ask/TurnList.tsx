@@ -6,9 +6,11 @@ import type { Stage } from '@/types/answer';
 interface TurnListProps {
     turns: Turn[];
     stage: Stage | null;
+    refresh: (id: number, query: string) => void;
+    refreshing: number | null;
 }
 
-function TurnList({ turns, stage }: TurnListProps) {
+function TurnList({ turns, stage, refresh, refreshing }: TurnListProps) {
     const list = useRef<HTMLDivElement>(null);
 
     // Scroll to the newest turn
@@ -17,7 +19,7 @@ function TurnList({ turns, stage }: TurnListProps) {
         if (node !== null) {
             node.scrollTop = node.scrollHeight;
         }
-    }, [turns]);
+    }, [turns.length]);
 
     return (
         <div ref={list} className="flex flex-1 flex-col gap-6 overflow-y-auto">
@@ -26,7 +28,12 @@ function TurnList({ turns, stage }: TurnListProps) {
                     <p className="max-w-md self-end rounded-2xl rounded-br-sm border border-edge bg-bubble px-4 py-2.5 text-sm text-cream">
                         {turn.query}
                     </p>
-                    <TurnBody turn={turn} stage={stage} />
+                    <TurnBody
+                        turn={turn}
+                        stage={stage}
+                        refresh={() => refresh(turn.id, turn.query)}
+                        refreshing={refreshing === turn.id}
+                    />
                 </div>
             ))}
         </div>

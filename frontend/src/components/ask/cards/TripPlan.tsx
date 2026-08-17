@@ -2,14 +2,17 @@ import Leave from './Leave';
 import Stamp from './Stamp';
 import LegBar from './LegBar';
 import Timeline from './Timeline';
+import { RotateCw } from 'lucide-react';
 import { fullClock, leaveOf } from '@/lib/trip';
 import type { TripCard } from '@/types/answer';
 
 interface TripPlanProps {
     card: TripCard;
+    refresh: () => void;
+    refreshing: boolean;
 }
 
-function TripPlan({ card }: TripPlanProps) {
+function TripPlan({ card, refresh, refreshing }: TripPlanProps) {
     const leave = leaveOf(card, Date.now());
 
     return (
@@ -19,7 +22,20 @@ function TripPlan({ card }: TripPlanProps) {
                     {card.origin} <span className="font-medium text-hush">to</span>{' '}
                     {card.destination}
                 </div>
-                <Stamp card={card} />
+                <button
+                    type="button"
+                    onClick={refresh}
+                    title="Refresh this plan"
+                    className="flex shrink-0 cursor-pointer items-center gap-2 rounded-full border border-edge bg-bubble px-3.25 py-1.75 text-hush transition-colors hover:border-ghost hover:bg-line hover:text-cream"
+                >
+                    <Stamp card={card} />
+                    <RotateCw
+                        size={12}
+                        strokeWidth={2.4}
+                        className={refreshing ? 'animate-spin text-quiet' : 'text-quiet'}
+                        aria-hidden="true"
+                    />
+                </button>
             </div>
             <div>
                 <Leave card={card} />

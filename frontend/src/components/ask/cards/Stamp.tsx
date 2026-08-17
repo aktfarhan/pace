@@ -10,7 +10,7 @@ function Stamp({ card }: StampProps) {
     const now = useNow();
 
     return (
-        <span className="flex shrink-0 items-center gap-1.5 font-mono text-stamp text-ghost uppercase">
+        <span className="flex shrink-0 items-center gap-2 font-mono text-stamp uppercase">
             {card.live && <span className="size-1.25 animate-pace rounded-full bg-accent" />}
             {card.live ? 'Live' : 'Scheduled'} · {ageOf(card.retrieved_at, now)}
         </span>

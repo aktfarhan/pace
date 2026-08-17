@@ -9,11 +9,13 @@ const UNREACHABLE = 'Pace is unreachable. Nothing was retrieved.';
 interface TurnBodyProps {
     turn: Turn;
     stage: Stage | null;
+    refresh: () => void;
+    refreshing: boolean;
 }
 
-function TurnBody({ turn, stage }: TurnBodyProps) {
+function TurnBody({ turn, stage, refresh, refreshing }: TurnBodyProps) {
     if (turn.answer !== null) {
-        return <AnswerCard answer={turn.answer} />;
+        return <AnswerCard answer={turn.answer} refresh={refresh} refreshing={refreshing} />;
     }
     if (turn.failed) {
         return <p className="text-sm text-dim">{UNREACHABLE}</p>;

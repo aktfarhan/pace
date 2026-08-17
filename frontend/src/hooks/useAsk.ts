@@ -13,6 +13,9 @@ export function useAsk() {
     // The stage the open question is on
     const [stage, setStage] = useState<Stage | null>(null);
 
+    // The turn being asked again
+    const [refreshing, setRefreshing] = useState<number | null>(null);
+
     // Busy is for rendering, and the ref for guarding a double send
     const running = useRef(false);
     const nextId = useRef(0);
@@ -60,5 +63,30 @@ export function useAsk() {
         [amend],
     );
 
-    return { turns, stage, busy, send };
+    // Runs a turn's question again and swaps the answer in place
+    const refresh = useCallback(
+        async (id: number, query: string) => {
+            if (running.current) {
+                return;
+            }
+
+            running.current = true;
+            setBusy(true);
+            setRefreshing(id);
+
+            try {
+                const answer = await ask(query, () => {});
+                amend(id, { answer });
+            } catch (error) {
+                console.error(error);
+            } finally {
+                running.current = false;
+                setBusy(false);
+                setRefreshing(null);
+            }
+        },
+        [amend],
+    );
+
+    return { turns, stage, busy, send, refresh, refreshing };
 }
