@@ -151,6 +151,23 @@
 
     --text-clock: 0.75rem;
 
+    --text-toward: 0.5625rem;
+    --text-toward--font-weight: 600;
+    --text-toward--letter-spacing: 0.14em;
+
+    --text-passed: 0.5625rem;
+    --text-passed--font-weight: 600;
+    --text-passed--letter-spacing: 0.08em;
+
+    --text-timetable: 0.59375rem;
+    --text-timetable--font-weight: 500;
+    --text-timetable--letter-spacing: 0.12em;
+
+    --text-board: 2rem;
+    --text-board--line-height: 1;
+    --text-board--font-weight: 650;
+    --text-board--letter-spacing: -0.02em;
+
     --font-weight-strong: 650;
 
     --spacing-hair: 0.21875rem;

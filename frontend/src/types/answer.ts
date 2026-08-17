@@ -17,6 +17,24 @@ export interface DeparturesCard {
     retrieved_at: string;
 }
 
+// One direction's first or last departure
+export interface EdgeDirection {
+    destination: string;
+    time: string;
+}
+
+// The first or last departures at a stop, one per direction
+export interface EdgeCard {
+    kind: 'edge';
+    edge: string;
+    route_id: string;
+    label: string;
+    station: string;
+    day: string;
+    directions: EdgeDirection[];
+    retrieved_at: string;
+}
+
 // One walk, or a transfer inside a station
 export interface WalkLeg {
     kind: 'walk';
@@ -60,7 +78,7 @@ export interface TripCard {
 }
 
 // The structure an answer draws
-export type Card = DeparturesCard | TripCard;
+export type Card = DeparturesCard | EdgeCard | TripCard;
 
 // What /v1/ask returns
 export interface Answer {

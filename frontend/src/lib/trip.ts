@@ -74,7 +74,7 @@ export function lineOf(routeId: string): Line | null {
 const CLOCK = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' });
 
 // Split time and meridiem
-function clockParts(iso: string) {
+export function clockParts(iso: string) {
     const [time, meridiem] = CLOCK.format(new Date(iso)).split(/\s/);
     return { time, meridiem };
 }
