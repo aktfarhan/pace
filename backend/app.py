@@ -1,8 +1,10 @@
 """The HTTP server: streaming endpoint that answers a query."""
 
 import json
+import time
 from collections.abc import AsyncGenerator, Iterator
 from contextlib import asynccontextmanager
+from functools import lru_cache
 
 import psycopg
 from fastapi import FastAPI
@@ -11,6 +13,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend.ask import ask_stream
+from backend.status import SystemStatus, read_status
 from backend.timetable import warm
 from data.schema import connect
 
@@ -19,6 +22,9 @@ ORIGINS = ["http://localhost:3000"]
 
 # The longest askable question
 MAX_QUERY = 500
+
+# Seconds before the alert feed is read again
+STATUS_TTL = 20.0
 
 # Proxies buffer a stream unless told not to
 STREAM_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
@@ -111,6 +117,29 @@ def answer_query(question: Question) -> StreamingResponse:
         media_type="text/event-stream",
         headers=STREAM_HEADERS,
     )
+
+
+@lru_cache(maxsize=1)
+def status_during(bucket: int) -> SystemStatus:
+    """Reads the alert feed once per bucket of time.
+
+    Args:
+        bucket: The STATUS_TTL-wide window.
+
+    Returns:
+        That window's reading. Only the current bucket is kept.
+    """
+    return read_status()
+
+
+@app.get("/v1/status")
+def check_status() -> SystemStatus:
+    """Reports every rail line's state.
+
+    Returns:
+        One card per line.
+    """
+    return status_during(int(time.monotonic() // STATUS_TTL))
 
 
 @app.get("/v1/health")

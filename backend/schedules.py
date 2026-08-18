@@ -1,31 +1,69 @@
 """Fetch live departure predictions and scheduled times for the stops named in a query."""
 
-import os
 import sys
 from datetime import date, datetime, timedelta, timezone
 
-import httpx
-from dotenv import load_dotenv
-
 from backend.classify import ParsedQuery
+from backend.mbta import fetch
 from backend.retrieve import Row, match_route_ids, match_station_ids
 from backend.timetable import service_date_at, service_seconds
 from data.schema import connect
-
-# Reads the .env
-load_dotenv()
-
-API_KEY = os.environ["MBTA_API_KEY"]
-BASE_URL = "https://api-v3.mbta.com"
-
-# Longest an MBTA call may run before it is dropped
-MBTA_TIMEOUT = 5.0
 
 # Upcoming departures shown per route and direction
 NEXT_DEPARTURES = 3
 
 # The row id used when the stop has nothing scheduled
 NO_DEPARTURES = "schedule:none"
+
+
+def live_departures(route_id: str, board_stop: str, alight_stop: str) -> list[str]:
+    """Fetches the next live departures that reach the user's stop.
+
+    Args:
+        route_id: The route the rider boards.
+        board_stop: The boarding platform's id.
+        alight_stop: The alighting platform's id.
+
+    Returns:
+        Up to three ISO departure times, soonest first.
+    """
+    params = {
+        "filter[route]": route_id,
+        "filter[stop]": f"{board_stop},{alight_stop}",
+        "sort": "departure_time",
+        "page[limit]": 30,
+    }
+
+    # A train that works shows up at both stops
+    boards = {}
+    reaches = {}
+    for record in fetch("/predictions", params)["data"]:
+        stop = record["relationships"]["stop"]["data"]["id"]
+        trip = record["relationships"]["trip"]["data"]["id"]
+        attributes = record["attributes"]
+
+        # When this train leaves the boarding stop
+        if stop == board_stop and attributes["departure_time"] is not None:
+            boards[trip] = attributes["departure_time"]
+
+        # When this train reaches the rider's stop
+        if stop == alight_stop:
+            arrival = attributes["arrival_time"] or attributes["departure_time"]
+            if arrival is not None:
+                reaches[trip] = arrival
+
+    # Soonest boarding first
+    times = []
+    for trip, departure in sorted(boards.items(), key=lambda pair: pair[1]):
+        # Keep trains that board first and reach the rider's stop after
+        if trip in reaches and departure < reaches[trip]:
+            times.append(departure)
+
+        if len(times) == NEXT_DEPARTURES:
+            break
+
+    return times
+
 
 WEEKDAYS = {
     "monday": 0,
@@ -42,6 +80,7 @@ ROUTE_INFO = """
            metadata->>'short_name' AS short_name,
            metadata->>'long_name' AS long_name,
            metadata->>'type' AS route_type,
+           metadata->>'color' AS color,
            metadata->'direction_destinations' AS direction_destinations
     FROM chunks WHERE kind = 'route';
 """
@@ -50,25 +89,8 @@ STATION_NAMES = """
     FROM chunks WHERE id = ANY(%s);
 """
 
-
-def fetch(path: str, params: dict) -> list[dict]:
-    """Returns the data rows for one MBTA API call.
-
-    Args:
-        path: The endpoint ("/predictions" or "/schedules").
-        params: Query parameters for the call.
-
-    Returns:
-        The response's data list.
-    """
-    response = httpx.get(
-        f"{BASE_URL}{path}",
-        params=params,
-        headers={"X-API-Key": API_KEY},
-        timeout=MBTA_TIMEOUT,
-    )
-    response.raise_for_status()
-    return response.json()["data"]
+# route_id -> (short_name, long_name, type, color, destinations)
+RouteInfo = dict[str, tuple[str, str, int, str, list[str]]]
 
 
 def service_day(now: datetime) -> tuple[str, str]:
@@ -184,7 +206,7 @@ def render_next(
     station_name: str,
     stop_id: str,
     live: bool,
-    route_info: dict,
+    route_info: RouteInfo,
     retrieved_at: str,
 ) -> Row:
     """Builds one next-departures row shaped like a retrieved chunk.
@@ -196,13 +218,13 @@ def render_next(
         station_name: The station's display name.
         stop_id: The station's MBTA id.
         live: Whether the times are live predictions.
-        route_info: route_id -> (short_name, long_name, type, destinations).
+        route_info: Route names, color, and destinations by route id.
         retrieved_at: When the fetch happened.
 
     Returns:
         A (id, kind, text, metadata, distance) row.
     """
-    short_name, long_name, route_type, destinations = route_info[route_id]
+    short_name, long_name, route_type, color, destinations = route_info[route_id]
     label = route_label(short_name, long_name, route_type)
     destination = destinations[direction_id]
     clocks = ", ".join(clock(time) for time in times)
@@ -217,7 +239,14 @@ def render_next(
         "route_id": route_id,
         "stop_id": stop_id,
         "direction_id": direction_id,
+        "short_name": short_name,
+        "label": label,
+        "route_type": route_type,
+        "color": color,
+        "station": station_name,
+        "destination": destination,
         "departure_times": times,
+        "edge": None,
         "live": live,
         "retrieved_at": retrieved_at,
     }
@@ -230,15 +259,57 @@ def render_next(
     )
 
 
+def edge_groups(
+    records: list[dict], headsigns: dict[str, str]
+) -> dict[tuple[str, int, str], list[str]]:
+    """Groups catchable departures by route and headsign.
+
+    Args:
+        records: /schedules records.
+        headsigns: trip id -> the trip's headsign.
+
+    Returns:
+        (route_id, direction_id, headsign) -> ISO departure times.
+    """
+    groups = {}
+    for record in records:
+        attributes = record["attributes"]
+
+        # No departure time means the trip ends at this stop
+        if attributes["departure_time"] is None:
+            continue
+
+        # No headsign means the payload didn't include the trip
+        trip = record["relationships"]["trip"]["data"]["id"]
+        headsign = headsigns.get(trip)
+        if headsign is None:
+            continue
+
+        # Pile times by route, direction, and headsign
+        key = (
+            record["relationships"]["route"]["data"]["id"],
+            attributes["direction_id"],
+            headsign,
+        )
+        groups.setdefault(key, []).append(attributes["departure_time"])
+
+    # Sort
+    for times in groups.values():
+        times.sort(key=datetime.fromisoformat)
+
+    return groups
+
+
 def render_edge(
     kind: str,
     route_id: str,
     direction_id: int,
+    headsign: str,
     time: str,
     station_name: str,
     stop_id: str,
     day_name: str,
-    route_info: dict,
+    route_info: RouteInfo,
     retrieved_at: str,
 ) -> Row:
     """Builds one first-or-last departure row shaped like a retrieved chunk.
@@ -246,32 +317,40 @@ def render_edge(
     Args:
         kind: "First" or "Last".
         route_id: The route the departure belongs to.
-        direction_id: 0 or 1, indexes the route's destinations.
+        direction_id: 0 or 1, the direction the trip runs.
+        headsign: The destination the train shows.
         time: The ISO departure time.
         station_name: The station's display name.
         stop_id: The station's MBTA id.
         day_name: The weekday asked about ("Saturday").
-        route_info: route_id -> (short_name, long_name, type, destinations).
+        route_info: Route names, color, and destinations by route id.
         retrieved_at: When the fetch happened.
 
     Returns:
         A (id, kind, text, metadata, distance) row.
     """
-    short_name, long_name, route_type, destinations = route_info[route_id]
+    short_name, long_name, route_type, _, _ = route_info[route_id]
     label = route_label(short_name, long_name, route_type)
+    edge = kind.lower()
     text = (
-        f"{kind} {label} toward {destinations[direction_id]} from {station_name} "
+        f"{kind} {label} toward {headsign} from {station_name} "
         f"on {day_name}: {clock(time)}."
     )
     metadata = {
         "route_id": route_id,
         "stop_id": stop_id,
         "direction_id": direction_id,
+        "label": label,
+        "station": station_name,
+        "destination": headsign,
+        "day": day_name,
         "departure_times": [time],
+        "edge": edge,
         "live": False,
         "retrieved_at": retrieved_at,
     }
-    row_id = f"schedule:{route_id}:{stop_id}:{direction_id}:{kind.lower()}"
+    slug = headsign.lower().replace(" ", "-").replace("/", "-")
+    row_id = f"schedule:{route_id}:{stop_id}:{direction_id}:{edge}:{slug}"
     return (row_id, "schedule", text, metadata, 0.0)
 
 
@@ -303,18 +382,20 @@ def fetch_departures(parsed: ParsedQuery) -> list[Row]:
 
         # Labels and destinations for the row text
         cursor.execute(ROUTE_INFO)
-        route_info = {}
+        route_info: RouteInfo = {}
         for (
             route_id,
             short_name,
             long_name,
             route_type,
+            color,
             destinations,
         ) in cursor.fetchall():
             route_info[route_id] = (
                 short_name,
                 long_name,
                 int(route_type),
+                color,
                 destinations,
             )
         cursor.execute(STATION_NAMES, (station_ids,))
@@ -354,10 +435,17 @@ def fetch_departures(parsed: ParsedQuery) -> list[Row]:
                 last_extra = {"sort": "-departure_time", "filter[min_time]": "15:00"}
                 edges.append(("Last", last_extra, -1))
             for kind, extra, pick in edges:
-                records = fetch("/schedules", {**params, **extra, "date": target})
-                for (route_id, direction_id), times in departure_groups(
-                    records
-                ).items():
+                asked = {**params, **extra, "date": target, "include": "trip"}
+                payload = fetch("/schedules", asked)
+
+                # The headsign each trip shows
+                headsigns = {}
+                for included in payload.get("included", []):
+                    if included["type"] == "trip":
+                        headsigns[included["id"]] = included["attributes"]["headsign"]
+
+                groups = edge_groups(payload["data"], headsigns)
+                for (route_id, direction_id, headsign), times in groups.items():
                     # Diversion shuttles aren't in the routes table
                     if route_id not in route_info:
                         continue
@@ -366,6 +454,7 @@ def fetch_departures(parsed: ParsedQuery) -> list[Row]:
                             kind,
                             route_id,
                             direction_id,
+                            headsign,
                             times[pick],
                             station_name,
                             stop_id,
@@ -378,13 +467,13 @@ def fetch_departures(parsed: ParsedQuery) -> list[Row]:
 
         # Next departures: live predictions, today's schedule as the fallback
         live = True
-        groups = departure_groups(fetch("/predictions", params))
+        groups = departure_groups(fetch("/predictions", params)["data"])
         if not groups:
             live = False
             target, minimum = service_day(now)
             records = fetch(
                 "/schedules", {**params, "date": target, "filter[min_time]": minimum}
-            )
+            )["data"]
             groups = departure_groups(records)
         for (route_id, direction_id), times in groups.items():
             # Diversion shuttles aren't in the routes table

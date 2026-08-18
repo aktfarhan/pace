@@ -33,6 +33,21 @@ def service_clock(service_date: date, seconds: int) -> str:
     return clock(service_moment(service_date, seconds).isoformat())
 
 
+def deadline_stamp(service_date: date, deadline: int | None) -> str | None:
+    """Turns a deadline into the ISO moment.
+
+    Args:
+        service_date: The service day planned on.
+        deadline: Seconds into that day, or None.
+
+    Returns:
+        The full datetime, or None.
+    """
+    if deadline is None:
+        return None
+    return service_moment(service_date, deadline).isoformat()
+
+
 def station_name(stop_id: str, names: dict, parents: dict) -> str:
     """Returns the station-level name for a stop.
 
@@ -182,7 +197,7 @@ def render_walk(
     depart_seconds: int,
     walk_seconds: int,
     retrieved_at: str,
-    to_deadline: bool,
+    deadline: int | None,
 ) -> list[Row]:
     """Turns a trip made entirely on foot into citable plan rows.
 
@@ -193,7 +208,7 @@ def render_walk(
         depart_seconds: When the walk starts.
         walk_seconds: How long the walk takes.
         retrieved_at: When the plan was computed.
-        to_deadline: Whether the plan was made backward from a deadline.
+        deadline: Seconds into the service day to arrive by, or None.
 
     Returns:
         A summary row and the walk itself.
@@ -207,17 +222,20 @@ def render_walk(
     )
 
     # A deadline compares departures, not arrivals
-    if to_deadline:
+    if deadline is not None:
         text += " No ride leaves later."
     else:
         text += " No ride gets there sooner."
     metadata = {
         "origin_stop": None,
         "destination_stop": None,
+        "origin_label": origin["label"],
+        "destination_label": destination["label"],
         "depart": service_moment(service_date, depart_seconds).isoformat(),
         "arrive": service_moment(service_date, arrive_seconds).isoformat(),
         "transfers": 0,
         "service_date": service_date.isoformat(),
+        "deadline": deadline_stamp(service_date, deadline),
         "estimated": True,
         "live": False,
         "retrieved_at": retrieved_at,
@@ -246,6 +264,7 @@ def render_legs(
     routes: dict,
     trips: dict,
     retrieved_at: str,
+    deadline: int | None,
 ) -> list[Row]:
     """Turns journey legs into citable plan rows.
 
@@ -259,6 +278,7 @@ def render_legs(
         routes: The label fields for every route.
         trips: The route and headsign for every trip.
         retrieved_at: When the plan was computed.
+        deadline: Seconds into the service day to arrive by, or None.
 
     Returns:
         Rows shaped like retrieved chunks.
@@ -297,10 +317,13 @@ def render_legs(
     metadata = {
         "origin_stop": start_stop,
         "destination_stop": end_stop,
+        "origin_label": origin["label"],
+        "destination_label": destination["label"],
         "depart": service_moment(service_date, depart_seconds).isoformat(),
         "arrive": service_moment(service_date, arrive_seconds).isoformat(),
         "transfers": transfers,
         "service_date": service_date.isoformat(),
+        "deadline": deadline_stamp(service_date, deadline),
         "live": False,
         "retrieved_at": retrieved_at,
     }
@@ -341,6 +364,8 @@ def render_legs(
             metadata = {
                 "from_stop": leg["from_stop"],
                 "to_stop": leg["to_stop"],
+                "from": from_name,
+                "to": to_name,
                 "depart": depart,
                 "arrive": arrive,
                 "retrieved_at": retrieved_at,
@@ -349,11 +374,12 @@ def render_legs(
             route_id, headsign = trips[leg["trip_id"]]
             short_name, long_name, route_type = routes[route_id]
             label = route_label(short_name, long_name, route_type)
+            alight_station = station_name(leg["alight_stop"], names, parents)
             text = (
                 f"{label} toward {headsign} from "
                 f"{station_name(leg['board_stop'], names, parents)}: board "
                 f"{service_clock(service_date, leg['depart_seconds'])}, off at "
-                f"{station_name(leg['alight_stop'], names, parents)} "
+                f"{alight_station} "
                 f"{service_clock(service_date, leg['arrive_seconds'])}."
             )
             metadata = {
@@ -361,6 +387,8 @@ def render_legs(
                 "trip_id": leg["trip_id"],
                 "board_stop": leg["board_stop"],
                 "alight_stop": leg["alight_stop"],
+                "label": label,
+                "alight_station": alight_station,
                 "depart": depart,
                 "arrive": arrive,
                 "live": False,

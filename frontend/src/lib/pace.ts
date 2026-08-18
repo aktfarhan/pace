@@ -1,0 +1,114 @@
+import type { SystemStatus } from '@/types/status';
+import type { Answer, Stage } from '@/types/answer';
+
+const API = 'http://localhost:8000';
+
+// Longest gap allowed between frames before the request is dropped
+const IDLE_MS = 60000;
+
+// What each line of a server-sent event opens with
+const EVENT_PREFIX = 'event: ';
+const DATA_PREFIX = 'data: ';
+
+// One event and data pair from the stream
+interface Frame {
+    event: string;
+    data: string;
+}
+
+// Splits one server-sent event into its name and data
+function readFrame(frame: string): Frame | null {
+    let event = '';
+    let data = '';
+    for (const line of frame.split('\n')) {
+        const clean = line.trimEnd();
+        if (clean.startsWith(EVENT_PREFIX)) {
+            event = clean.slice(EVENT_PREFIX.length);
+        } else if (clean.startsWith(DATA_PREFIX)) {
+            data = clean.slice(DATA_PREFIX.length);
+        }
+    }
+    return event ? { event, data } : null;
+}
+
+// Hands one frame to the caller, returning the answer if it carried one
+function applyFrame(frame: Frame, onStage: (name: Stage) => void): Answer | null {
+    const payload = JSON.parse(frame.data);
+    if (frame.event === 'error') {
+        throw new Error(payload.message);
+    }
+    if (frame.event === 'stage') {
+        onStage(payload.name);
+    }
+    if (frame.event === 'answer') {
+        return payload;
+    }
+    return null;
+}
+
+// Reads every line's state
+export async function readStatus(signal: AbortSignal): Promise<SystemStatus> {
+    const response = await fetch(`${API}/v1/status`, { signal });
+    if (!response.ok) {
+        throw new Error(`Pace returned ${response.status}`);
+    }
+    return response.json();
+}
+
+// Sends the question and reports each stage until the answer arrives
+export async function ask(query: string, onStage: (name: Stage) => void): Promise<Answer> {
+    // The idle timer is set before the fetch
+    const control = new AbortController();
+    let idle = setTimeout(() => control.abort(), IDLE_MS);
+
+    try {
+        const response = await fetch(`${API}/v1/ask`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query }),
+            signal: control.signal,
+        });
+
+        if (!response.ok) {
+            throw new Error(`Pace returned ${response.status}`);
+        }
+        if (!response.body) {
+            throw new Error('Pace sent no stream');
+        }
+
+        const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+        let buffer = '';
+        let answer: Answer | null = null;
+
+        for (;;) {
+            const { done, value } = await reader.read();
+            if (done) {
+                break;
+            }
+
+            // Any byte proves the stream is alive, and restart the timer
+            clearTimeout(idle);
+            idle = setTimeout(() => control.abort(), IDLE_MS);
+            buffer += value;
+
+            // A blank line ends an event; the tail is still arriving
+            const frames = buffer.split('\n\n');
+            buffer = frames.pop() ?? '';
+
+            for (const text of frames) {
+                const frame = readFrame(text);
+                if (frame === null) {
+                    continue;
+                }
+                answer = applyFrame(frame, onStage) ?? answer;
+            }
+        }
+
+        if (answer === null) {
+            throw new Error('Pace closed the stream without answering');
+        }
+        return answer;
+    } finally {
+        clearTimeout(idle);
+    }
+}

@@ -4,12 +4,20 @@ import sys
 from collections.abc import Iterator
 from datetime import datetime
 
+import httpx
+
 from backend.classify import ParsedQuery, classify
 from backend.alerts import blocking_alerts, fetch_alerts
+from backend.cards import build_card, card_sources
 from backend.generate import Answer, generate
 from backend.planner.trip import plan_trip
 from backend.retrieve import retrieve
-from backend.schedules import NO_DEPARTURES, fetch_departures, requested_date
+from backend.schedules import (
+    NO_DEPARTURES,
+    fetch_departures,
+    live_departures,
+    requested_date,
+)
 
 # Midday on the asked date
 ALERT_HOUR = 12
@@ -62,6 +70,7 @@ def refused(reason: str) -> Answer:
         "risk": None,
         "should_refuse": True,
         "refuse_reason": reason,
+        "card": None,
     }
 
 
@@ -128,6 +137,33 @@ def ask_stream(query: str) -> Iterator[Event]:
     if answer["should_refuse"] and not answer["answer"]:
         yield ("answer", refused("low-confidence"))
         return
+
+    # The card the answer draws
+    card = build_card(intent, chunks)
+
+    # Trip cards get the next trains for each ride
+    if card is not None and card["kind"] == "trip":
+        rides = []
+        for leg in card["legs"]:
+            if leg["kind"] == "ride":
+                rides.append(leg)
+
+        # The plan's ride rows come in the same order as the card's rides
+        index = 0
+        try:
+            for _, kind, _, metadata, _ in chunks:
+                if kind == "plan" and "route_id" in metadata and index < len(rides):
+                    rides[index]["next_departures"] = live_departures(
+                        metadata["route_id"],
+                        metadata["board_stop"],
+                        metadata["alight_stop"],
+                    )
+                    index += 1
+        except httpx.HTTPError:
+            pass
+
+    answer["card"] = card
+    answer["sources"] = sorted(set(answer["sources"]) | card_sources(card))
     yield ("answer", answer)
 
 

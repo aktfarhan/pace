@@ -5,6 +5,7 @@ import sys
 from datetime import datetime
 from typing import TypedDict
 
+from backend.cards import Card
 from backend.llm import llm
 from backend.retrieve import Row, retrieve
 from prompts.loader import load_prompt
@@ -22,6 +23,7 @@ class Answer(TypedDict):
     risk: str | None
     should_refuse: bool
     refuse_reason: str | None
+    card: Card | None
 
 
 def generate(
@@ -66,6 +68,9 @@ def generate(
     )
     result: Answer = json.loads(response.choices[0].message.content)
 
+    # The model writes no card
+    result["card"] = None
+
     # A cited source that was never retrieved means the answer is invented
     chunk_ids = {chunk["id"] for chunk in chunk_inputs}
     for source in result["sources"]:
@@ -76,6 +81,7 @@ def generate(
                 "risk": None,
                 "should_refuse": True,
                 "refuse_reason": "low-confidence",
+                "card": None,
             }
     return result
 

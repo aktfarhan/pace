@@ -9,5 +9,6 @@ export default defineConfig({
         alias: { '@': path.resolve(import.meta.dirname, './src') },
     },
     // The port backend/app.py allows through CORS
-    server: { port: 3000 },
+    server: { port: 3000, strictPort: true },
+    preview: { port: 3000 },
 });
