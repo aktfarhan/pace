@@ -177,6 +177,8 @@
     --font-weight-strong: 650;
 
     --spacing-hair: 0.21875rem;
+    --spacing-expanded: 22.5rem;
+    --spacing-collapsed: 5rem;
 
     --radius-mark: 0.5625rem;
     --radius-row: 0.6875rem;
