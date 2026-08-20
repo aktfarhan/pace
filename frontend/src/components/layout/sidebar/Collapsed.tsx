@@ -22,8 +22,8 @@ interface CollapsedProps {
 
 function Collapsed({ status, toggle }: CollapsedProps) {
     return (
-        <aside className="hidden w-20 shrink-0 flex-col overflow-hidden border-r border-line bg-rail pt-5 pb-3 lg:flex">
-            <div className="flex flex-col items-center">
+        <aside className="hidden w-20 shrink-0 flex-col overflow-y-auto border-r border-line bg-rail lg:flex">
+            <div className="sticky top-0 z-10 flex flex-col items-center bg-rail pt-5">
                 <Toggle toggle={toggle} />
             </div>
 
@@ -79,7 +79,7 @@ function Collapsed({ status, toggle }: CollapsedProps) {
                 </div>
             )}
 
-            <div className="mt-auto flex flex-col items-center">
+            <div className="sticky bottom-0 mt-auto flex flex-col items-center bg-rail pb-3">
                 <div className="grid size-11 place-items-center rounded-row">
                     <Settings
                         size={20}
