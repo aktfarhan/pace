@@ -1,12 +1,12 @@
 import clsx from 'clsx';
 import Status from './Status';
-import { Bookmark, Clock, MapPin, MessageSquare, Settings } from 'lucide-react';
+import { Bookmark, Clock, MessageSquare, Settings, TrainFront } from 'lucide-react';
 
 const ROW = 'flex items-center gap-3.25 rounded-row px-3 py-2.5 text-sm';
 
 const NAV = [
     { label: 'Ask', Icon: MessageSquare },
-    { label: 'Map', Icon: MapPin },
+    { label: 'Transit', Icon: TrainFront },
     { label: 'History', Icon: Clock },
     { label: 'Saved', Icon: Bookmark },
 ];
