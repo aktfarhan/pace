@@ -101,6 +101,10 @@
     --text-branch: 0.84375rem;
     --text-branch--font-weight: 500;
 
+    --text-code: 0.875rem;
+    --text-code--font-weight: 700;
+    --text-code--letter-spacing: 0.04em;
+
     --text-hero: 1.5625rem;
     --text-hero--line-height: 1;
     --text-hero--font-weight: 700;

@@ -4,12 +4,14 @@ import { Fragment } from 'react';
 import Branches from './Branches';
 import LineCard from './LineCard';
 import SectionHeading from './SectionHeading';
-import { useStatus } from '@/hooks/useStatus';
 import { BRANCHED, headlineOf, running, runningCount, sectionsOf } from '@/lib/status';
+import type { SystemStatus } from '@/types/status';
 
-function Status() {
-    const status = useStatus();
+interface StatusProps {
+    status: SystemStatus | null;
+}
 
+function Status({ status }: StatusProps) {
     if (status === null) {
         return null;
     }

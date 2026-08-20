@@ -1,4 +1,13 @@
+import { Bookmark, Clock, MessageSquare, TrainFront } from 'lucide-react';
 import type { Chip, State } from '@/types/status';
+
+// The tabs the rail and the panel both list
+export const NAV = [
+    { label: 'Ask', Icon: MessageSquare },
+    { label: 'Transit', Icon: TrainFront },
+    { label: 'History', Icon: Clock },
+    { label: 'Saved', Icon: Bookmark },
+];
 
 // The badge each line has
 export const BADGES: Record<string, string> = {
@@ -29,4 +38,22 @@ export const CHIPS: Record<Chip['tone'], string> = {
     read: 'border-seam text-dim',
     quiet: 'border-seam text-faint',
     blank: 'border-dashed border-line text-ghost',
+};
+
+// The tag a line has once the sidebar collapses
+export const TAGS: Record<string, string> = {
+    Red: 'border-red-fill/26 bg-red-fill/12 text-red',
+    Orange: 'border-orange-fill/26 bg-orange-fill/12 text-orange',
+    Green: 'border-green-fill/26 bg-green-fill/12 text-green',
+    Blue: 'border-blue-fill/26 bg-blue-fill/12 text-blue',
+    CR: 'border-commuter-fill/26 bg-commuter-fill/12 text-commuter',
+};
+
+// The same tag once the line is hit
+export const TAGS_HIT: Record<string, string> = {
+    Red: 'border-red-fill/40 bg-red-fill/12 text-red',
+    Orange: 'border-orange-fill/40 bg-orange-fill/12 text-orange',
+    Green: 'border-green-fill/40 bg-green-fill/12 text-green',
+    Blue: 'border-blue-fill/40 bg-blue-fill/12 text-blue',
+    CR: 'border-commuter-fill/40 bg-commuter-fill/12 text-commuter',
 };
