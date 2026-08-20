@@ -1,5 +1,6 @@
 """The HTTP server: streaming endpoint that answers a query."""
 
+import asyncio
 import json
 import time
 from collections.abc import AsyncGenerator, Iterator
@@ -13,6 +14,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend.ask import ask_stream
+from backend.lateness import poll
 from backend.status import SystemStatus, read_status
 from backend.timetable import warm
 from data.schema import connect
@@ -34,16 +36,20 @@ CHUNK_COUNT = "SELECT count(*) FROM chunks;"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """Reads the timetable before the server accepts requests.
+    """Reads the timetable and starts watching the lines.
 
     Args:
         app: The server.
 
     Yields:
-        Once, with the tables loaded.
+        Once, with the tables loaded and the poller running.
     """
     warm()
-    yield
+    watcher = asyncio.create_task(poll())
+    try:
+        yield
+    finally:
+        watcher.cancel()
 
 
 # The server

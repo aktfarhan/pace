@@ -50,8 +50,8 @@ def delays_of(path: Path) -> pandas.DataFrame:
     frame = pandas.read_parquet(path)
     frame = frame.dropna(subset=["stop_timestamp", "scheduled_arrival_time"])
 
-    # Unscheduled service, joined to a schedule it never ran
-    frame = frame[~frame["trip_id"].str.startswith("ADDED")]
+    # Added and non-revenue trips, joined to schedules they never ran
+    frame = frame[~frame["trip_id"].str.startswith(("ADDED", "NONREV"))]
 
     # The stop a trip waits at before it starts
     starts = frame.groupby("trip_id")["stop_sequence"].transform("min")
