@@ -161,6 +161,7 @@ for name, group in held_out.groupby(labels, observed=True):
 
 # Everything serving needs to repeat a prediction
 OUT_FILE.parent.mkdir(parents=True, exist_ok=True)
+half_written = OUT_FILE.with_suffix(".part.pkl")
 joblib.dump(
     {
         "model": model,
@@ -174,7 +175,9 @@ joblib.dump(
         "held_out_from": int(cutoff),
         "scores": scores,
     },
-    OUT_FILE,
+    half_written,
 )
 
+# An interrupted dump must not land under the name serving reads
+half_written.replace(OUT_FILE)
 print(f"\nSaved {OUT_FILE} ({OUT_FILE.stat().st_size / 1e6:.1f} MB)")

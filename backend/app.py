@@ -15,6 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from backend.ask import ask_stream
 from backend.lateness import poll
+from backend.risk import warm as warm_model
 from backend.status import SystemStatus, read_status
 from backend.timetable import warm
 from data.schema import connect
@@ -45,6 +46,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         Once, with the tables loaded and the poller running.
     """
     warm()
+    warm_model()
     watcher = asyncio.create_task(poll())
     try:
         yield
