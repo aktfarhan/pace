@@ -1,18 +1,20 @@
+import Risk from './Risk';
 import Leave from './Leave';
 import Stamp from './Stamp';
 import LegBar from './LegBar';
 import Timeline from './Timeline';
 import { RotateCw } from 'lucide-react';
 import { fullClock, leaveOf } from '@/lib/trip';
-import type { TripCard } from '@/types/answer';
+import type { Level, TripCard } from '@/types/answer';
 
 interface TripPlanProps {
     card: TripCard;
+    risk: Level | null;
     refresh: () => void;
     refreshing: boolean;
 }
 
-function TripPlan({ card, refresh, refreshing }: TripPlanProps) {
+function TripPlan({ card, risk, refresh, refreshing }: TripPlanProps) {
     const leave = leaveOf(card, Date.now());
 
     return (
@@ -42,9 +44,7 @@ function TripPlan({ card, refresh, refreshing }: TripPlanProps) {
                 <div className="mt-3 flex flex-col gap-1.75">
                     <LegBar card={card} />
                     <div className="flex items-center gap-2 pt-0.75">
-                        <span className="rounded-full border border-line px-2.25 py-hair font-mono text-tag text-dim uppercase">
-                            Risk —
-                        </span>
+                        <Risk risk={risk} />
                         <span className="flex-1" />
                         {leave.kind === 'none' && (
                             <>

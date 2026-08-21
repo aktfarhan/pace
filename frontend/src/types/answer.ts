@@ -80,11 +80,14 @@ export interface TripCard {
 // The structure an answer draws
 export type Card = DeparturesCard | EdgeCard | TripCard;
 
+// How risky a trip is
+export type Level = 'low' | 'mid' | 'high';
+
 // What /v1/ask returns
 export interface Answer {
     answer: string;
     sources: string[];
-    risk: string | null;
+    risk: Level | null;
     should_refuse: boolean;
     refuse_reason: string | null;
     card: Card | null;

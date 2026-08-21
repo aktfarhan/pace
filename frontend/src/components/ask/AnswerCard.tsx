@@ -14,7 +14,14 @@ function AnswerCard({ answer, refresh, refreshing }: AnswerCardProps) {
     // Build the body of the answer
     let body;
     if (answer.card?.kind === 'trip') {
-        body = <TripPlan card={answer.card} refresh={refresh} refreshing={refreshing} />;
+        body = (
+            <TripPlan
+                card={answer.card}
+                risk={answer.risk}
+                refresh={refresh}
+                refreshing={refreshing}
+            />
+        );
     } else if (answer.card?.kind === 'edge') {
         body = <FirstLast card={answer.card} />;
     } else {
