@@ -10,6 +10,9 @@ const CODE_KEY = 'pace.code';
 // Longest gap allowed between frames before the request is dropped
 const IDLE_MS = 60000;
 
+// How long a save may hang
+const SAVE_MS = 15000;
+
 // What each line of a server-sent event opens with
 const EVENT_PREFIX = 'event: ';
 const DATA_PREFIX = 'data: ';
@@ -51,7 +54,7 @@ function applyFrame(frame: Frame, onStage: (name: Stage) => void): Answer | null
 }
 
 // The header carrying the code
-function codeHeader(): HeadersInit {
+function codeHeader(): Record<string, string> {
     const code = localStorage.getItem(CODE_KEY);
     return code === null ? {} : { 'X-Pace-Code': code };
 }
@@ -63,6 +66,31 @@ export async function readPlaces(signal: AbortSignal): Promise<SavedPlace[]> {
         throw new Error(`Pace returned ${response.status}`);
     }
     return response.json();
+}
+
+// Saves one place, keeping the code it comes back with
+export async function savePlace(label: string, address: string): Promise<SavedPlace> {
+    const control = new AbortController();
+    const timer = setTimeout(() => control.abort(), SAVE_MS);
+
+    try {
+        const response = await fetch(`${API}/v1/places`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...codeHeader() },
+            body: JSON.stringify({ label, address }),
+            signal: control.signal,
+        });
+        if (!response.ok) {
+            throw new Error(`Pace returned ${response.status}`);
+        }
+
+        const saved = await response.json();
+
+        if (typeof saved.code === 'string') localStorage.setItem(CODE_KEY, saved.code);
+        return saved.place;
+    } finally {
+        clearTimeout(timer);
+    }
 }
 
 // Reads every line's state

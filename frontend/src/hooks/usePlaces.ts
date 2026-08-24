@@ -1,5 +1,5 @@
-import { readPlaces } from '@/lib/pace';
 import { useEffect, useState } from 'react';
+import { readPlaces, savePlace } from '@/lib/pace';
 import type { SavedPlace } from '@/types/place';
 
 export function usePlaces() {
@@ -22,5 +22,10 @@ export function usePlaces() {
         return () => control.abort();
     }, []);
 
-    return places;
+    async function keep(label: string, address: string) {
+        const place = await savePlace(label, address);
+        setPlaces((saved) => [...(saved ?? []), place]);
+    }
+
+    return { places, keep };
 }
