@@ -1,7 +1,11 @@
+import type { SavedPlace } from '@/types/place';
 import type { SystemStatus } from '@/types/status';
 import type { Answer, Stage } from '@/types/answer';
 
 const API = 'http://localhost:8000';
+
+// Where the code is kept
+const CODE_KEY = 'pace.code';
 
 // Longest gap allowed between frames before the request is dropped
 const IDLE_MS = 60000;
@@ -44,6 +48,21 @@ function applyFrame(frame: Frame, onStage: (name: Stage) => void): Answer | null
         return payload;
     }
     return null;
+}
+
+// The header carrying the code
+function codeHeader(): HeadersInit {
+    const code = localStorage.getItem(CODE_KEY);
+    return code === null ? {} : { 'X-Pace-Code': code };
+}
+
+// Reads the places saved against a code
+export async function readPlaces(signal: AbortSignal): Promise<SavedPlace[]> {
+    const response = await fetch(`${API}/v1/places`, { signal, headers: codeHeader() });
+    if (!response.ok) {
+        throw new Error(`Pace returned ${response.status}`);
+    }
+    return response.json();
 }
 
 // Reads every line's state
