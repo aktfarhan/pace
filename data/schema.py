@@ -93,6 +93,18 @@ CREATE_PLACES_INDEX = """
     CREATE INDEX IF NOT EXISTS places_name_trgm
         ON places USING gin (name gin_trgm_ops);
 """
+CREATE_SAVED_PLACES = """
+    CREATE TABLE IF NOT EXISTS saved_places (
+        id      bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        code    text NOT NULL,
+        label   text NOT NULL,
+        address text NOT NULL
+    );
+"""
+CREATE_SAVED_PLACES_INDEX = """
+    CREATE INDEX IF NOT EXISTS saved_places_code
+        ON saved_places (code);
+"""
 
 
 def connect() -> psycopg.Connection:
@@ -121,10 +133,12 @@ def ensure_schema(connection: psycopg.Connection) -> None:
         cursor.execute(CREATE_ADDRESS_POINTS_INDEX)
         cursor.execute(CREATE_PLACES)
         cursor.execute(CREATE_PLACES_INDEX)
+        cursor.execute(CREATE_SAVED_PLACES)
+        cursor.execute(CREATE_SAVED_PLACES_INDEX)
     connection.commit()
 
 
 if __name__ == "__main__":
     with connect() as connection:
         ensure_schema(connection)
-    print("Schema ready: chunks, towns, streets, address_points, places")
+    print("Schema ready: chunks, towns, streets, address_points, places, saved_places")

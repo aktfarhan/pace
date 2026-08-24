@@ -8,13 +8,14 @@ from contextlib import asynccontextmanager
 from functools import lru_cache
 
 import psycopg
-from fastapi import FastAPI
+from fastapi import FastAPI, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend.ask import ask_stream
 from backend.lateness import poll
+from backend.places import Saved, SavedPlace, add_place, read_places
 from backend.risk import warm as warm_model
 from backend.status import SystemStatus, read_status
 from backend.timetable import warm
@@ -25,6 +26,10 @@ ORIGINS = ["http://localhost:3000"]
 
 # The longest askable question
 MAX_QUERY = 500
+
+# The longest a saved place's fields may be
+MAX_LABEL = 60
+MAX_ADDRESS = 200
 
 # Seconds before the alert feed is read again
 STATUS_TTL = 20.0
@@ -69,7 +74,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=ORIGINS,
     allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type"],
+    allow_headers=["Content-Type", "X-Pace-Code"],
 )
 
 
@@ -79,6 +84,15 @@ class Question(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     query: str = Field(min_length=1, max_length=MAX_QUERY)
+
+
+class NewPlace(BaseModel):
+    """One place posted to /v1/places."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    label: str = Field(min_length=1, max_length=MAX_LABEL)
+    address: str = Field(min_length=1, max_length=MAX_ADDRESS)
 
 
 def event(name: str, data: dict) -> str:
@@ -148,6 +162,35 @@ def check_status() -> SystemStatus:
         One card per line.
     """
     return status_during(int(time.monotonic() // STATUS_TTL))
+
+
+@app.get("/v1/places")
+def list_places(x_pace_code: str | None = Header(default=None)) -> list[SavedPlace]:
+    """Reads the places saved against the user's code.
+
+    Args:
+        x_pace_code: The user's code.
+
+    Returns:
+        The saved places, oldest first.
+    """
+    return read_places(x_pace_code)
+
+
+@app.post("/v1/places")
+def save_place(
+    place: NewPlace, x_pace_code: str | None = Header(default=None)
+) -> Saved:
+    """Saves one place, giving a code to a user without one.
+
+    Args:
+        place: The posted label and address.
+        x_pace_code: The user's code.
+
+    Returns:
+        The stored place and the code it belongs to.
+    """
+    return add_place(x_pace_code, place.label, place.address)
 
 
 @app.get("/v1/health")
