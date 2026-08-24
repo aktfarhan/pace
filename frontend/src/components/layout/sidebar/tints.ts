@@ -1,8 +1,11 @@
 import { Bookmark, Clock, MessageSquare, TrainFront } from 'lucide-react';
 import type { Chip, State } from '@/types/status';
 
-// The tabs the rail and the panel both list
-export const NAV = [
+// The pages the sidebar switches between
+export type Page = 'Ask' | 'Transit' | 'History' | 'Saved';
+
+// The tabs both sidebar states list
+export const NAV: { label: Page; Icon: typeof MessageSquare }[] = [
     { label: 'Ask', Icon: MessageSquare },
     { label: 'Transit', Icon: TrainFront },
     { label: 'History', Icon: Clock },

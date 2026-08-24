@@ -2,7 +2,7 @@ import clsx from 'clsx';
 import Toggle from './Toggle';
 import { running } from '@/lib/status';
 import { Settings } from 'lucide-react';
-import { NAV, TAGS, TAGS_HIT } from './tints';
+import { NAV, TAGS, TAGS_HIT, type Page } from './tints';
 import type { SystemStatus } from '@/types/status';
 
 const CELL = 'grid size-11 shrink-0 place-items-center rounded-row';
@@ -18,9 +18,11 @@ const CODES: Record<string, string> = {
 interface CollapsedProps {
     status: SystemStatus | null;
     toggle: () => void;
+    page: Page;
+    select: (page: Page) => void;
 }
 
-function Collapsed({ status, toggle }: CollapsedProps) {
+function Collapsed({ status, toggle, page, select }: CollapsedProps) {
     return (
         <div className="flex h-full w-collapsed flex-col overflow-y-auto">
             <div className="sticky top-0 z-10 flex flex-col items-center bg-rail pt-5">
@@ -29,12 +31,14 @@ function Collapsed({ status, toggle }: CollapsedProps) {
 
             <nav className="mt-4.5 flex flex-col items-center gap-0.5">
                 {NAV.map(({ label, Icon }) => {
-                    const current = label === 'Ask';
+                    const current = label === page;
                     return (
-                        <div
+                        <button
                             key={label}
+                            type="button"
                             title={label}
-                            className={clsx(CELL, current && 'bg-accent/11')}
+                            onClick={() => select(label)}
+                            className={clsx(CELL, 'cursor-pointer', current && 'bg-accent/11')}
                         >
                             <Icon
                                 size={20}
@@ -44,7 +48,7 @@ function Collapsed({ status, toggle }: CollapsedProps) {
                                 className={current ? 'text-accent' : 'text-hush'}
                                 aria-hidden="true"
                             />
-                        </div>
+                        </button>
                     );
                 })}
             </nav>

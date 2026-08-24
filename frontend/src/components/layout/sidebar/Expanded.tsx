@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 import Status from './Status';
 import Toggle from './Toggle';
-import { NAV } from './tints';
+import { NAV, type Page } from './tints';
 import { Settings } from 'lucide-react';
 import type { SystemStatus } from '@/types/status';
 
@@ -10,9 +10,11 @@ const ROW = 'flex h-11 items-center gap-3.25 rounded-row px-3 text-sm';
 interface ExpandedProps {
     status: SystemStatus | null;
     toggle: () => void;
+    page: Page;
+    select: (page: Page) => void;
 }
 
-function Expanded({ status, toggle }: ExpandedProps) {
+function Expanded({ status, toggle, page, select }: ExpandedProps) {
     return (
         <div className="flex h-full w-expanded flex-col overflow-y-auto px-3">
             <div className="sticky top-0 z-10 flex items-center gap-3 bg-rail px-1.5 pt-5 pb-1">
@@ -28,12 +30,15 @@ function Expanded({ status, toggle }: ExpandedProps) {
 
             <nav className="mt-3.5 flex flex-col gap-0.5 px-1.5">
                 {NAV.map(({ label, Icon }) => {
-                    const current = label === 'Ask';
+                    const current = label === page;
                     return (
-                        <div
+                        <button
                             key={label}
+                            type="button"
+                            onClick={() => select(label)}
                             className={clsx(
                                 ROW,
+                                'cursor-pointer',
                                 current
                                     ? 'bg-accent/11 font-strong text-accent'
                                     : 'font-medium text-quiet',
@@ -48,7 +53,7 @@ function Expanded({ status, toggle }: ExpandedProps) {
                                 aria-hidden="true"
                             />
                             {label}
-                        </div>
+                        </button>
                     );
                 })}
             </nav>
