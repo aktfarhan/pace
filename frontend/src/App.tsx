@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAsk } from '@/hooks/useAsk';
+import Saved from '@/components/saved/Saved';
 import TurnList from '@/components/ask/TurnList';
 import AskInput from '@/components/ask/AskInput';
 import Sidebar from '@/components/layout/sidebar/Sidebar';
@@ -19,7 +20,7 @@ function App() {
                 select={setPage}
             />
             <main className="flex flex-1 flex-col gap-6 p-8">
-                {page === 'Ask' ? (
+                {page === 'Ask' && (
                     <>
                         <TurnList
                             turns={turns}
@@ -29,7 +30,9 @@ function App() {
                         />
                         <AskInput send={send} busy={busy} />
                     </>
-                ) : (
+                )}
+                {page === 'Saved' && <Saved />}
+                {(page === 'Transit' || page === 'History') && (
                     <span className="font-mono text-eyebrow text-faint uppercase">
                         {page} — not built yet
                     </span>
