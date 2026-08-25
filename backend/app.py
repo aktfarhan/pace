@@ -16,6 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from backend.ask import ask_stream
 from backend.lateness import poll
 from backend.places import Saved, SavedPlace, add_place, read_places
+from backend.trips import Kept, SavedTrip, add_trip, read_trips
 from backend.risk import warm as warm_model
 from backend.status import SystemStatus, read_status
 from backend.timetable import warm
@@ -30,6 +31,9 @@ MAX_QUERY = 500
 # The longest a saved place's fields may be
 MAX_LABEL = 60
 MAX_ADDRESS = 200
+
+# The longest a saved trip's ends may be
+MAX_END = 120
 
 # Seconds before the alert feed is read again
 STATUS_TTL = 20.0
@@ -93,6 +97,15 @@ class NewPlace(BaseModel):
 
     label: str = Field(min_length=1, max_length=MAX_LABEL)
     address: str = Field(min_length=1, max_length=MAX_ADDRESS)
+
+
+class NewTrip(BaseModel):
+    """One trip posted to /v1/trips."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    origin: str = Field(min_length=1, max_length=MAX_END)
+    destination: str = Field(min_length=1, max_length=MAX_END)
 
 
 def event(name: str, data: dict) -> str:
@@ -191,6 +204,33 @@ def save_place(
         The stored place and the code it belongs to.
     """
     return add_place(x_pace_code, place.label, place.address)
+
+
+@app.get("/v1/trips")
+def list_trips(x_pace_code: str | None = Header(default=None)) -> list[SavedTrip]:
+    """Reads the trips saved against the user's code.
+
+    Args:
+        x_pace_code: The user's code.
+
+    Returns:
+        The saved trips, oldest first.
+    """
+    return read_trips(x_pace_code)
+
+
+@app.post("/v1/trips")
+def save_trip(trip: NewTrip, x_pace_code: str | None = Header(default=None)) -> Kept:
+    """Saves one trip, giving a code to a user without one.
+
+    Args:
+        trip: The posted origin and destination.
+        x_pace_code: The user's code.
+
+    Returns:
+        The stored trip and the code it belongs to.
+    """
+    return add_trip(x_pace_code, trip.origin, trip.destination)
 
 
 @app.get("/v1/health")

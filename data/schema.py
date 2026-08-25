@@ -105,6 +105,18 @@ CREATE_SAVED_PLACES_INDEX = """
     CREATE INDEX IF NOT EXISTS saved_places_code
         ON saved_places (code);
 """
+CREATE_SAVED_TRIPS = """
+    CREATE TABLE IF NOT EXISTS saved_trips (
+        id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        code        text NOT NULL,
+        origin      text NOT NULL,
+        destination text NOT NULL
+    );
+"""
+CREATE_SAVED_TRIPS_INDEX = """
+    CREATE INDEX IF NOT EXISTS saved_trips_code
+        ON saved_trips (code);
+"""
 
 
 def connect() -> psycopg.Connection:
@@ -135,10 +147,15 @@ def ensure_schema(connection: psycopg.Connection) -> None:
         cursor.execute(CREATE_PLACES_INDEX)
         cursor.execute(CREATE_SAVED_PLACES)
         cursor.execute(CREATE_SAVED_PLACES_INDEX)
+        cursor.execute(CREATE_SAVED_TRIPS)
+        cursor.execute(CREATE_SAVED_TRIPS_INDEX)
     connection.commit()
 
 
 if __name__ == "__main__":
     with connect() as connection:
         ensure_schema(connection)
-    print("Schema ready: chunks, towns, streets, address_points, places, saved_places")
+    print(
+        "Schema ready: chunks, towns, streets, address_points, places, "
+        "saved_places, saved_trips"
+    )
