@@ -1,3 +1,4 @@
+import type { SavedTrip } from '@/types/trip';
 import type { SavedPlace } from '@/types/place';
 import type { SystemStatus } from '@/types/status';
 import type { Answer, Stage } from '@/types/answer';
@@ -91,6 +92,15 @@ export async function savePlace(label: string, address: string): Promise<SavedPl
     } finally {
         clearTimeout(timer);
     }
+}
+
+// Reads the trips saved against a code
+export async function readTrips(signal: AbortSignal): Promise<SavedTrip[]> {
+    const response = await fetch(`${API}/v1/trips`, { signal, headers: codeHeader() });
+    if (!response.ok) {
+        throw new Error(`Pace returned ${response.status}`);
+    }
+    return response.json();
 }
 
 // Reads every line's state
