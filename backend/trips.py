@@ -9,6 +9,7 @@ READ = "SELECT id, origin, destination FROM saved_trips WHERE code = %s ORDER BY
 ADD = """
     INSERT INTO saved_trips (code, origin, destination)
     VALUES (%s, %s, %s)
+    ON CONFLICT (code, origin, destination) DO UPDATE SET origin = EXCLUDED.origin
     RETURNING id, origin, destination;
 """
 

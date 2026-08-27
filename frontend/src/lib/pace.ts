@@ -103,6 +103,31 @@ export async function readTrips(signal: AbortSignal): Promise<SavedTrip[]> {
     return response.json();
 }
 
+// Saves one trip, keeping the code it comes back with
+export async function saveTrip(origin: string, destination: string): Promise<SavedTrip> {
+    const control = new AbortController();
+    const timer = setTimeout(() => control.abort(), SAVE_MS);
+
+    try {
+        const response = await fetch(`${API}/v1/trips`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...codeHeader() },
+            body: JSON.stringify({ origin, destination }),
+            signal: control.signal,
+        });
+        if (!response.ok) {
+            throw new Error(`Pace returned ${response.status}`);
+        }
+
+        const saved = await response.json();
+
+        if (typeof saved.code === 'string') localStorage.setItem(CODE_KEY, saved.code);
+        return saved.trip;
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
 // Reads every line's state
 export async function readStatus(signal: AbortSignal): Promise<SystemStatus> {
     const response = await fetch(`${API}/v1/status`, { signal });

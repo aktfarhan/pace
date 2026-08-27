@@ -114,8 +114,8 @@ CREATE_SAVED_TRIPS = """
     );
 """
 CREATE_SAVED_TRIPS_INDEX = """
-    CREATE INDEX IF NOT EXISTS saved_trips_code
-        ON saved_trips (code);
+    CREATE UNIQUE INDEX IF NOT EXISTS saved_trips_once
+        ON saved_trips (code, origin, destination);
 """
 
 
