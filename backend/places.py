@@ -11,6 +11,7 @@ ADD = """
     VALUES (%s, %s, %s)
     RETURNING id, label, address;
 """
+REMOVE = "DELETE FROM saved_places WHERE id = %s AND code = %s;"
 
 # Words a code is built from
 WORDS = (
@@ -142,3 +143,17 @@ def add_place(code: str | None, label: str, address: str) -> Saved:
         row = cursor.fetchone()
 
     return {"code": against, "place": shaped(row)}
+
+
+def remove_place(code: str | None, place_id: int) -> None:
+    """Removes one place from a user's code.
+
+    Args:
+        code: The user's code, or None.
+        place_id: The place to remove.
+    """
+    if code is None:
+        return
+
+    with connect() as connection, connection.cursor() as cursor:
+        cursor.execute(REMOVE, (place_id, code))

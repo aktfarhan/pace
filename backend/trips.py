@@ -12,6 +12,7 @@ ADD = """
     ON CONFLICT (code, origin, destination) DO UPDATE SET origin = EXCLUDED.origin
     RETURNING id, origin, destination;
 """
+REMOVE = "DELETE FROM saved_trips WHERE id = %s AND code = %s;"
 
 
 class SavedTrip(TypedDict):
@@ -83,3 +84,17 @@ def add_trip(code: str | None, origin: str, destination: str) -> Kept:
         row = cursor.fetchone()
 
     return {"code": against, "trip": shaped(row)}
+
+
+def remove_trip(code: str | None, trip_id: int) -> None:
+    """Removes one trip from a user's code.
+
+    Args:
+        code: The user's code, or None.
+        trip_id: The trip to remove.
+    """
+    if code is None:
+        return
+
+    with connect() as connection, connection.cursor() as cursor:
+        cursor.execute(REMOVE, (trip_id, code))

@@ -15,8 +15,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from backend.ask import ask_stream
 from backend.lateness import poll
-from backend.places import Saved, SavedPlace, add_place, read_places
-from backend.trips import Kept, SavedTrip, add_trip, read_trips
+from backend.places import Saved, SavedPlace, add_place, read_places, remove_place
+from backend.trips import Kept, SavedTrip, add_trip, read_trips, remove_trip
 from backend.risk import warm as warm_model
 from backend.status import SystemStatus, read_status
 from backend.timetable import warm
@@ -77,7 +77,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ORIGINS,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["Content-Type", "X-Pace-Code"],
 )
 
@@ -206,6 +206,17 @@ def save_place(
     return add_place(x_pace_code, place.label, place.address)
 
 
+@app.delete("/v1/places/{place_id}", status_code=204)
+def drop_place(place_id: int, x_pace_code: str | None = Header(default=None)) -> None:
+    """Removes one of the user's saved places.
+
+    Args:
+        place_id: The place to remove.
+        x_pace_code: The user's code.
+    """
+    remove_place(x_pace_code, place_id)
+
+
 @app.get("/v1/trips")
 def list_trips(x_pace_code: str | None = Header(default=None)) -> list[SavedTrip]:
     """Reads the trips saved against the user's code.
@@ -231,6 +242,17 @@ def save_trip(trip: NewTrip, x_pace_code: str | None = Header(default=None)) -> 
         The stored trip and the code it belongs to.
     """
     return add_trip(x_pace_code, trip.origin, trip.destination)
+
+
+@app.delete("/v1/trips/{trip_id}", status_code=204)
+def drop_trip(trip_id: int, x_pace_code: str | None = Header(default=None)) -> None:
+    """Removes one of the user's saved trips.
+
+    Args:
+        trip_id: The trip to remove.
+        x_pace_code: The user's code.
+    """
+    remove_trip(x_pace_code, trip_id)
 
 
 @app.get("/v1/health")
