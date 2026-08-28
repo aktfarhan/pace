@@ -104,6 +104,25 @@ export async function savePlace(label: string, address: string): Promise<SavedPl
     }
 }
 
+// Removes one saved place
+export async function removePlace(id: number) {
+    const control = new AbortController();
+    const timer = setTimeout(() => control.abort(), SAVE_MS);
+
+    try {
+        const response = await fetch(`${API}/v1/places/${id}`, {
+            method: 'DELETE',
+            headers: codeHeader(),
+            signal: control.signal,
+        });
+        if (!response.ok) {
+            throw new Error(`Pace returned ${response.status}`);
+        }
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
 // Reads the trips saved against a code
 export async function readTrips(signal: AbortSignal): Promise<SavedTrip[]> {
     const response = await fetch(`${API}/v1/trips`, { signal, headers: codeHeader() });

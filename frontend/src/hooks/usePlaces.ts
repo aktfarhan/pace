@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { readPlaces, savePlace } from '@/lib/pace';
+import { readPlaces, removePlace, savePlace } from '@/lib/pace';
 import type { SavedPlace } from '@/types/place';
 
 export function usePlaces() {
@@ -27,5 +27,10 @@ export function usePlaces() {
         setPlaces((saved) => [...(saved ?? []), place]);
     }
 
-    return { places, keep };
+    async function drop(id: number) {
+        await removePlace(id);
+        setPlaces((saved) => (saved ?? []).filter((place) => place.id !== id));
+    }
+
+    return { places, keep, drop };
 }

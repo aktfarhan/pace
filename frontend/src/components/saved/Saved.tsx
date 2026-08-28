@@ -6,7 +6,7 @@ import { usePlaces } from '@/hooks/usePlaces';
 import SectionHeading from '@/components/layout/sidebar/SectionHeading';
 
 function Saved() {
-    const { places, keep } = usePlaces();
+    const { places, keep, drop } = usePlaces();
     const trips = useTrips();
 
     return (
@@ -19,7 +19,7 @@ function Saved() {
                 {places !== null && (
                     <div className="grid grid-cols-4 gap-3">
                         {places.map((place) => (
-                            <PlaceCard key={place.id} place={place} />
+                            <PlaceCard key={place.id} place={place} drop={drop} />
                         ))}
                         <AddPlace keep={keep} />
                     </div>
