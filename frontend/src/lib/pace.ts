@@ -54,9 +54,19 @@ function applyFrame(frame: Frame, onStage: (name: Stage) => void): Answer | null
     return null;
 }
 
+// Reads the code this device saves against
+export function readCode(): string | null {
+    return localStorage.getItem(CODE_KEY);
+}
+
+// Points this device at another code
+export function writeCode(code: string) {
+    localStorage.setItem(CODE_KEY, code);
+}
+
 // The header carrying the code
 function codeHeader(): Record<string, string> {
-    const code = localStorage.getItem(CODE_KEY);
+    const code = readCode();
     return code === null ? {} : { 'X-Pace-Code': code };
 }
 
@@ -87,7 +97,7 @@ export async function savePlace(label: string, address: string): Promise<SavedPl
 
         const saved = await response.json();
 
-        if (typeof saved.code === 'string') localStorage.setItem(CODE_KEY, saved.code);
+        if (typeof saved.code === 'string') writeCode(saved.code);
         return saved.place;
     } finally {
         clearTimeout(timer);
@@ -121,7 +131,7 @@ export async function saveTrip(origin: string, destination: string): Promise<Sav
 
         const saved = await response.json();
 
-        if (typeof saved.code === 'string') localStorage.setItem(CODE_KEY, saved.code);
+        if (typeof saved.code === 'string') writeCode(saved.code);
         return saved.trip;
     } finally {
         clearTimeout(timer);

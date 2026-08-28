@@ -1,4 +1,5 @@
 import clsx from 'clsx';
+import Code from './Code';
 import Status from './Status';
 import Toggle from './Toggle';
 import { NAV, type Page } from './tints';
@@ -69,7 +70,10 @@ function Expanded({ status, toggle, page, select }: ExpandedProps) {
                         className="text-hush"
                         aria-hidden="true"
                     />
-                    Settings
+                    <div className="flex flex-col">
+                        <span>Settings</span>
+                        <Code />
+                    </div>
                 </div>
             </div>
         </div>
