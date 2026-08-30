@@ -11,8 +11,8 @@ const CODE_KEY = 'pace.code';
 // Longest gap allowed between frames before the request is dropped
 const IDLE_MS = 60000;
 
-// How long a save may hang
-const SAVE_MS = 15000;
+// How long a write may hang
+const WRITE_MS = 15000;
 
 // What each line of a server-sent event opens with
 const EVENT_PREFIX = 'event: ';
@@ -70,6 +70,22 @@ function codeHeader(): Record<string, string> {
     return code === null ? {} : { 'X-Pace-Code': code };
 }
 
+// Sends one write, exits if it hangs
+async function send(path: string, init: RequestInit): Promise<string> {
+    const control = new AbortController();
+    const timer = setTimeout(() => control.abort(), WRITE_MS);
+
+    try {
+        const response = await fetch(`${API}${path}`, { ...init, signal: control.signal });
+        if (!response.ok) {
+            throw new Error(`Pace returned ${response.status}`);
+        }
+        return await response.text();
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
 // Reads the places saved against a code
 export async function readPlaces(signal: AbortSignal): Promise<SavedPlace[]> {
     const response = await fetch(`${API}/v1/places`, { signal, headers: codeHeader() });
@@ -81,46 +97,20 @@ export async function readPlaces(signal: AbortSignal): Promise<SavedPlace[]> {
 
 // Saves one place, keeping the code it comes back with
 export async function savePlace(label: string, address: string): Promise<SavedPlace> {
-    const control = new AbortController();
-    const timer = setTimeout(() => control.abort(), SAVE_MS);
+    const body = await send('/v1/places', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...codeHeader() },
+        body: JSON.stringify({ label, address }),
+    });
+    const saved = JSON.parse(body);
 
-    try {
-        const response = await fetch(`${API}/v1/places`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...codeHeader() },
-            body: JSON.stringify({ label, address }),
-            signal: control.signal,
-        });
-        if (!response.ok) {
-            throw new Error(`Pace returned ${response.status}`);
-        }
-
-        const saved = await response.json();
-
-        if (typeof saved.code === 'string') writeCode(saved.code);
-        return saved.place;
-    } finally {
-        clearTimeout(timer);
-    }
+    if (typeof saved.code === 'string') writeCode(saved.code);
+    return saved.place;
 }
 
 // Removes one saved place
 export async function removePlace(id: number) {
-    const control = new AbortController();
-    const timer = setTimeout(() => control.abort(), SAVE_MS);
-
-    try {
-        const response = await fetch(`${API}/v1/places/${id}`, {
-            method: 'DELETE',
-            headers: codeHeader(),
-            signal: control.signal,
-        });
-        if (!response.ok) {
-            throw new Error(`Pace returned ${response.status}`);
-        }
-    } finally {
-        clearTimeout(timer);
-    }
+    await send(`/v1/places/${id}`, { method: 'DELETE', headers: codeHeader() });
 }
 
 // Reads the trips saved against a code
@@ -134,46 +124,20 @@ export async function readTrips(signal: AbortSignal): Promise<SavedTrip[]> {
 
 // Saves one trip, keeping the code it comes back with
 export async function saveTrip(origin: string, destination: string): Promise<SavedTrip> {
-    const control = new AbortController();
-    const timer = setTimeout(() => control.abort(), SAVE_MS);
+    const body = await send('/v1/trips', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...codeHeader() },
+        body: JSON.stringify({ origin, destination }),
+    });
+    const saved = JSON.parse(body);
 
-    try {
-        const response = await fetch(`${API}/v1/trips`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...codeHeader() },
-            body: JSON.stringify({ origin, destination }),
-            signal: control.signal,
-        });
-        if (!response.ok) {
-            throw new Error(`Pace returned ${response.status}`);
-        }
-
-        const saved = await response.json();
-
-        if (typeof saved.code === 'string') writeCode(saved.code);
-        return saved.trip;
-    } finally {
-        clearTimeout(timer);
-    }
+    if (typeof saved.code === 'string') writeCode(saved.code);
+    return saved.trip;
 }
 
 // Removes one saved trip
 export async function removeTrip(id: number) {
-    const control = new AbortController();
-    const timer = setTimeout(() => control.abort(), SAVE_MS);
-
-    try {
-        const response = await fetch(`${API}/v1/trips/${id}`, {
-            method: 'DELETE',
-            headers: codeHeader(),
-            signal: control.signal,
-        });
-        if (!response.ok) {
-            throw new Error(`Pace returned ${response.status}`);
-        }
-    } finally {
-        clearTimeout(timer);
-    }
+    await send(`/v1/trips/${id}`, { method: 'DELETE', headers: codeHeader() });
 }
 
 // Reads every line's state
