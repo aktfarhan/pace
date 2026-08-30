@@ -14,6 +14,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend.ask import ask_stream
+from backend.board import Planned, plan_saved
 from backend.lateness import poll
 from backend.places import Saved, SavedPlace, add_place, read_places, remove_place
 from backend.trips import Kept, SavedTrip, add_trip, read_trips, remove_trip
@@ -253,6 +254,19 @@ def drop_trip(trip_id: int, x_pace_code: str | None = Header(default=None)) -> N
         x_pace_code: The user's code.
     """
     remove_trip(x_pace_code, trip_id)
+
+
+@app.get("/v1/board")
+def list_board(x_pace_code: str | None = Header(default=None)) -> list[Planned]:
+    """Plans every trip saved against the user's code.
+
+    Args:
+        x_pace_code: The user's code.
+
+    Returns:
+        One entry per saved trip, oldest first.
+    """
+    return plan_saved(x_pace_code)
 
 
 @app.get("/v1/health")
