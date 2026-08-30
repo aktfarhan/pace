@@ -30,7 +30,7 @@ function Saved() {
                 <SectionHeading label="Trips" />
 
                 {trips !== null && (
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 items-start gap-3">
                         {trips.map((trip) => (
                             <TripCard key={trip.id} trip={trip} drop={dropTrip} />
                         ))}
