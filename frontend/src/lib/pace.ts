@@ -157,6 +157,25 @@ export async function saveTrip(origin: string, destination: string): Promise<Sav
     }
 }
 
+// Removes one saved trip
+export async function removeTrip(id: number) {
+    const control = new AbortController();
+    const timer = setTimeout(() => control.abort(), SAVE_MS);
+
+    try {
+        const response = await fetch(`${API}/v1/trips/${id}`, {
+            method: 'DELETE',
+            headers: codeHeader(),
+            signal: control.signal,
+        });
+        if (!response.ok) {
+            throw new Error(`Pace returned ${response.status}`);
+        }
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
 // Reads every line's state
 export async function readStatus(signal: AbortSignal): Promise<SystemStatus> {
     const response = await fetch(`${API}/v1/status`, { signal });

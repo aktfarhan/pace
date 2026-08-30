@@ -6,8 +6,8 @@ import { usePlaces } from '@/hooks/usePlaces';
 import SectionHeading from '@/components/layout/sidebar/SectionHeading';
 
 function Saved() {
-    const { places, keep, drop } = usePlaces();
-    const trips = useTrips();
+    const { places, keep, drop: dropPlace } = usePlaces();
+    const { trips, drop: dropTrip } = useTrips();
 
     return (
         <div className="flex flex-col gap-3.5">
@@ -19,7 +19,7 @@ function Saved() {
                 {places !== null && (
                     <div className="grid grid-cols-4 gap-3">
                         {places.map((place) => (
-                            <PlaceCard key={place.id} place={place} drop={drop} />
+                            <PlaceCard key={place.id} place={place} drop={dropPlace} />
                         ))}
                         <AddPlace keep={keep} />
                     </div>
@@ -32,7 +32,7 @@ function Saved() {
                 {trips !== null && (
                     <div className="grid grid-cols-2 gap-3">
                         {trips.map((trip) => (
-                            <TripCard key={trip.id} trip={trip} />
+                            <TripCard key={trip.id} trip={trip} drop={dropTrip} />
                         ))}
                     </div>
                 )}

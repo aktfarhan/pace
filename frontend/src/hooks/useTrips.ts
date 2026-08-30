@@ -1,4 +1,4 @@
-import { readTrips } from '@/lib/pace';
+import { readTrips, removeTrip } from '@/lib/pace';
 import { useEffect, useState } from 'react';
 import type { SavedTrip } from '@/types/trip';
 
@@ -22,5 +22,10 @@ export function useTrips() {
         return () => control.abort();
     }, []);
 
-    return trips;
+    async function drop(id: number) {
+        await removeTrip(id);
+        setTrips((saved) => (saved ?? []).filter((trip) => trip.id !== id));
+    }
+
+    return { trips, drop };
 }
