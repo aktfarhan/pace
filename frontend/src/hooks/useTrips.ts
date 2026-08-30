@@ -1,16 +1,16 @@
-import { readTrips, removeTrip } from '@/lib/pace';
+import { readBoard, removeTrip } from '@/lib/pace';
 import { useEffect, useState } from 'react';
-import type { SavedTrip } from '@/types/trip';
+import type { Planned } from '@/types/trip';
 
 export function useTrips() {
-    const [trips, setTrips] = useState<SavedTrip[] | null>(null);
+    const [trips, setTrips] = useState<Planned[] | null>(null);
 
     useEffect(() => {
         const control = new AbortController();
 
         async function read() {
             try {
-                setTrips(await readTrips(control.signal));
+                setTrips(await readBoard(control.signal));
             } catch (error) {
                 if (!control.signal.aborted) {
                     console.error(error);

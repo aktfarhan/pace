@@ -113,15 +113,6 @@ export async function removePlace(id: number) {
     await send(`/v1/places/${id}`, { method: 'DELETE', headers: codeHeader() });
 }
 
-// Reads the trips saved against a code
-export async function readTrips(signal: AbortSignal): Promise<SavedTrip[]> {
-    const response = await fetch(`${API}/v1/trips`, { signal, headers: codeHeader() });
-    if (!response.ok) {
-        throw new Error(`Pace returned ${response.status}`);
-    }
-    return response.json();
-}
-
 // Saves one trip, keeping the code it comes back with
 export async function saveTrip(origin: string, destination: string): Promise<SavedTrip> {
     const body = await send('/v1/trips', {

@@ -1,13 +1,13 @@
 import { X } from 'lucide-react';
 import { useState } from 'react';
 import Risk from '@/components/ask/cards/Risk';
-import type { SavedTrip } from '@/types/trip';
+import type { Planned } from '@/types/trip';
 
 const REMOVE =
     'shrink-0 cursor-pointer text-ghost opacity-0 transition-opacity pointer-events-none hover:text-cream group-hover:pointer-events-auto group-hover:opacity-100 focus:opacity-100';
 
 interface TripCardProps {
-    trip: SavedTrip;
+    trip: Planned;
     drop: (id: number) => Promise<void>;
 }
 
