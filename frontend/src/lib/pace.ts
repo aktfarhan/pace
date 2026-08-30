@@ -1,7 +1,7 @@
-import type { SavedTrip } from '@/types/trip';
 import type { SavedPlace } from '@/types/place';
 import type { SystemStatus } from '@/types/status';
 import type { Answer, Stage } from '@/types/answer';
+import type { Planned, SavedTrip } from '@/types/trip';
 
 const API = 'http://localhost:8000';
 
@@ -138,6 +138,15 @@ export async function saveTrip(origin: string, destination: string): Promise<Sav
 // Removes one saved trip
 export async function removeTrip(id: number) {
     await send(`/v1/trips/${id}`, { method: 'DELETE', headers: codeHeader() });
+}
+
+// Reads the plan for every trip saved against a code
+export async function readBoard(signal: AbortSignal): Promise<Planned[]> {
+    const response = await fetch(`${API}/v1/board`, { signal, headers: codeHeader() });
+    if (!response.ok) {
+        throw new Error(`Pace returned ${response.status}`);
+    }
+    return response.json();
 }
 
 // Reads every line's state

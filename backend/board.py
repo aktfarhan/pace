@@ -14,6 +14,8 @@ class Planned(TypedDict):
     """One saved trip and the plan it has right now."""
 
     id: int
+    origin: str
+    destination: str
     card: TripCard | None
     risk: str | None
 
@@ -57,6 +59,8 @@ def plan_saved(code: str | None) -> list[Planned]:
         planned.append(
             {
                 "id": trip["id"],
+                "origin": trip["origin"],
+                "destination": trip["destination"],
                 "card": trip_card(rows) if rows else None,
                 "risk": label_for(rows, now) if rows else None,
             }
