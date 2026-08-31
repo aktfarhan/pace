@@ -29,6 +29,16 @@ const LINE_FILLS: Record<Line, string> = {
     bus: 'bg-bus-fill',
 };
 
+// A station's chip on a saved place
+export const LINE_CHIPS: Record<Line, string> = {
+    red: 'border-red-fill/28 bg-red-fill/12 text-red',
+    orange: 'border-orange-fill/28 bg-orange-fill/12 text-orange',
+    green: 'border-green-fill/28 bg-green-fill/12 text-green',
+    blue: 'border-blue-fill/28 bg-blue-fill/12 text-blue',
+    commuter: 'border-commuter-fill/28 bg-commuter-fill/12 text-commuter',
+    bus: 'border-bus-fill/28 bg-bus-fill/12 text-bus',
+};
+
 // A ride's icon tile
 export const LINE_TILES: Record<Line, string> = {
     red: 'border-red/28 bg-red/12 text-red',

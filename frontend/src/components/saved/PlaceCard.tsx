@@ -1,6 +1,10 @@
+import clsx from 'clsx';
 import { useState } from 'react';
+import { LINE_CHIPS, lineOf } from '@/lib/trip';
 import { Briefcase, House, MapPin, X } from 'lucide-react';
 import type { SavedPlace } from '@/types/place';
+
+const CHIP = 'rounded-chip border px-2 py-0.75 font-mono text-chip whitespace-nowrap uppercase';
 
 const REMOVE =
     'shrink-0 cursor-pointer text-ghost opacity-0 transition-opacity pointer-events-none hover:text-cream group-hover:pointer-events-auto group-hover:opacity-100 focus:opacity-100';
@@ -18,6 +22,9 @@ function PlaceCard({ place, drop }: PlaceCardProps) {
     let Icon = MapPin;
     if (named === 'home') Icon = House;
     if (named === 'work') Icon = Briefcase;
+
+    const line = place.route_id === null ? null : lineOf(place.route_id);
+    const walk = place.walk_seconds === null ? 0 : Math.ceil(place.walk_seconds / 60);
 
     // Drops a place
     const remove = async () => {
@@ -54,9 +61,28 @@ function PlaceCard({ place, drop }: PlaceCardProps) {
 
             <span className="truncate text-row text-hush">{place.address}</span>
 
-            <span className="w-fit rounded-chip border border-dashed border-line bg-ink px-2 py-0.75 font-mono text-chip whitespace-nowrap text-ghost uppercase">
-                Station —
-            </span>
+            {place.station === null ? (
+                <span className={`${CHIP} w-fit border-dashed border-line bg-ink text-ghost`}>
+                    Station —
+                </span>
+            ) : (
+                <div className="flex items-center gap-1.75">
+                    <span
+                        className={clsx(
+                            CHIP,
+                            'min-w-0 truncate',
+                            line === null ? 'border-line bg-bubble text-muted' : LINE_CHIPS[line],
+                        )}
+                    >
+                        {place.station}
+                    </span>
+                    {walk > 0 && (
+                        <span className="shrink-0 font-mono text-toward whitespace-nowrap text-faint uppercase">
+                            {walk} min walk
+                        </span>
+                    )}
+                </div>
+            )}
         </div>
     );
 }
