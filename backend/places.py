@@ -3,13 +3,17 @@
 import secrets
 from typing import TypedDict
 
+from backend.station import station_for
 from data.schema import connect
 
-READ = "SELECT id, label, address FROM saved_places WHERE code = %s ORDER BY id;"
+READ = """
+    SELECT id, label, address, station, route_id, walk_seconds
+    FROM saved_places WHERE code = %s ORDER BY id;
+"""
 ADD = """
-    INSERT INTO saved_places (code, label, address)
-    VALUES (%s, %s, %s)
-    RETURNING id, label, address;
+    INSERT INTO saved_places (code, label, address, station, route_id, walk_seconds)
+    VALUES (%s, %s, %s, %s, %s, %s)
+    RETURNING id, label, address, station, route_id, walk_seconds;
 """
 REMOVE = "DELETE FROM saved_places WHERE id = %s AND code = %s;"
 
@@ -65,11 +69,14 @@ TAIL = 8
 
 
 class SavedPlace(TypedDict):
-    """One place saved."""
+    """One place saved, and the station it walks to."""
 
     id: int
     label: str
     address: str
+    station: str | None
+    route_id: str | None
+    walk_seconds: int | None
 
 
 class Saved(TypedDict):
@@ -93,13 +100,20 @@ def shaped(row: tuple) -> SavedPlace:
     """Turns one row into a saved place.
 
     Args:
-        row: An (id, label, address) row.
+        row: An (id, label, address, station, route_id, walk_seconds) row.
 
     Returns:
         The place in an object.
     """
-    place_id, label, address = row
-    return {"id": place_id, "label": label, "address": address}
+    place_id, label, address, station, route_id, walk_seconds = row
+    return {
+        "id": place_id,
+        "label": label,
+        "address": address,
+        "station": station,
+        "route_id": route_id,
+        "walk_seconds": walk_seconds,
+    }
 
 
 def read_places(code: str | None) -> list[SavedPlace]:
@@ -139,7 +153,13 @@ def add_place(code: str | None, label: str, address: str) -> Saved:
     against = code or mint_code()
 
     with connect() as connection, connection.cursor() as cursor:
-        cursor.execute(ADD, (against, label, address))
+        found = station_for(cursor, address)
+
+        station = found["name"] if found else None
+        route_id = found["route_id"] if found else None
+        walk_seconds = found["walk_seconds"] if found else None
+
+        cursor.execute(ADD, (against, label, address, station, route_id, walk_seconds))
         row = cursor.fetchone()
 
     return {"code": against, "place": shaped(row)}

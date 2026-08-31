@@ -95,10 +95,13 @@ CREATE_PLACES_INDEX = """
 """
 CREATE_SAVED_PLACES = """
     CREATE TABLE IF NOT EXISTS saved_places (
-        id      bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-        code    text NOT NULL,
-        label   text NOT NULL,
-        address text NOT NULL
+        id           bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        code         text NOT NULL,
+        label        text NOT NULL,
+        address      text NOT NULL,
+        station      text,
+        route_id     text,
+        walk_seconds int
     );
 """
 CREATE_SAVED_PLACES_INDEX = """
