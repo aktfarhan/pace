@@ -1,3 +1,4 @@
+import Refresh from './Refresh';
 import AddPlace from './AddPlace';
 import TripCard from './TripCard';
 import PlaceCard from './PlaceCard';
@@ -7,11 +8,14 @@ import SectionHeading from '@/components/layout/sidebar/SectionHeading';
 
 function Saved() {
     const { places, keep, drop: dropPlace } = usePlaces();
-    const { trips, drop: dropTrip } = useTrips();
+    const { trips, readAt, reading, refresh, drop: dropTrip } = useTrips();
 
     return (
         <div className="flex flex-col gap-3.5">
-            <span className="text-board text-bright">Saved</span>
+            <div className="flex items-center justify-between gap-4">
+                <span className="text-board text-bright">Saved</span>
+                <Refresh readAt={readAt} reading={reading} refresh={refresh} />
+            </div>
 
             <div>
                 <SectionHeading label="Places" />
