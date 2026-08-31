@@ -6,7 +6,7 @@ from typing import TypedDict
 from backend.cards import TripCard, trip_card
 from backend.classify import ParsedQuery
 from backend.planner.trip import plan_trip
-from backend.risk import label_for
+from backend.risk import risk_for
 from backend.trips import read_trips
 
 
@@ -18,6 +18,7 @@ class Planned(TypedDict):
     destination: str
     card: TripCard | None
     risk: str | None
+    chance: float | None
 
 
 def ends_only(origin: str, destination: str) -> ParsedQuery:
@@ -56,13 +57,18 @@ def plan_saved(code: str | None) -> list[Planned]:
     planned = []
     for trip in read_trips(code):
         rows = plan_trip("", ends_only(trip["origin"], trip["destination"]))
+
+        # The risk pill and the chance beside it
+        found = risk_for(rows, now) if rows else None
+
         planned.append(
             {
                 "id": trip["id"],
                 "origin": trip["origin"],
                 "destination": trip["destination"],
                 "card": trip_card(rows) if rows else None,
-                "risk": label_for(rows, now) if rows else None,
+                "risk": found["level"] if found else None,
+                "chance": found["chance"] if found else None,
             }
         )
 

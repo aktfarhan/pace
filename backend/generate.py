@@ -21,6 +21,7 @@ class Answer(TypedDict):
     answer: str
     sources: list[str]
     risk: str | None
+    chance: float | None
     should_refuse: bool
     refuse_reason: str | None
     card: Card | None
@@ -68,8 +69,9 @@ def generate(
     )
     result: Answer = json.loads(response.choices[0].message.content)
 
-    # The model writes no card
+    # The model writes no card and no chance
     result["card"] = None
+    result["chance"] = None
 
     # A cited source that was never retrieved means the answer is invented
     chunk_ids = {chunk["id"] for chunk in chunk_inputs}
@@ -79,6 +81,7 @@ def generate(
                 "answer": "",
                 "sources": [],
                 "risk": None,
+                "chance": None,
                 "should_refuse": True,
                 "refuse_reason": "low-confidence",
                 "card": None,

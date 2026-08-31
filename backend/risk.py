@@ -3,6 +3,7 @@
 from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
+from typing import TypedDict
 
 import joblib
 import pandas
@@ -18,6 +19,13 @@ REACH_SECONDS = 2700
 
 # The branches that share a track
 FAMILY = "Green-"
+
+
+class Risk(TypedDict):
+    """How likely a planned trip is to run late."""
+
+    level: str
+    chance: float
 
 
 @lru_cache(maxsize=1)
@@ -125,7 +133,7 @@ def combined(legs: list[dict], per_ride: list[float]) -> float:
     return 1.0 - survives
 
 
-def label_for(chunks: list[Row], now: datetime) -> str | None:
+def risk_for(chunks: list[Row], now: datetime) -> Risk | None:
     """Reads how risky a planned trip is.
 
     Args:
@@ -133,7 +141,7 @@ def label_for(chunks: list[Row], now: datetime) -> str | None:
         now: The local time the question was asked.
 
     Returns:
-        "low", "mid" or "high", or None.
+        The chance of running late, the level, or None.
     """
     legs = rides(chunks)
     if not legs:
@@ -161,11 +169,14 @@ def label_for(chunks: list[Row], now: datetime) -> str | None:
 
         readings.append(reading)
 
-    # Turn the trip's chance into the word a user sees
+    # The trip's chance of being late and the level the user sees
     low, high = bundle["cutoffs"]
     chance = combined(legs, chances(bundle, legs, readings))
     if chance <= low:
-        return "low"
-    if chance <= high:
-        return "mid"
-    return "high"
+        level = "low"
+    elif chance <= high:
+        level = "mid"
+    else:
+        level = "high"
+
+    return Risk(level=level, chance=chance)

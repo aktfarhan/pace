@@ -12,7 +12,7 @@ from backend.cards import build_card, card_sources
 from backend.generate import Answer, generate
 from backend.planner.trip import plan_trip
 from backend.retrieve import retrieve
-from backend.risk import label_for
+from backend.risk import risk_for
 from backend.schedules import (
     NO_DEPARTURES,
     fetch_departures,
@@ -69,6 +69,7 @@ def refused(reason: str) -> Answer:
         "answer": REFUSALS[reason],
         "sources": [],
         "risk": None,
+        "chance": None,
         "should_refuse": True,
         "refuse_reason": reason,
         "card": None,
@@ -164,7 +165,12 @@ def ask_stream(query: str) -> Iterator[Event]:
             pass
 
     answer["card"] = card
-    answer["risk"] = label_for(chunks, datetime.now())
+
+    # The risk pill and the chance beside it
+    found = risk_for(chunks, datetime.now())
+    answer["risk"] = found["level"] if found else None
+    answer["chance"] = found["chance"] if found else None
+
     answer["sources"] = sorted(set(answer["sources"]) | card_sources(card))
     yield ("answer", answer)
 
