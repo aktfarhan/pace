@@ -22,6 +22,7 @@ function Refresh({ readAt, reading, refresh }: RefreshProps) {
             aria-label="Re-plan every trip"
             className={PILL}
         >
+            <span className="size-1.25 shrink-0 animate-beacon rounded-full bg-good shadow-glow" />
             <span className="font-mono text-stamp uppercase">
                 {readAt === '' ? '—' : ageOf(readAt, now)}
             </span>
