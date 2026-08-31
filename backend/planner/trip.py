@@ -125,7 +125,7 @@ def plan_trip(query: str, parsed: ParsedQuery) -> list[Row]:
 
     # The current moment in service time
     now_date = service_date_at(now)
-    now_seconds = service_seconds(now)
+    now_seconds = service_seconds(now) + now.second
 
     # The service day: backward from a deadline, else forward
     deadline = None
