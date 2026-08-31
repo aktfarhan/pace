@@ -15,6 +15,9 @@ CACHED_DAYS = 2
 # Before this hour, "today" is still yesterday's MBTA service day
 SERVICE_ROLLOVER_HOUR = 3
 
+# Tram, subway and commuter rail
+STATION_ROUTE_TYPES = ("0", "1", "2")
+
 WEEKDAY_COLUMNS = [
     "monday",
     "tuesday",
@@ -174,6 +177,23 @@ def load_routes(scraped_at: float) -> dict:
             int(row["route_type"]),
         )
     return routes
+
+
+@lru_cache(maxsize=1)
+def load_route_order(scraped_at: float) -> dict:
+    """Loads the MBTA's rank for every rail route.
+
+    Args:
+        scraped_at: When the tables were scraped.
+
+    Returns:
+        route_id -> sort order, lowest first.
+    """
+    order = {}
+    for row in read_table("routes.txt"):
+        if row["route_type"] in STATION_ROUTE_TYPES:
+            order[row["route_id"]] = int(row["route_sort_order"])
+    return order
 
 
 def load_trips(services: set[str]) -> dict:
