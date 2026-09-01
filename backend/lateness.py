@@ -1,8 +1,8 @@
-"""Track how late each subway line has been running."""
+"""Track how late each line has been running."""
 
 import asyncio
 import threading
-from collections import deque
+from collections import defaultdict, deque
 from datetime import date, datetime
 from functools import lru_cache
 
@@ -16,6 +16,9 @@ from backend.timetable import (
     service_date_at,
     service_seconds,
 )
+
+# Tram, subway and bus
+ROUTE_TYPES = "0,1,3"
 
 # The lines the delay model answers for
 ROUTES = (
@@ -44,6 +47,9 @@ FRESH_SECONDS = 120
 # Too few arrivals to read anything from
 THIN_WINDOW = 5
 
+# Too few for a bus route
+THIN_BUS_WINDOW = 25
+
 # How long an arrival is remembered
 COUNTED_SECONDS = 3600
 
@@ -51,7 +57,7 @@ COUNTED_SECONDS = 3600
 POLL_SECONDS = 15
 
 # Each line's arrivals inside the window
-_arrivals: dict[str, deque[tuple[int, bool]]] = {route: deque() for route in ROUTES}
+_arrivals: dict[str, deque[tuple[int, bool]]] = defaultdict(deque)
 
 # The arrivals already counted, so a standing train counts once
 _counted: dict[tuple[str, str], int] = {}
@@ -74,18 +80,15 @@ def scheduled_arrivals(target: date, scraped_at: float) -> dict[tuple[str, str],
     Returns:
         Scheduled arrival seconds, keyed by (trip, station).
     """
-    trips, connections = load_service_day(target, scraped_at)
+    _, connections = load_service_day(target, scraped_at)
     _, _, parents, _ = load_stops(scraped_at)
 
     timetable = {}
     for connection in connections:
         _, _, arrival_seconds, arrival_stop, trip_id, _, _ = connection
 
-        # Bus, ferry and commuter trips are not the model's to answer
-        route_id, _ = trips[trip_id]
-        if route_id in ROUTES:
-            station = parents.get(arrival_stop, arrival_stop)
-            timetable[(trip_id, station)] = arrival_seconds
+        station = parents.get(arrival_stop, arrival_stop)
+        timetable[(trip_id, station)] = arrival_seconds
 
     return timetable
 
@@ -148,7 +151,7 @@ def record(now: datetime) -> int:
 
     # The fleet is read before the lock is taken
     standing = []
-    for vehicle in fetch("/vehicles", {"filter[route]": ",".join(ROUTES)})["data"]:
+    for vehicle in fetch("/vehicles", {"filter[route_type]": ROUTE_TYPES})["data"]:
         if vehicle["attributes"]["current_status"] != "STOPPED_AT":
             continue
 
@@ -165,8 +168,8 @@ def record(now: datetime) -> int:
         trip_id = linked(vehicle, "trip")
         stop_id = linked(vehicle, "stop")
 
-        # A tracked line, with everything the timetable lookup needs
-        if route_id not in _arrivals or trip_id is None or stop_id is None:
+        # Everything the timetable lookup needs
+        if route_id is None or trip_id is None or stop_id is None:
             continue
 
         # The same two prefixes the training table drops
@@ -207,19 +210,21 @@ def record(now: datetime) -> int:
     return added
 
 
-def lateness(route: str) -> float | None:
-    """Reads how late a line has been running.
+def counts(route: str) -> tuple[int, int] | None:
+    """Counts a line's recent arrivals and how many ran late.
 
     Args:
         route: The line's route id.
 
     Returns:
-        The share of the window's arrivals that ran late, or None.
+        (late, seen), or None where the window is too thin.
     """
     with _lock:
         arrivals = list(_arrivals.get(route, ()))
 
-    if len(arrivals) < THIN_WINDOW:
+    # The floor this route reads against
+    floor = THIN_WINDOW if route in ROUTES else THIN_BUS_WINDOW
+    if len(arrivals) < floor:
         return None
 
     late = 0
@@ -227,7 +232,24 @@ def lateness(route: str) -> float | None:
         if was_late:
             late += 1
 
-    return late / len(arrivals)
+    return late, len(arrivals)
+
+
+def lateness(route: str) -> float | None:
+    """Reads how late a line has been running.
+
+    Args:
+        route: The line's route id.
+
+    Returns:
+        The fraction of the window's arrivals that ran late, or None.
+    """
+    counted = counts(route)
+    if counted is None:
+        return None
+
+    late, seen = counted
+    return late / seen
 
 
 async def poll() -> None:
