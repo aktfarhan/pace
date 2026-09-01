@@ -8,7 +8,7 @@ from typing import TypedDict
 import joblib
 import pandas
 
-from backend.lateness import lateness
+from backend.lateness import counts
 from backend.retrieve import Row
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -19,6 +19,12 @@ REACH_SECONDS = 2700
 
 # The branches that share a track
 FAMILY = "Green-"
+
+# How often a bus runs late
+TYPICAL_LATE = 0.22
+
+# Average arrivals added to a thin window
+ASSUMED_ARRIVALS = 12
 
 
 class Risk(TypedDict):
@@ -133,6 +139,20 @@ def combined(legs: list[dict], per_ride: list[float]) -> float:
     return 1.0 - survives
 
 
+def chance(late: int, seen: int) -> float:
+    """Reads a route's recent arrivals as a chance of running late.
+
+    Args:
+        late: How many of the window's arrivals ran late.
+        seen: How many arrivals the window holds.
+
+    Returns:
+        The chance the next one runs late.
+    """
+    assumed_late = ASSUMED_ARRIVALS * TYPICAL_LATE
+    return (late + assumed_late) / (seen + ASSUMED_ARRIVALS)
+
+
 def risk_for(chunks: list[Row], now: datetime) -> Risk | None:
     """Reads how risky a planned trip is.
 
@@ -152,31 +172,37 @@ def risk_for(chunks: list[Row], now: datetime) -> Risk | None:
         return None
 
     # Gather how late each leg's line is running now
-    readings = []
+    arrivals = []
     for leg in legs:
-        if leg["route_id"] not in bundle["routes"]:
-            return None
-
         # A reading this old has stopped predicting
         away = (datetime.fromisoformat(leg["depart"]) - now).total_seconds()
         if away > REACH_SECONDS:
             return None
 
         # A missing reading would read as a calm line
-        reading = lateness(leg["route_id"])
-        if reading is None:
+        counted = counts(leg["route_id"])
+        if counted is None:
             return None
 
-        readings.append(reading)
+        arrivals.append(counted)
+
+    # Each ride's chance from the model or from its recent arrivals (train/bus)
+    per_ride = []
+    for leg, (late, seen) in zip(legs, arrivals, strict=True):
+        if leg["route_id"] in bundle["routes"]:
+            per_ride.append(chances(bundle, [leg], [late / seen])[0])
+        else:
+            per_ride.append(chance(late, seen))
 
     # The trip's chance of being late and the level the user sees
     low, high = bundle["cutoffs"]
-    chance = combined(legs, chances(bundle, legs, readings))
-    if chance <= low:
+    overall = combined(legs, per_ride)
+
+    if overall <= low:
         level = "low"
-    elif chance <= high:
+    elif overall <= high:
         level = "mid"
     else:
         level = "high"
 
-    return Risk(level=level, chance=chance)
+    return Risk(level=level, chance=overall)

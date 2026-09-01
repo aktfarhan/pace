@@ -235,23 +235,6 @@ def counts(route: str) -> tuple[int, int] | None:
     return late, len(arrivals)
 
 
-def lateness(route: str) -> float | None:
-    """Reads how late a line has been running.
-
-    Args:
-        route: The line's route id.
-
-    Returns:
-        The fraction of the window's arrivals that ran late, or None.
-    """
-    counted = counts(route)
-    if counted is None:
-        return None
-
-    late, seen = counted
-    return late / seen
-
-
 async def poll() -> None:
     """Reads the fleet on a timer for as long as the server runs."""
     while True:
