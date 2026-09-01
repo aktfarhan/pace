@@ -13,9 +13,11 @@ from backend.llm import llm
 from data.schema import EMBEDDING_DIM, connect
 
 MODEL = "text-embedding-3-small"
+
+# Every chunk without the individual bus stops
 SEARCH = """
     SELECT id, kind, text, metadata, embedding <=> %s AS distance
-    FROM chunks
+    FROM chunks WHERE NOT (kind = 'stop' AND metadata->>'location_type' = '0')
     ORDER BY distance
     LIMIT %s;
 """
