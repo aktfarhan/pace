@@ -15,6 +15,21 @@ WORD_SIMILARITY = "0.45"
 # Shortest query that can name a place
 MIN_LENGTH = 2
 
+# An apartment or suite on the end of an address
+UNIT = re.compile(r"\s+(apt|apartment|unit|ste|suite|fl|floor|#)\s*\d[\w-]*$")
+
+# The state
+STATE = re.compile(r"^(ma|mass|massachusetts)$")
+
+# A zip, with or without its four
+ZIP = re.compile(r"^\d{5}(-\d{4})?$")
+
+# Half a house number
+FRACTION = re.compile(r"^\d+/\d+$")
+
+# The compass words a street name can end on and how they are stored
+DIRECTIONS = {"east": "e", "west": "w", "north": "n", "south": "s"}
+
 # Bonus added by a row's kind
 STATION_BONUS = 0.25
 TOWN_BONUS = 0.15
@@ -111,9 +126,11 @@ def normalize_query(query: str) -> str:
         query: What the user typed.
 
     Returns:
-        Lowercase, no leading article, type words shortened.
+        Lowercase, no commas, no leading article, type words shortened.
     """
-    return normalize_street(re.sub(r"^the ", "", query.lower().strip()))
+    text = query.lower().strip().replace(",", " ")
+    text = UNIT.sub("", text.strip())
+    return normalize_street(re.sub(r"^the ", "", text.strip()))
 
 
 def distance_km(lat: float, lon: float, near: tuple[float, float]) -> float:
@@ -149,6 +166,10 @@ def peel_town(
     cursor.execute(PLACE_NAMED, (" ".join(words),))
     if cursor.fetchone():
         return words, None
+
+    # A trailing state or zip comes off first
+    while len(words) > 1 and (STATE.match(words[-1]) or ZIP.match(words[-1])):
+        words = words[:-1]
 
     # Two-word names before one-word names
     for size in (2, 1):
@@ -281,13 +302,31 @@ def find_address(
     if not house_number:
         return None
 
+    # Check for fractional address number
+    rest = words[1:]
+    if rest and FRACTION.match(rest[0]):
+        rest = rest[1:]
+    if not rest:
+        return None
+
+    # Check for compass name ending
+    street = normalize_street(" ".join(rest))
+    tail = street.rsplit(" ", 1)
+    names = [street]
+    if len(tail) == 2 and tail[1] in DIRECTIONS:
+        names.append(f"{tail[0]} {DIRECTIONS[tail[1]]}")
+
     # The nearest house at that number on that street
-    street = normalize_street(" ".join(words[1:]))
-    cursor.execute(
-        ADDRESS_MATCH,
-        (street, int(house_number.group(1)), town_id, town_id, near[0], near[1]),
-    )
-    hits = cursor.fetchall()
+    hits = []
+    for name in names:
+        cursor.execute(
+            ADDRESS_MATCH,
+            (name, int(house_number.group(1)), town_id, town_id, near[0], near[1]),
+        )
+        hits = cursor.fetchall()
+        if hits:
+            break
+
     if not hits:
         return None
 
