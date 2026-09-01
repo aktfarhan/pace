@@ -14,4 +14,5 @@ export interface Planned {
     destination: string;
     card: TripCard | null;
     risk: Level | null;
+    chance: number | null;
 }

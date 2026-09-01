@@ -18,6 +18,7 @@ function AnswerCard({ answer, refresh, refreshing }: AnswerCardProps) {
             <TripPlan
                 card={answer.card}
                 risk={answer.risk}
+                chance={answer.chance}
                 refresh={refresh}
                 refreshing={refreshing}
             />

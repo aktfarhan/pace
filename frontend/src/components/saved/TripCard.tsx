@@ -4,6 +4,7 @@ import { fullClock } from '@/lib/trip';
 import Risk from '@/components/ask/cards/Risk';
 import Leave from '@/components/ask/cards/Leave';
 import LegBar from '@/components/ask/cards/LegBar';
+import Chance from '@/components/ask/cards/Chance';
 import Timeline from '@/components/ask/cards/Timeline';
 import type { Planned } from '@/types/trip';
 
@@ -63,6 +64,7 @@ function TripCard({ trip, drop }: TripCardProps) {
                             <LegBar card={trip.card} />
                             <div className="flex items-center gap-2 pt-0.75">
                                 <Risk risk={trip.risk} />
+                                <Chance chance={trip.chance} />
                                 <span className="flex-1" />
                                 <span className={META}>
                                     Arrive{' '}

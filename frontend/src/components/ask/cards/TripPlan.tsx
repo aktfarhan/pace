@@ -2,6 +2,7 @@ import Risk from './Risk';
 import Leave from './Leave';
 import Stamp from './Stamp';
 import LegBar from './LegBar';
+import Chance from './Chance';
 import { useState } from 'react';
 import Timeline from './Timeline';
 import { saveTrip } from '@/lib/pace';
@@ -12,6 +13,7 @@ import type { Level, TripCard } from '@/types/answer';
 interface TripPlanProps {
     card: TripCard;
     risk: Level | null;
+    chance: number | null;
     refresh: () => void;
     refreshing: boolean;
 }
@@ -19,7 +21,7 @@ interface TripPlanProps {
 const PILL =
     'flex shrink-0 cursor-pointer items-center rounded-full border border-edge bg-bubble py-1.75 text-hush transition-colors hover:border-ghost hover:bg-line hover:text-cream';
 
-function TripPlan({ card, risk, refresh, refreshing }: TripPlanProps) {
+function TripPlan({ card, risk, chance, refresh, refreshing }: TripPlanProps) {
     const leave = leaveOf(card, Date.now());
     const [saved, setSaved] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -84,6 +86,7 @@ function TripPlan({ card, risk, refresh, refreshing }: TripPlanProps) {
                     <LegBar card={card} />
                     <div className="flex items-center gap-2 pt-0.75">
                         <Risk risk={risk} />
+                        <Chance chance={chance} />
                         <span className="flex-1" />
                         {leave.kind === 'none' && (
                             <>

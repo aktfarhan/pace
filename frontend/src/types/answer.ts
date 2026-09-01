@@ -88,6 +88,7 @@ export interface Answer {
     answer: string;
     sources: string[];
     risk: Level | null;
+    chance: number | null;
     should_refuse: boolean;
     refuse_reason: string | null;
     card: Card | null;
