@@ -36,6 +36,9 @@ FETCH = """
     FROM chunks WHERE id = ANY(%s) ORDER BY distance;
 """
 
+# Lines that need prefixes
+LINES = {"SL": "silver line", "CR-": "commuter rail"}
+
 # A retrieved row: (id, kind, text, metadata, distance)
 Row = tuple[str, str, str, dict[str, Any], float]
 
@@ -81,6 +84,27 @@ def match_station_ids(cursor: psycopg.Cursor, query: str) -> list[str]:
     return matched
 
 
+def line_of(route_id: str, long_name: str, short_name: str) -> str:
+    """Reads the line a route runs under.
+
+    Args:
+        route_id: The route's id.
+        long_name: Its long name.
+        short_name: Its short name, or empty.
+
+    Returns:
+        The line's name, lowercased, or empty where the route has none.
+    """
+    # A line neither name spells out
+    for prefix, line in LINES.items():
+        if route_id.startswith(prefix) or short_name.startswith(prefix):
+            return line
+
+    # A line whose name ends on a branch letter
+    first, _, last = long_name.lower().rpartition(" ")
+    return first if first and len(last) == 1 else ""
+
+
 def match_route_ids(cursor: psycopg.Cursor, query: str) -> list[str]:
     """Finds routes named in the query.
 
@@ -94,21 +118,19 @@ def match_route_ids(cursor: psycopg.Cursor, query: str) -> list[str]:
     """
     cursor.execute(ROUTES)
     named = []
-    family = []
+    by_line = []
     claimed = set()
     lowered = query.lower()
     for route_id, long_name, short_name in cursor.fetchall():
         # Name phrases this route answers to
-        full = long_name.lower()
-        phrases = full.split("/")
+        phrases = long_name.lower().split("/")
 
         # Bus short names ("1", "66")
         if short_name:
             phrases.append(short_name.lower())
 
-        # The line a branch belongs to
-        first, _, last = full.rpartition(" ")
-        line = first if first and len(last) == 1 else ""
+        # The line the route runs under
+        line = line_of(route_id, long_name, short_name)
 
         # Word-boundary match against the query
         matched = False
@@ -120,12 +142,12 @@ def match_route_ids(cursor: psycopg.Cursor, query: str) -> list[str]:
                 matched = True
                 break
 
-        # Without the branch letter so "green line" matches Green Line B
+        # So "green line" reaches Green Line B, "silver line" reaches SL1
         if not matched and line and re.search(rf"\b{re.escape(line)}\b", lowered):
-            family.append((route_id, line))
+            by_line.append((route_id, line))
 
-    # A branch the query named leaves its siblings out
-    for route_id, line in family:
+    # Naming one route of a line leaves the rest of it out
+    for route_id, line in by_line:
         if line not in claimed:
             named.append(route_id)
 
