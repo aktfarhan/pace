@@ -90,30 +90,46 @@ def match_route_ids(cursor: psycopg.Cursor, query: str) -> list[str]:
 
     Returns:
         Route IDs whose long_name or short_name appears in the query.
-        Slash names match by part. A trailing branch letter is dropped.
+        Slash names match by part.
     """
     cursor.execute(ROUTES)
-    matched = []
+    named = []
+    family = []
+    claimed = set()
     lowered = query.lower()
     for route_id, long_name, short_name in cursor.fetchall():
         # Name phrases this route answers to
-        phrases = long_name.lower().split("/")
-
-        # Drop trailing branch letter so "green line" matches Green Line B
-        first, _, last = long_name.lower().rpartition(" ")
-        if first and len(last) == 1:
-            phrases.append(first)
+        full = long_name.lower()
+        phrases = full.split("/")
 
         # Bus short names ("1", "66")
         if short_name:
             phrases.append(short_name.lower())
 
+        # The line a branch belongs to
+        first, _, last = full.rpartition(" ")
+        line = first if first and len(last) == 1 else ""
+
         # Word-boundary match against the query
+        matched = False
         for phrase in phrases:
             if re.search(rf"\b{re.escape(phrase)}\b", lowered):
-                matched.append(route_id)
+                named.append(route_id)
+                if line:
+                    claimed.add(line)
+                matched = True
                 break
-    return matched
+
+        # Without the branch letter so "green line" matches Green Line B
+        if not matched and line and re.search(rf"\b{re.escape(line)}\b", lowered):
+            family.append((route_id, line))
+
+    # A branch the query named leaves its siblings out
+    for route_id, line in family:
+        if line not in claimed:
+            named.append(route_id)
+
+    return named
 
 
 def retrieve(query: str, k: int = 5, resolve: bool = True) -> list[Row]:
