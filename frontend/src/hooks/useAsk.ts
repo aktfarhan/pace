@@ -1,4 +1,5 @@
 import { ask } from '@/lib/pace';
+import { keep } from '@/lib/history';
 import { useCallback, useRef, useState } from 'react';
 import type { Stage } from '@/types/answer';
 import type { Turn, TurnFields } from '@/types/turn';
@@ -51,6 +52,7 @@ export function useAsk() {
             try {
                 const answer = await ask(asked, setStage);
                 amend(id, { answer });
+                keep(asked, answer);
             } catch (error) {
                 console.error(error);
                 amend(id, { failed: true });
