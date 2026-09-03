@@ -19,6 +19,7 @@ class Answer(TypedDict):
     """The generator's structured answer"""
 
     answer: str
+    intent: str
     sources: list[str]
     risk: str | None
     chance: float | None
@@ -69,7 +70,8 @@ def generate(
     )
     result: Answer = json.loads(response.choices[0].message.content)
 
-    # The model writes no card and no chance
+    # The model writes no intent, card or chance
+    result["intent"] = intent
     result["card"] = None
     result["chance"] = None
 
@@ -79,6 +81,7 @@ def generate(
         if source not in chunk_ids:
             return {
                 "answer": "",
+                "intent": intent,
                 "sources": [],
                 "risk": None,
                 "chance": None,

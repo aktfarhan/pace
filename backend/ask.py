@@ -56,17 +56,19 @@ def service_moment(parsed: ParsedQuery) -> str | None:
     return midday.astimezone().isoformat()
 
 
-def refused(reason: str) -> Answer:
+def refused(reason: str, intent: str) -> Answer:
     """Builds the answer for refusals.
 
     Args:
         reason: Reason for refusal.
+        intent: The query's domain label.
 
     Returns:
         A refusal carrying its own wording.
     """
     return {
         "answer": REFUSALS[reason],
+        "intent": intent,
         "sources": [],
         "risk": None,
         "chance": None,
@@ -90,7 +92,7 @@ def ask_stream(query: str) -> Iterator[Event]:
     parsed = classify(query)
     intent = parsed["intent"]
     if intent == "off-topic":
-        yield ("answer", refused("off-topic"))
+        yield ("answer", refused("off-topic", intent))
         return
 
     yield ("stage", {"name": "retrieve"})
@@ -103,7 +105,7 @@ def ask_stream(query: str) -> Iterator[Event]:
         yield ("stage", {"name": "plan"})
         plan = plan_trip(query, parsed)
         if not plan:
-            yield ("answer", refused("low-confidence"))
+            yield ("answer", refused("low-confidence", intent))
             return
         chunks = plan + chunks
 
@@ -118,7 +120,7 @@ def ask_stream(query: str) -> Iterator[Event]:
             yield ("stage", {"name": "plan"})
             plan = plan_trip(query, parsed)
             if not plan:
-                yield ("answer", refused("low-confidence"))
+                yield ("answer", refused("low-confidence", intent))
                 return
             chunks = plan + chunks
         else:
@@ -137,7 +139,7 @@ def ask_stream(query: str) -> Iterator[Event]:
 
     # The generator refuses with an empty string
     if answer["should_refuse"] and not answer["answer"]:
-        yield ("answer", refused("low-confidence"))
+        yield ("answer", refused("low-confidence", intent))
         return
 
     # The card the answer draws

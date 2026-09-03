@@ -86,6 +86,7 @@ export type Level = 'low' | 'mid' | 'high';
 // What /v1/ask returns
 export interface Answer {
     answer: string;
+    intent: Intent;
     sources: string[];
     risk: Level | null;
     chance: number | null;
@@ -93,6 +94,9 @@ export interface Answer {
     refuse_reason: string | null;
     card: Card | null;
 }
+
+// The domain of the query
+export type Intent = 'route' | 'alert' | 'parking-rules' | 'schedule' | 'info' | 'off-topic';
 
 // A stage the pipeline reports
 export type Stage = 'classify' | 'retrieve' | 'plan' | 'alerts' | 'departures' | 'generate';
