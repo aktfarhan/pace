@@ -76,12 +76,11 @@ def fetch_alerts(
         route_ids = match_route_ids(cursor, route) if route else []
         station_ids = match_station_ids(cursor, query)
 
-    # Stations get accessibility alerts also
-    params = {"filter[datetime]": when or "NOW"}
+    # Escalators, lifts and lots count as alerts
+    params = {"filter[datetime]": when or "NOW", "filter[activity]": "ALL"}
     if station_ids:
         stop_ids = [chunk_id.removeprefix("stop:") for chunk_id in station_ids]
         params["filter[stop]"] = ",".join(stop_ids)
-        params["filter[activity]"] = "ALL"
     if route_ids:
         params["filter[route]"] = ",".join(route_ids)
 
