@@ -12,9 +12,6 @@ from backend.mbta import fetch
 # Heavy rail, light rail, and commuter rail
 RAIL_TYPES = "0,1,2"
 
-# The activities that count as riding
-RIDING_ACTIVITIES = "BOARD,EXIT,RIDE"
-
 # The rail lines the sidebar draws, in board order
 LINES: list[tuple[str, str, str]] = [
     ("Red", "RED", "Red Line"),
@@ -43,6 +40,14 @@ UNRANKED = len(EFFECT_ORDER)
 
 SEVERE_EFFECTS = {"SUSPENSION", "NO_SERVICE", "CANCELLATION"}
 DISRUPTED_EFFECTS = {"SHUTTLE", "DETOUR", "DELAY"}
+
+# Alerts that leave the trains running
+ACCESS_EFFECTS = {
+    "ELEVATOR_CLOSURE",
+    "ESCALATOR_CLOSURE",
+    "ACCESS_ISSUE",
+    "PARKING_ISSUE",
+}
 
 # The phrasings a delay number comes in
 DELAY_FIGURES = (
@@ -90,7 +95,7 @@ def fetch_rail_alerts() -> tuple[list[dict[str, Any]], dict[str, int]]:
     params = {
         "filter[datetime]": "NOW",
         "filter[route_type]": RAIL_TYPES,
-        "filter[activity]": RIDING_ACTIVITIES,
+        "filter[activity]": "ALL",
         "include": "routes",
     }
     payload = fetch("/alerts", params)
@@ -260,7 +265,13 @@ def read_line(
     Returns:
         The line's card.
     """
-    if not alerts:
+    # Station and accessibility alerts do not disrupt the train
+    scored = []
+    for alert in alerts:
+        if alert["attributes"]["effect"] not in ACCESS_EFFECTS:
+            scored.append(alert)
+
+    if not scored:
         return {
             "line_id": line_id,
             "badge_text": badge_text,
@@ -278,7 +289,7 @@ def read_line(
             "alert_count": 0,
         }
 
-    worst = min(alerts, key=rank)
+    worst = min(scored, key=rank)
     attributes = worst["attributes"]
 
     # Every route the worst alert names
@@ -300,7 +311,7 @@ def read_line(
         "branch_ids": sorted(branches),
         "directions": directions_of(worst),
         "stop_count": stops_of(worst),
-        "alert_count": len(alerts),
+        "alert_count": len(scored),
     }
 
 
