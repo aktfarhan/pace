@@ -32,7 +32,7 @@ function Row({ entry }: RowProps) {
 
             {entry.chip !== null && <span className={clsx(PILL, kind.pill)}>{entry.chip}</span>}
 
-            <span className="w-13 shrink-0 text-right font-mono text-tag text-ghost">
+            <span className="w-14 shrink-0 text-right font-mono text-tag whitespace-nowrap text-ghost">
                 {fullClock(entry.at)}
             </span>
         </div>
