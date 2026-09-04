@@ -76,16 +76,27 @@ def fetch_alerts(
         route_ids = match_route_ids(cursor, route) if route else []
         station_ids = match_station_ids(cursor, query)
 
-    # Escalators, lifts and lots count as alerts
-    params = {"filter[datetime]": when or "NOW", "filter[activity]": "ALL"}
+    # The route and the stop are asked separately
+    scopes = []
     if station_ids:
         stop_ids = [chunk_id.removeprefix("stop:") for chunk_id in station_ids]
-        params["filter[stop]"] = ",".join(stop_ids)
+        scopes.append({"filter[stop]": ",".join(stop_ids)})
     if route_ids:
-        params["filter[route]"] = ",".join(route_ids)
+        scopes.append({"filter[route]": ",".join(route_ids)})
+    if not scopes:
+        scopes.append({})
 
-    # Fetch the active alerts
-    alerts = fetch("/alerts", params)["data"]
+    # Escalators, lifts and lots count as alerts
+    base = {"filter[datetime]": when or "NOW", "filter[activity]": "ALL"}
+
+    # Fetch the active alerts, keeping each one once
+    alerts = []
+    seen = set()
+    for scope in scopes:
+        for alert in fetch("/alerts", base | scope)["data"]:
+            if alert["id"] not in seen:
+                seen.add(alert["id"])
+                alerts.append(alert)
     retrieved_at = datetime.now(timezone.utc).isoformat()
 
     # Keep big alerts for system-wide
