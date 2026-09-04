@@ -7,6 +7,16 @@ export interface Chip {
     tone: 'read' | 'quiet' | 'blank';
 }
 
+// One alert in effect on a line
+export interface LineAlert {
+    alert_id: string;
+    effect: string;
+    headline: string;
+    detail: string;
+    since: string | null;
+    until: string | null;
+}
+
 // Fields every line has
 interface LineFields {
     line_id: string;
@@ -16,6 +26,7 @@ interface LineFields {
     directions: number[];
     stop_count: number;
     alert_count: number;
+    alerts: LineAlert[];
 }
 
 // A line with no alert

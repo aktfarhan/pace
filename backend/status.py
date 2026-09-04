@@ -58,6 +58,17 @@ DELAY_FIGURES = (
 State = Literal["clear", "notice", "disrupted", "severe"]
 
 
+class LineAlert(TypedDict):
+    """One alert in effect on a line."""
+
+    alert_id: str
+    effect: str
+    headline: str
+    detail: str
+    since: str | None
+    until: str | None
+
+
 class LineStatus(TypedDict):
     """One line's card in the rail."""
 
@@ -75,6 +86,7 @@ class LineStatus(TypedDict):
     directions: list[int]
     stop_count: int
     alert_count: int
+    alerts: list[LineAlert]
 
 
 class SystemStatus(TypedDict):
@@ -251,6 +263,26 @@ def state_of(effect: str) -> State:
     return "notice"
 
 
+def render_line_alert(alert: dict[str, Any]) -> LineAlert:
+    """Shapes one alert the way the transit page reads it.
+
+    Args:
+        alert: An alert record.
+
+    Returns:
+        The alert's own row.
+    """
+    attributes = alert["attributes"]
+    return {
+        "alert_id": alert["id"],
+        "effect": attributes["effect"],
+        "headline": attributes["service_effect"],
+        "detail": attributes["header"] or "",
+        "since": earliest_start(alert),
+        "until": latest_end(alert),
+    }
+
+
 def read_line(
     line_id: str, badge_text: str, line_name: str, alerts: list[dict[str, Any]]
 ) -> LineStatus:
@@ -271,6 +303,11 @@ def read_line(
         if alert["attributes"]["effect"] not in ACCESS_EFFECTS:
             scored.append(alert)
 
+    # Worst first, whether or not it counts against the line
+    listed = []
+    for alert in sorted(alerts, key=rank):
+        listed.append(render_line_alert(alert))
+
     if not scored:
         return {
             "line_id": line_id,
@@ -287,6 +324,7 @@ def read_line(
             "directions": [],
             "stop_count": 0,
             "alert_count": 0,
+            "alerts": listed,
         }
 
     worst = min(scored, key=rank)
@@ -312,7 +350,23 @@ def read_line(
         "directions": directions_of(worst),
         "stop_count": stops_of(worst),
         "alert_count": len(scored),
+        "alerts": listed,
     }
+
+
+def without_alerts(live: SystemStatus) -> SystemStatus:
+    """Drops the alert lists a caller did not ask for.
+
+    Args:
+        live: One reading of the system.
+
+    Returns:
+        The same reading with every line's alert list emptied.
+    """
+    lines = []
+    for line in live["lines"]:
+        lines.append({**line, "alerts": []})
+    return {**live, "lines": lines}
 
 
 def read_status() -> SystemStatus:

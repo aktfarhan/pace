@@ -19,7 +19,7 @@ from backend.lateness import poll
 from backend.places import Saved, SavedPlace, add_place, read_places, remove_place
 from backend.trips import Kept, SavedTrip, add_trip, read_trips, remove_trip
 from backend.risk import warm as warm_model
-from backend.status import SystemStatus, read_status
+from backend.status import SystemStatus, read_status, without_alerts
 from backend.timetable import warm
 from data.schema import connect
 
@@ -169,13 +169,19 @@ def status_during(bucket: int) -> SystemStatus:
 
 
 @app.get("/v1/status")
-def check_status() -> SystemStatus:
+def check_status(alerts: bool = False) -> SystemStatus:
     """Reports every rail line's state.
+
+    Args:
+        alerts: Whether each line carries its own alerts.
 
     Returns:
         One card per line.
     """
-    return status_during(int(time.monotonic() // STATUS_TTL))
+    live = status_during(int(time.monotonic() // STATUS_TTL))
+    if alerts:
+        return live
+    return without_alerts(live)
 
 
 @app.get("/v1/places")
