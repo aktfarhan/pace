@@ -8,6 +8,19 @@ const HISTORY_KEY = 'pace.history';
 // How many questions the device holds
 const KEPT = 200;
 
+// Formatter for day title
+const DAY = new Intl.DateTimeFormat('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+});
+
+// A group of questions under a day
+interface Day {
+    heading: string;
+    entries: Entry[];
+}
+
 // Reads the questions this device has asked
 export function readHistory(): Entry[] {
     try {
@@ -80,4 +93,38 @@ export function keep(query: string, answer: Answer) {
 // Clears history
 export function clearHistory() {
     write([]);
+}
+
+// Heading for today, yesterday, or the date
+function headingOf(at: string) {
+    const asked = new Date(at);
+    const now = new Date();
+    if (asked.toDateString() === now.toDateString()) {
+        return 'Today';
+    }
+
+    now.setDate(now.getDate() - 1);
+    if (asked.toDateString() === now.toDateString()) {
+        return 'Yesterday';
+    }
+    return DAY.format(asked);
+}
+
+// Group by the day asked
+export function daysOf(entries: Entry[]) {
+    const days: Day[] = [];
+    for (const entry of entries) {
+        const heading = headingOf(entry.at);
+
+        // The day still being filled
+        const open = days[days.length - 1];
+        if (open !== undefined && open.heading === heading) {
+            open.entries.push(entry);
+            continue;
+        }
+
+        // A heading the list has not reached yet
+        days.push({ heading, entries: [entry] });
+    }
+    return days;
 }
