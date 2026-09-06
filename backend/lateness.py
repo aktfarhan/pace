@@ -3,10 +3,11 @@
 import asyncio
 import threading
 from collections import defaultdict, deque
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from functools import lru_cache
 
 import httpx
+import psycopg
 
 from backend.mbta import fetch
 from backend.timetable import (
@@ -16,6 +17,7 @@ from backend.timetable import (
     service_date_at,
     service_seconds,
 )
+from data.schema import connect
 
 # Tram, subway and bus
 ROUTE_TYPES = "0,1,3"
@@ -56,8 +58,17 @@ COUNTED_SECONDS = 3600
 # How often the fleet is read
 POLL_SECONDS = 15
 
+# One line's closed window
+WRITE_READING = """
+    INSERT INTO readings (route_id, at, late, seen) VALUES (%s, %s, %s, %s)
+    ON CONFLICT (route_id, at) DO NOTHING;
+"""
+
 # Each line's arrivals inside the window
 _arrivals: dict[str, deque[tuple[int, bool]]] = defaultdict(deque)
+
+# The quarter hour whose reading has been written
+_written: datetime | None = None
 
 # The arrivals already counted, so a standing train counts once
 _counted: dict[tuple[str, str], int] = {}
@@ -210,22 +221,17 @@ def record(now: datetime) -> int:
     return added
 
 
-def counts(route: str) -> tuple[int, int] | None:
-    """Counts a line's recent arrivals and how many ran late.
+def tally(route: str) -> tuple[int, int]:
+    """Counts a line's arrivals in the window.
 
     Args:
         route: The line's route id.
 
     Returns:
-        (late, seen), or None where the window is too thin.
+        (late, seen).
     """
     with _lock:
         arrivals = list(_arrivals.get(route, ()))
-
-    # The floor this route reads against
-    floor = THIN_WINDOW if route in ROUTES else THIN_BUS_WINDOW
-    if len(arrivals) < floor:
-        return None
 
     late = 0
     for _, was_late in arrivals:
@@ -235,11 +241,91 @@ def counts(route: str) -> tuple[int, int] | None:
     return late, len(arrivals)
 
 
+def counts(route: str) -> tuple[int, int] | None:
+    """Counts a line's recent arrivals and how many ran late.
+
+    Args:
+        route: The line's route id.
+
+    Returns:
+        (late, seen), or None where the window is too thin.
+    """
+    late, seen = tally(route)
+
+    # The floor this route reads against
+    floor = THIN_WINDOW if route in ROUTES else THIN_BUS_WINDOW
+    if seen < floor:
+        return None
+
+    return late, seen
+
+
+def bucket_of(now: datetime) -> datetime:
+    """Rounds a moment down to when it started.
+
+    Args:
+        now: Any moment.
+
+    Returns:
+        The moment that window began.
+    """
+    width = WINDOW_SECONDS // 60
+    return now.replace(minute=now.minute // width * width, second=0, microsecond=0)
+
+
+def store(now: datetime) -> int:
+    """Writes the quarter hour that has just closed.
+
+    Args:
+        now: The moment being polled.
+
+    Returns:
+        How many lines had an arrival to write down.
+    """
+    global _written
+
+    bucket = bucket_of(now)
+    if bucket == _written:
+        return 0
+
+    # The first poll lands mid window
+    if _written is None:
+        _written = bucket
+        return 0
+
+    # The window counts back from now, which is the last quarter
+    closed = bucket - timedelta(seconds=WINDOW_SECONDS)
+    rows = []
+    for route in ROUTES:
+        late, seen = tally(route)
+
+        # A thin branch counts once its line is added up
+        if seen:
+            rows.append((route, closed, late, seen))
+
+    written = 0
+    if rows:
+        try:
+            with connect() as connection:
+                with connection.cursor() as cursor:
+                    cursor.executemany(WRITE_READING, rows)
+                connection.commit()
+            written = len(rows)
+        except psycopg.Error as error:
+            print(f"lateness: {error}")
+
+    # The window moves either way
+    _written = bucket
+
+    return written
+
+
 async def poll() -> None:
     """Reads the fleet on a timer for as long as the server runs."""
     while True:
         try:
             await asyncio.to_thread(record, datetime.now().astimezone())
+            await asyncio.to_thread(store, datetime.now().astimezone())
         except httpx.HTTPError as error:
             print(f"lateness: {error}")
         await asyncio.sleep(POLL_SECONDS)

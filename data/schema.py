@@ -27,6 +27,17 @@ CREATE_CHUNKS = f"""
     );
 """
 
+# Data collection for the delay features
+CREATE_READINGS = """
+    CREATE TABLE IF NOT EXISTS readings (
+        route_id text NOT NULL,
+        at       timestamptz NOT NULL,
+        late     integer NOT NULL,
+        seen     integer NOT NULL,
+        PRIMARY KEY (route_id, at)
+    );
+"""
+
 # The 351 municipalities
 CREATE_TOWNS = """
     CREATE TABLE IF NOT EXISTS towns (
@@ -141,6 +152,7 @@ def ensure_schema(connection: psycopg.Connection) -> None:
         cursor.execute(CREATE_VECTOR)
         cursor.execute(CREATE_TRIGRAM)
         cursor.execute(CREATE_CHUNKS)
+        cursor.execute(CREATE_READINGS)
         cursor.execute(CREATE_TOWNS)
         cursor.execute(CREATE_STREETS)
         cursor.execute(CREATE_STREETS_INDEX)
@@ -159,6 +171,6 @@ if __name__ == "__main__":
     with connect() as connection:
         ensure_schema(connection)
     print(
-        "Schema ready: chunks, towns, streets, address_points, places, "
-        "saved_places, saved_trips"
+        "Schema ready: chunks, readings, towns, streets, address_points, "
+        "places, saved_places, saved_trips"
     )
