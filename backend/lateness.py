@@ -5,6 +5,7 @@ import threading
 from collections import defaultdict, deque
 from datetime import date, datetime, timedelta
 from functools import lru_cache
+from typing import TypedDict
 
 import httpx
 import psycopg
@@ -34,6 +35,15 @@ ROUTES = (
     "Mattapan",
 )
 
+# The line each route is drawn under
+FAMILIES = {
+    "Red": ("Red",),
+    "Orange": ("Orange",),
+    "Green": ("Green-B", "Green-C", "Green-D", "Green-E"),
+    "Blue": ("Blue",),
+    "Mattapan": ("Mattapan",),
+}
+
 # Trip prefixes with no schedule behind them
 UNSCHEDULED = ("ADDED", "NONREV")
 
@@ -58,11 +68,26 @@ COUNTED_SECONDS = 3600
 # How often the fleet is read
 POLL_SECONDS = 15
 
+# Every line's readings
+READ_READINGS = """
+    SELECT route_id, at, late, seen FROM readings
+    WHERE route_id = ANY(%s) AND at >= %s AND at < %s ORDER BY at;
+"""
+
 # One line's closed window
 WRITE_READING = """
     INSERT INTO readings (route_id, at, late, seen) VALUES (%s, %s, %s, %s)
     ON CONFLICT (route_id, at) DO NOTHING;
 """
+
+
+class Reading(TypedDict):
+    """One line's share of late arrivals in 15min."""
+
+    at: str
+    share: int
+    seen: int
+
 
 # Each line's arrivals inside the window
 _arrivals: dict[str, deque[tuple[int, bool]]] = defaultdict(deque)
@@ -306,10 +331,8 @@ def store(now: datetime) -> int:
     written = 0
     if rows:
         try:
-            with connect() as connection:
-                with connection.cursor() as cursor:
-                    cursor.executemany(WRITE_READING, rows)
-                connection.commit()
+            with connect() as connection, connection.cursor() as cursor:
+                cursor.executemany(WRITE_READING, rows)
             written = len(rows)
         except psycopg.Error as error:
             print(f"lateness: {error}")
@@ -318,6 +341,47 @@ def store(now: datetime) -> int:
     _written = bucket
 
     return written
+
+
+def read_series(start: datetime, end: datetime) -> dict[str, list[Reading]]:
+    """Reads how each line ran across a stretch of the day.
+
+    Args:
+        start: The first moment to read.
+        end: The moment to stop at.
+
+    Returns:
+        One list of readings per line, oldest first.
+    """
+    # What is asked for and what is drawn come from one map
+    family_of = {}
+    for line, routes in FAMILIES.items():
+        for route in routes:
+            family_of[route] = line
+
+    series: dict[str, list[Reading]] = {line: [] for line in FAMILIES}
+    try:
+        with connect() as connection, connection.cursor() as cursor:
+            cursor.execute(READ_READINGS, (list(family_of), start, end))
+            rows = cursor.fetchall()
+    except psycopg.Error as error:
+        print(f"lateness: {error}")
+        return series
+
+    # A branch counts toward its line
+    pooled: dict[tuple[datetime, str], list[int]] = {}
+    for route_id, at, late, seen in rows:
+        totals = pooled.setdefault((at, family_of[route_id]), [0, 0])
+        totals[0] += late
+        totals[1] += seen
+
+    # The floor applies to the line
+    for (at, line), (late, seen) in sorted(pooled.items()):
+        if seen >= THIN_WINDOW:
+            series[line].append(
+                {"at": at.isoformat(), "share": round(late / seen * 100), "seen": seen}
+            )
+    return series
 
 
 async def poll() -> None:
