@@ -1,3 +1,4 @@
+import type { Transit } from '@/types/transit';
 import type { SavedPlace } from '@/types/place';
 import type { SystemStatus } from '@/types/status';
 import type { Answer, Stage } from '@/types/answer';
@@ -143,6 +144,15 @@ export async function readBoard(signal: AbortSignal): Promise<Planned[]> {
 // Reads every line's state
 export async function readStatus(signal: AbortSignal): Promise<SystemStatus> {
     const response = await fetch(`${API}/v1/status`, { signal });
+    if (!response.ok) {
+        throw new Error(`Pace returned ${response.status}`);
+    }
+    return response.json();
+}
+
+// Reads every line's state and how it has run today
+export async function readTransit(signal: AbortSignal): Promise<Transit> {
+    const response = await fetch(`${API}/v1/transit`, { signal });
     if (!response.ok) {
         throw new Error(`Pace returned ${response.status}`);
     }
