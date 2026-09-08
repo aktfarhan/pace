@@ -5,6 +5,7 @@ import json
 import time
 from collections.abc import AsyncGenerator, Iterator
 from contextlib import asynccontextmanager
+from datetime import datetime
 from functools import lru_cache
 
 import psycopg
@@ -21,6 +22,7 @@ from backend.trips import Kept, SavedTrip, add_trip, read_trips, remove_trip
 from backend.risk import warm as warm_model
 from backend.status import SystemStatus, read_status, without_alerts
 from backend.timetable import warm
+from backend.transit.page import Transit, read_transit
 from data.schema import connect
 
 # Where the frontend runs
@@ -182,6 +184,17 @@ def check_status(alerts: bool = False) -> SystemStatus:
     if alerts:
         return live
     return without_alerts(live)
+
+
+@app.get("/v1/transit")
+def check_transit() -> Transit:
+    """Reports every line's state and how it has run since the day began.
+
+    Returns:
+        Each line's card with their alerts, and the day's readings.
+    """
+    live = status_during(int(time.monotonic() // STATUS_TTL))
+    return read_transit(live, datetime.now().astimezone())
 
 
 @app.get("/v1/places")
