@@ -3,6 +3,7 @@ import { useAsk } from '@/hooks/useAsk';
 import Saved from '@/components/saved/Saved';
 import TurnList from '@/components/ask/TurnList';
 import AskInput from '@/components/ask/AskInput';
+import Transit from '@/components/transit/Transit';
 import History from '@/components/history/History';
 import Sidebar from '@/components/layout/sidebar/Sidebar';
 import type { Page } from '@/components/layout/sidebar/tints';
@@ -34,11 +35,7 @@ function App() {
                 )}
                 {page === 'Saved' && <Saved />}
                 {page === 'History' && <History />}
-                {page === 'Transit' && (
-                    <span className="font-mono text-eyebrow text-faint uppercase">
-                        {page} — not built yet
-                    </span>
-                )}
+                {page === 'Transit' && <Transit />}
             </main>
         </div>
     );
