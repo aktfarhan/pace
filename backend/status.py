@@ -7,19 +7,11 @@ from typing import Any, Literal, TypedDict
 
 import httpx
 
+from backend.lines import LINES, LINE_OF
 from backend.mbta import fetch
 
 # Heavy rail, light rail, and commuter rail
 RAIL_TYPES = "0,1,2"
-
-# The rail lines the sidebar draws, in board order
-LINES: list[tuple[str, str, str]] = [
-    ("Red", "RED", "Red Line"),
-    ("Orange", "ORANGE", "Orange Line"),
-    ("Green", "GREEN", "Green Line"),
-    ("Blue", "BLUE", "Blue Line"),
-    ("CR", "COMMUTER", "Commuter Rail"),
-]
 
 # Worst effect first
 EFFECT_ORDER = {
@@ -98,11 +90,11 @@ class SystemStatus(TypedDict):
     ok: bool
 
 
-def fetch_rail_alerts() -> tuple[list[dict[str, Any]], dict[str, int]]:
+def fetch_rail_alerts() -> list[dict[str, Any]]:
     """Fetches the alerts in effect on the rail lines.
 
     Returns:
-        Tuple of (alerts, route_id -> route_type).
+        The alerts, each carrying the routes it names.
     """
     params = {
         "filter[datetime]": "NOW",
@@ -110,32 +102,7 @@ def fetch_rail_alerts() -> tuple[list[dict[str, Any]], dict[str, int]]:
         "filter[activity]": "ALL",
         "include": "routes",
     }
-    payload = fetch("/alerts", params)
-
-    # Build each route's GTFS type
-    route_types = {}
-    for record in payload.get("included", []):
-        route_types[record["id"]] = record["attributes"]["type"]
-    return payload["data"], route_types
-
-
-def line_of(route_id: str, route_types: dict[str, int]) -> str | None:
-    """Returns the sidebar line a route belongs to.
-
-    Args:
-        route_id: An MBTA route id.
-        route_types: route_id -> GTFS route type.
-
-    Returns:
-        A line id, or None for a route the rail does not draw.
-    """
-    if route_types.get(route_id) == 2:
-        return "CR"
-    if route_id.startswith("Green-"):
-        return "Green"
-    if route_id in ("Red", "Orange", "Blue"):
-        return route_id
-    return None
+    return fetch("/alerts", params)["data"]
 
 
 def earliest_start(alert: dict[str, Any]) -> str | None:
@@ -377,10 +344,10 @@ def read_status() -> SystemStatus:
     """
     retrieved_at = datetime.now(timezone.utc).isoformat()
     try:
-        alerts, route_types = fetch_rail_alerts()
+        alerts = fetch_rail_alerts()
     except httpx.HTTPError:
         lines = []
-        for line_id, badge_text, line_name in LINES:
+        for line_id, badge_text, line_name, _ in LINES:
             lines.append(read_line(line_id, badge_text, line_name, []))
         return {
             "lines": lines,
@@ -394,14 +361,14 @@ def read_status() -> SystemStatus:
     for alert in alerts:
         seen = set()
         for record in alert["relationships"]["routes"]["data"]:
-            line_id = line_of(record["id"], route_types)
+            line_id = LINE_OF.get(record["id"])
             if line_id is not None and line_id not in seen:
                 seen.add(line_id)
                 filed.setdefault(line_id, []).append(alert)
 
     lines = []
     clear_count = 0
-    for line_id, badge_text, line_name in LINES:
+    for line_id, badge_text, line_name, _ in LINES:
         line = read_line(line_id, badge_text, line_name, filed.get(line_id, []))
         if line["state"] == "clear":
             clear_count += 1

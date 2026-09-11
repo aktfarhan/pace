@@ -10,6 +10,7 @@ from typing import TypedDict
 import httpx
 import psycopg
 
+from backend.lines import LINES, LINE_OF
 from backend.mbta import fetch
 from backend.timetable import (
     gtfs_stamp,
@@ -34,33 +35,6 @@ ROUTES = (
     "Green-E",
     "Mattapan",
 )
-
-# The line each route is drawn under
-FAMILIES = {
-    "Red": ("Red",),
-    "Orange": ("Orange",),
-    "Green": ("Green-B", "Green-C", "Green-D", "Green-E"),
-    "Blue": ("Blue",),
-    "Mattapan": ("Mattapan",),
-    "Commuter": (
-        "CR-Fairmount",
-        "CR-Fitchburg",
-        "CR-Foxboro",
-        "CR-Franklin",
-        "CR-Greenbush",
-        "CR-Haverhill",
-        "CR-Kingston",
-        "CR-Lowell",
-        "CR-Needham",
-        "CR-NewBedford",
-        "CR-Newburyport",
-        "CR-Providence",
-        "CR-Worcester",
-    ),
-}
-
-# The line each route is drawn under
-FAMILY_OF = {route: line for line, routes in FAMILIES.items() for route in routes}
 
 # Trip prefixes with no schedule behind them
 UNSCHEDULED = ("ADDED", "NONREV")
@@ -339,7 +313,7 @@ def store(now: datetime) -> int:
     # The window counts back from now, which is the last quarter
     closed = bucket - timedelta(seconds=WINDOW_SECONDS)
     rows = []
-    for route in FAMILY_OF:
+    for route in LINE_OF:
         late, seen = tally(route)
 
         # A thin branch counts once its line is added up
@@ -371,10 +345,10 @@ def read_series(start: datetime, end: datetime) -> dict[str, list[Reading]]:
     Returns:
         One list of readings per line, oldest first.
     """
-    series: dict[str, list[Reading]] = {line: [] for line in FAMILIES}
+    series: dict[str, list[Reading]] = {line_id: [] for line_id, _, _, _ in LINES}
     try:
         with connect() as connection, connection.cursor() as cursor:
-            cursor.execute(READ_READINGS, (list(FAMILY_OF), start, end))
+            cursor.execute(READ_READINGS, (list(LINE_OF), start, end))
             rows = cursor.fetchall()
     except psycopg.Error as error:
         print(f"lateness: {error}")
@@ -383,7 +357,7 @@ def read_series(start: datetime, end: datetime) -> dict[str, list[Reading]]:
     # A branch counts toward its line
     pooled: dict[tuple[datetime, str], list[int]] = {}
     for route_id, at, late, seen in rows:
-        totals = pooled.setdefault((at, FAMILY_OF[route_id]), [0, 0])
+        totals = pooled.setdefault((at, LINE_OF[route_id]), [0, 0])
         totals[0] += late
         totals[1] += seen
 
