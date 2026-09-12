@@ -1,6 +1,7 @@
 import clsx from 'clsx';
+import { tintOf } from '@/lib/lines';
+import { clock, minutesBetween } from '@/lib/trip';
 import { Bus, Clock, SportShoe, TrainFront } from 'lucide-react';
-import { LINE_TEXT, LINE_TILES, clock, lineOf, minutesBetween } from '@/lib/trip';
 import type { Wait, WalkLeg, RideLeg } from '@/types/answer';
 
 interface LegRowProps {
@@ -9,7 +10,7 @@ interface LegRowProps {
 }
 
 function LegRow({ leg, bright }: LegRowProps) {
-    const line = leg.kind === 'ride' ? lineOf(leg.route_id) : null;
+    const tint = leg.kind === 'ride' ? tintOf(leg.route_id) : null;
 
     // The icon for this leg
     let Icon = TrainFront;
@@ -17,7 +18,7 @@ function LegRow({ leg, bright }: LegRowProps) {
         Icon = Clock;
     } else if (leg.kind !== 'ride') {
         Icon = SportShoe;
-    } else if (line === 'bus') {
+    } else if (tint?.id === 'Bus') {
         Icon = Bus;
     }
 
@@ -30,12 +31,7 @@ function LegRow({ leg, bright }: LegRowProps) {
     } else {
         label = (
             <>
-                <span
-                    className={clsx(
-                        'font-semibold',
-                        line === null ? 'text-cream' : LINE_TEXT[line],
-                    )}
-                >
+                <span className={clsx('font-semibold', tint === null ? 'text-cream' : tint.text)}>
                     {leg.label}
                 </span>
                 <span className="font-normal text-dim"> to </span>
@@ -57,7 +53,7 @@ function LegRow({ leg, bright }: LegRowProps) {
             <span
                 className={clsx(
                     'grid size-7 shrink-0 place-items-center rounded-mark border',
-                    line === null ? 'border-line bg-bubble text-muted' : LINE_TILES[line],
+                    tint === null ? 'border-line bg-bubble text-muted' : tint.tile,
                 )}
             >
                 <Icon size={14} strokeWidth={1.9} aria-hidden="true" />

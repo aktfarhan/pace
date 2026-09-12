@@ -1,5 +1,6 @@
 import clsx from 'clsx';
-import { BADGES, CARDS, CHIPS, PILLS } from './tints';
+import { LINE_BY_ID } from '@/lib/lines';
+import { CARDS, CHIPS, PILLS } from './tints';
 import { chipsOf, effectWord, running } from '@/lib/status';
 import type { LineStatus } from '@/types/status';
 
@@ -25,7 +26,7 @@ function LineCard({ line }: LineCardProps) {
                 <span
                     className={clsx(
                         'shrink-0 rounded-chip border px-2 py-hair font-mono text-badge uppercase',
-                        BADGES[line.line_id],
+                        LINE_BY_ID[line.line_id]?.chip,
                     )}
                 >
                     {line.badge_text}

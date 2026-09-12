@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import { BADGES } from './tints';
+import { LINE_BY_ID } from '@/lib/lines';
 import { effectWord } from '@/lib/status';
 import type { AlertedLine } from '@/types/status';
 
@@ -32,7 +32,7 @@ function Branches({ line }: BranchesProps) {
                 <span
                     className={clsx(
                         'shrink-0 rounded-chip border px-2 py-hair font-mono text-badge uppercase',
-                        BADGES[line.line_id],
+                        LINE_BY_ID[line.line_id]?.chip,
                     )}
                 >
                     {line.badge_text}

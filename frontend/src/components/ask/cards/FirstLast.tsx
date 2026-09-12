@@ -1,6 +1,7 @@
 import clsx from 'clsx';
+import { tintOf } from '@/lib/lines';
 import { useNow } from '@/hooks/useNow';
-import { LINE_TEXT, lineOf, clockParts } from '@/lib/trip';
+import { clockParts } from '@/lib/trip';
 import type { EdgeCard } from '@/types/answer';
 
 interface FirstLastProps {
@@ -11,7 +12,7 @@ function FirstLast({ card }: FirstLastProps) {
     const now = useNow();
     const moment = now === 0 ? Date.now() : now;
 
-    const line = lineOf(card.route_id);
+    const tint = tintOf(card.route_id);
     const title = card.edge === 'first' ? 'First' : 'Last';
     const last = card.directions.length - 1;
 
@@ -20,10 +21,8 @@ function FirstLast({ card }: FirstLastProps) {
             <div className="flex items-end justify-between border-b border-seam pt-3.5 pb-3.25">
                 <div className="text-title text-bright">
                     {title}{' '}
-                    <span className={line === null ? undefined : LINE_TEXT[line]}>
-                        {card.label}
-                    </span>{' '}
-                    from {card.station}
+                    <span className={tint === null ? undefined : tint.text}>{card.label}</span> from{' '}
+                    {card.station}
                 </div>
                 <span className="flex items-center gap-1.75 pb-0.5">
                     <span className="size-1.5 rounded-full border border-dim" />

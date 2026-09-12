@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import { useState } from 'react';
-import { LINE_CHIPS, lineOf } from '@/lib/trip';
+import { tintOf } from '@/lib/lines';
 import { Briefcase, House, MapPin, X } from 'lucide-react';
 import type { SavedPlace } from '@/types/place';
 
@@ -23,7 +23,7 @@ function PlaceCard({ place, drop }: PlaceCardProps) {
     if (named === 'home') Icon = House;
     if (named === 'work') Icon = Briefcase;
 
-    const line = place.route_id === null ? null : lineOf(place.route_id);
+    const tint = place.route_id === null ? null : tintOf(place.route_id);
     const walk = place.walk_seconds === null ? 0 : Math.ceil(place.walk_seconds / 60);
 
     // Drops a place
@@ -71,7 +71,7 @@ function PlaceCard({ place, drop }: PlaceCardProps) {
                         className={clsx(
                             CHIP,
                             'min-w-0 truncate',
-                            line === null ? 'border-line bg-bubble text-muted' : LINE_CHIPS[line],
+                            tint === null ? 'border-line bg-bubble text-muted' : tint.chip,
                         )}
                     >
                         {place.station}

@@ -2,18 +2,11 @@ import clsx from 'clsx';
 import Toggle from './Toggle';
 import { running } from '@/lib/status';
 import { Settings } from 'lucide-react';
-import { NAV, TAGS, TAGS_HIT, type Page } from './tints';
+import { LINE_BY_ID } from '@/lib/lines';
+import { NAV, type Page } from './tints';
 import type { SystemStatus } from '@/types/status';
 
 const CELL = 'grid size-11 shrink-0 place-items-center rounded-row';
-
-const CODES: Record<string, string> = {
-    Red: 'RL',
-    Orange: 'OL',
-    Green: 'GL',
-    Blue: 'BL',
-    CR: 'CR',
-};
 
 interface CollapsedProps {
     status: SystemStatus | null;
@@ -59,6 +52,7 @@ function Collapsed({ status, toggle, page, select }: CollapsedProps) {
                 <div className="mt-5.5 flex flex-col items-center gap-3">
                     {status.lines.map((line) => {
                         const ok = running(line);
+                        const tint = LINE_BY_ID[line.line_id];
                         return (
                             <div
                                 key={line.line_id}
@@ -66,10 +60,10 @@ function Collapsed({ status, toggle, page, select }: CollapsedProps) {
                                 className={clsx(
                                     CELL,
                                     'relative border',
-                                    ok ? TAGS[line.line_id] : TAGS_HIT[line.line_id],
+                                    ok ? tint?.tag : tint?.tagHit,
                                 )}
                             >
-                                <span className="font-mono text-code">{CODES[line.line_id]}</span>
+                                <span className="font-mono text-code">{tint?.code}</span>
                                 <span
                                     className={clsx(
                                         'absolute -top-hair -right-hair size-2.5 rounded-full ring-[2.5px] ring-rail',

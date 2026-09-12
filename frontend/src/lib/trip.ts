@@ -1,53 +1,11 @@
+import { tintOf } from '@/lib/lines';
 import type { Wait, TripCard, WalkLeg, RideLeg } from '@/types/answer';
-
-// The lines the tints key on
-type Line = 'red' | 'orange' | 'green' | 'blue' | 'commuter' | 'bus';
 
 // One slice of the trip bar
 interface Segment {
     fill: string;
     share: number;
 }
-
-// The route name in a ride's row
-export const LINE_TEXT: Record<Line, string> = {
-    red: 'text-red',
-    orange: 'text-orange',
-    green: 'text-green',
-    blue: 'text-blue',
-    commuter: 'text-commuter',
-    bus: 'text-bus',
-};
-
-// A ride's chunk of the leg bar
-const LINE_FILLS: Record<Line, string> = {
-    red: 'bg-red-fill',
-    orange: 'bg-orange-fill',
-    green: 'bg-green-fill',
-    blue: 'bg-blue-fill',
-    commuter: 'bg-commuter-fill',
-    bus: 'bg-bus-fill',
-};
-
-// A station's chip on a saved place
-export const LINE_CHIPS: Record<Line, string> = {
-    red: 'border-red-fill/28 bg-red-fill/12 text-red',
-    orange: 'border-orange-fill/28 bg-orange-fill/12 text-orange',
-    green: 'border-green-fill/28 bg-green-fill/12 text-green',
-    blue: 'border-blue-fill/28 bg-blue-fill/12 text-blue',
-    commuter: 'border-commuter-fill/28 bg-commuter-fill/12 text-commuter',
-    bus: 'border-bus-fill/28 bg-bus-fill/12 text-bus',
-};
-
-// A ride's icon tile
-export const LINE_TILES: Record<Line, string> = {
-    red: 'border-red/28 bg-red/12 text-red',
-    orange: 'border-orange/28 bg-orange/12 text-orange',
-    green: 'border-green/30 bg-green/12 text-green',
-    blue: 'border-blue/28 bg-blue/12 text-blue',
-    commuter: 'border-commuter/28 bg-commuter/12 text-commuter',
-    bus: 'border-bus/28 bg-bus/12 text-bus',
-};
 
 const LEAVE_NOW_MINUTES = 5;
 
@@ -56,29 +14,6 @@ const NO_SERVICE_MINUTES = 60;
 
 // Minutes of a gap between legs gets its own row
 const WAIT_ROW_MINUTES = 10;
-
-// route_id -> the line, or null for buses
-export function lineOf(routeId: string): Line | null {
-    if (routeId === 'Red' || routeId === 'Mattapan') {
-        return 'red';
-    }
-    if (routeId === 'Orange') {
-        return 'orange';
-    }
-    if (routeId === 'Blue') {
-        return 'blue';
-    }
-    if (routeId.startsWith('Green')) {
-        return 'green';
-    }
-    if (routeId.startsWith('CR-')) {
-        return 'commuter';
-    }
-    if (/^\d+$/.test(routeId)) {
-        return 'bus';
-    }
-    return null;
-}
 
 // Formatter
 const CLOCK = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' });
@@ -121,8 +56,8 @@ export function segmentsOf(card: TripCard): Segment[] {
             segments.push({ fill: 'bg-edge', share: ((depart - previousArrive) / total) * 100 });
         }
 
-        const line = leg.kind === 'ride' ? lineOf(leg.route_id) : null;
-        const fill = line === null ? 'bg-quiet' : LINE_FILLS[line];
+        const tint = leg.kind === 'ride' ? tintOf(leg.route_id) : null;
+        const fill = tint === null ? 'bg-quiet' : tint.fill;
         segments.push({ fill, share: ((arrive - depart) / total) * 100 });
         previousArrive = arrive;
     }
