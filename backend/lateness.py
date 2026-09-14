@@ -3,9 +3,11 @@
 import asyncio
 import threading
 from collections import defaultdict, deque
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 from functools import lru_cache
-from typing import TypedDict
+from statistics import median
+from typing import NotRequired, TypedDict
+from zoneinfo import ZoneInfo
 
 import httpx
 import psycopg
@@ -13,6 +15,7 @@ import psycopg
 from backend.lines import LINES, LINE_OF, BRANCH_ROUTES
 from backend.mbta import fetch
 from backend.timetable import (
+    SERVICE_ROLLOVER_HOUR,
     gtfs_stamp,
     load_service_day,
     load_stops,
@@ -63,6 +66,15 @@ ROLLING_FLOOR = 10
 # How far back a thin stretch may keep reaching
 ROLLING_CAP = 3 * ROLLING_SECONDS
 
+# How many days go into a usual day
+TYPICAL_DAYS = 14
+
+# Too few days to call anything usual
+TYPICAL_FLOOR = 2
+
+# The zone earlier days are read back in
+SERVICE_ZONE = ZoneInfo("America/New_York")
+
 # How long an arrival is remembered
 COUNTED_SECONDS = 3600
 
@@ -93,6 +105,7 @@ class Reading(TypedDict):
     share: int
     seen: int
     reach: int
+    days: NotRequired[int]
 
 
 # Each line's arrivals inside the window
@@ -420,6 +433,87 @@ def rolling(quarters: list[Quarter]) -> list[Reading]:
     return readings
 
 
+def empty_series() -> dict[str, list[Reading]]:
+    """Builds a reading list for every line and branch.
+
+    Returns:
+        One empty list per line and per branch.
+    """
+    series: dict[str, list[Reading]] = {line_id: [] for line_id, _, _, _ in LINES}
+    series.update({route: [] for route in sorted(BRANCH_ROUTES)})
+    return series
+
+
+@lru_cache(maxsize=2)
+def read_typical(began: datetime, edge: datetime) -> dict[str, list[Reading]]:
+    """Reads the share each line usually runs at, by time of day.
+
+    Args:
+        began: When today's service day started.
+        edge: The quarter hour the readings run up to.
+
+    Returns:
+        One list of readings per line and per branch, laid over today's clock.
+    """
+    typical = empty_series()
+    start = began - timedelta(days=TYPICAL_DAYS)
+    try:
+        with connect() as connection, connection.cursor() as cursor:
+            cursor.execute(READ_READINGS, (list(LINE_OF), start, began))
+            rows = cursor.fetchall()
+    except psycopg.Error as error:
+        print(f"lateness: {error}")
+        return typical
+
+    # A branch counts toward its line
+    pooled: dict[tuple[date, str, datetime], list[int]] = {}
+    for route_id, at, late, seen in rows:
+        at = at.astimezone(SERVICE_ZONE)
+        served = service_date_at(at)
+        for key in keys_for(route_id):
+            totals = pooled.setdefault((served, key, at), [0, 0])
+            totals[0] += late
+            totals[1] += seen
+
+    # Each earlier day's quarter hours
+    quarters: dict[tuple[date, str], list[Quarter]] = {}
+    for (served, key, at), (late, seen) in sorted(pooled.items()):
+        quarters.setdefault((served, key), []).append((at, late, seen))
+
+    # What each day looked like at that minute
+    stacked: dict[tuple[str, int], list[Reading]] = {}
+    for (served, key), day in quarters.items():
+        opened = datetime.combine(served, time(SERVICE_ROLLOVER_HOUR), SERVICE_ZONE)
+        for reading in rolling(day):
+            minute = round(
+                (datetime.fromisoformat(reading["at"]) - opened).total_seconds() / 60
+            )
+            stacked.setdefault((key, minute), []).append(reading)
+
+    # The middle day, laid back over today
+    for (key, minute), stood in sorted(stacked.items()):
+        if len(stood) < TYPICAL_FLOOR:
+            continue
+
+        at = began + timedelta(minutes=minute)
+
+        # Today has not reached this time yet
+        if at >= edge:
+            continue
+
+        typical.setdefault(key, []).append(
+            {
+                "at": at.astimezone(timezone.utc).isoformat(),
+                "share": round(median(x["share"] for x in stood)),
+                "seen": sum(x["seen"] for x in stood),
+                "reach": round(sum(x["reach"] for x in stood) / len(stood)),
+                "days": len(stood),
+            }
+        )
+
+    return typical
+
+
 def read_series(start: datetime, end: datetime) -> dict[str, list[Reading]]:
     """Reads how each line and branch ran across a stretch of the day.
 
@@ -430,8 +524,7 @@ def read_series(start: datetime, end: datetime) -> dict[str, list[Reading]]:
     Returns:
         One list of readings per line and per branch, oldest first.
     """
-    series: dict[str, list[Reading]] = {line_id: [] for line_id, _, _, _ in LINES}
-    series.update({route: [] for route in sorted(BRANCH_ROUTES)})
+    series = empty_series()
     try:
         with connect() as connection, connection.cursor() as cursor:
             cursor.execute(READ_READINGS, (list(LINE_OF), start, end))

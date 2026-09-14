@@ -3,7 +3,7 @@
 from datetime import datetime, time
 from typing import TypedDict
 
-from backend.lateness import Reading, read_series
+from backend.lateness import Reading, bucket_of, read_series, read_typical
 from backend.status import SystemStatus
 from backend.timetable import SERVICE_ROLLOVER_HOUR, service_date_at
 
@@ -13,6 +13,7 @@ class Transit(TypedDict):
 
     status: SystemStatus
     series: dict[str, list[Reading]]
+    typical: dict[str, list[Reading]]
 
 
 def read_transit(status: SystemStatus, now: datetime) -> Transit:
@@ -28,4 +29,8 @@ def read_transit(status: SystemStatus, now: datetime) -> Transit:
     began = datetime.combine(
         service_date_at(now), time(SERVICE_ROLLOVER_HOUR), now.tzinfo
     )
-    return {"status": status, "series": read_series(began, now)}
+    return {
+        "status": status,
+        "series": read_series(began, now),
+        "typical": read_typical(began, bucket_of(now)),
+    }

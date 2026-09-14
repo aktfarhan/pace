@@ -6,10 +6,12 @@ export interface Reading {
     share: number;
     seen: number;
     reach: number;
+    days?: number;
 }
 
 // What /v1/transit returns
 export interface Transit {
     status: SystemStatus;
     series: Record<string, Reading[]>;
+    typical: Record<string, Reading[]>;
 }
