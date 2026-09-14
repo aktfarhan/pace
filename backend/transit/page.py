@@ -31,6 +31,6 @@ def read_transit(status: SystemStatus, now: datetime) -> Transit:
     )
     return {
         "status": status,
-        "series": read_series(began, now),
+        "series": read_series(began, bucket_of(now)),
         "typical": read_typical(began, bucket_of(now)),
     }

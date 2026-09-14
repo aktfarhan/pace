@@ -356,6 +356,10 @@ def store(now: datetime) -> int:
         except psycopg.Error as error:
             print(f"lateness: {error}")
 
+    # The day's readings have gained a quarter
+    if written:
+        read_series.cache_clear()
+
     # The window moves either way
     _written = bucket
 
@@ -514,6 +518,7 @@ def read_typical(began: datetime, edge: datetime) -> dict[str, list[Reading]]:
     return typical
 
 
+@lru_cache(maxsize=2)
 def read_series(start: datetime, end: datetime) -> dict[str, list[Reading]]:
     """Reads how each line and branch ran across a stretch of the day.
 

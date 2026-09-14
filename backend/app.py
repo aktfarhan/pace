@@ -11,6 +11,7 @@ from functools import lru_cache
 import psycopg
 from fastapi import FastAPI, Header
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -75,6 +76,9 @@ app = FastAPI(
     redoc_url=None,
     swagger_ui_oauth2_redirect_url=None,
 )
+
+# The day's readings squash to a tenth
+app.add_middleware(GZipMiddleware, minimum_size=1024, compresslevel=6)
 
 # A browser blocks a call to another port unless the server allows it
 app.add_middleware(
