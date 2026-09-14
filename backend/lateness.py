@@ -60,6 +60,9 @@ ROLLING_SECONDS = 3600
 # Too few pooled arrivals to read a share from
 ROLLING_FLOOR = 10
 
+# How far back a thin stretch may keep reaching
+ROLLING_CAP = 3 * ROLLING_SECONDS
+
 # How long an arrival is remembered
 COUNTED_SECONDS = 3600
 
@@ -375,6 +378,7 @@ def rolling(quarters: list[Quarter]) -> list[Reading]:
     """
     # A quarter hour alone is too thin
     span = timedelta(seconds=ROLLING_SECONDS)
+    cap = timedelta(seconds=ROLLING_CAP)
 
     readings: list[Reading] = []
     for index, (at, _, _) in enumerate(quarters):
@@ -387,8 +391,11 @@ def rolling(quarters: list[Quarter]) -> list[Reading]:
             back_at, back_late, back_seen = quarters[back]
             behind = at - back_at
 
-            # Far enough back
-            if behind >= span:
+            # Past the span, only a thin stretch keeps reaching
+            if behind >= span and seen >= ROLLING_FLOOR:
+                break
+
+            if behind >= cap:
                 break
 
             late += back_late
