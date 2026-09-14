@@ -10,7 +10,7 @@ from typing import TypedDict
 import httpx
 import psycopg
 
-from backend.lines import LINES, LINE_OF
+from backend.lines import LINES, LINE_OF, BRANCH_ROUTES
 from backend.mbta import fetch
 from backend.timetable import (
     gtfs_stamp,
@@ -54,6 +54,12 @@ THIN_WINDOW = 5
 # Too few for a bus route
 THIN_BUS_WINDOW = 25
 
+# How far back one reading pools those windows
+ROLLING_SECONDS = 3600
+
+# Too few pooled arrivals to read a share from
+ROLLING_FLOOR = 10
+
 # How long an arrival is remembered
 COUNTED_SECONDS = 3600
 
@@ -73,12 +79,17 @@ WRITE_READING = """
 """
 
 
+# A closed quarter hour and its counts
+Quarter = tuple[datetime, int, int]
+
+
 class Reading(TypedDict):
-    """One line's share of late arrivals in 15min."""
+    """A line or branch's share of late arrivals across the stretch before it."""
 
     at: str
     share: int
     seen: int
+    reach: int
 
 
 # Each line's arrivals inside the window
@@ -335,17 +346,85 @@ def store(now: datetime) -> int:
     return written
 
 
+def keys_for(route_id: str) -> list[str]:
+    """Finds where a route's arrivals get counted.
+
+    Args:
+        route_id: The route the arrivals were seen on.
+
+    Returns:
+        Its line, and the route.
+    """
+    keys = [LINE_OF[route_id]]
+
+    # A branch also counts on its own
+    if route_id in BRANCH_ROUTES:
+        keys.append(route_id)
+
+    return keys
+
+
+def rolling(quarters: list[Quarter]) -> list[Reading]:
+    """Counts the arrivals behind each quarter hour.
+
+    Args:
+        quarters: The quarter hours to read, oldest first.
+
+    Returns:
+        One reading per quarter hour with enough arrivals.
+    """
+    # A quarter hour alone is too thin
+    span = timedelta(seconds=ROLLING_SECONDS)
+
+    readings: list[Reading] = []
+    for index, (at, _, _) in enumerate(quarters):
+        # What the quarters behind this one add up to
+        late = 0
+        seen = 0
+        reach = timedelta()
+
+        for back in range(index, -1, -1):
+            back_at, back_late, back_seen = quarters[back]
+            behind = at - back_at
+
+            # Far enough back
+            if behind >= span:
+                break
+
+            late += back_late
+            seen += back_seen
+
+            # How far this one ended up reaching
+            reach = behind
+
+        # A thin stretch means nothing worth drawing
+        if seen < ROLLING_FLOOR:
+            continue
+
+        readings.append(
+            {
+                "at": at.isoformat(),
+                "share": round(late / seen * 100),
+                "seen": seen,
+                "reach": round((reach.total_seconds() + WINDOW_SECONDS) / 60),
+            }
+        )
+
+    return readings
+
+
 def read_series(start: datetime, end: datetime) -> dict[str, list[Reading]]:
-    """Reads how each line ran across a stretch of the day.
+    """Reads how each line and branch ran across a stretch of the day.
 
     Args:
         start: The first moment to read.
         end: The moment to stop at.
 
     Returns:
-        One list of readings per line, oldest first.
+        One list of readings per line and per branch, oldest first.
     """
     series: dict[str, list[Reading]] = {line_id: [] for line_id, _, _, _ in LINES}
+    series.update({route: [] for route in sorted(BRANCH_ROUTES)})
     try:
         with connect() as connection, connection.cursor() as cursor:
             cursor.execute(READ_READINGS, (list(LINE_OF), start, end))
@@ -354,19 +433,21 @@ def read_series(start: datetime, end: datetime) -> dict[str, list[Reading]]:
         print(f"lateness: {error}")
         return series
 
-    # A branch counts toward its line
+    # A branch counts toward its line, and itself
     pooled: dict[tuple[datetime, str], list[int]] = {}
     for route_id, at, late, seen in rows:
-        totals = pooled.setdefault((at, LINE_OF[route_id]), [0, 0])
-        totals[0] += late
-        totals[1] += seen
+        for key in keys_for(route_id):
+            totals = pooled.setdefault((at, key), [0, 0])
+            totals[0] += late
+            totals[1] += seen
 
-    # The floor applies to the line
-    for (at, line), (late, seen) in sorted(pooled.items()):
-        if seen >= THIN_WINDOW:
-            series[line].append(
-                {"at": at.isoformat(), "share": round(late / seen * 100), "seen": seen}
-            )
+    # Each line and branch, oldest first
+    ordered: dict[str, list[Quarter]] = {}
+    for (at, key), (late, seen) in sorted(pooled.items()):
+        ordered.setdefault(key, []).append((at, late, seen))
+
+    for key, quarters in ordered.items():
+        series[key] = rolling(quarters)
     return series
 
 
