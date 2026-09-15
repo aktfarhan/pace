@@ -33,6 +33,9 @@ UNRANKED = len(EFFECT_ORDER)
 SEVERE_EFFECTS = {"SUSPENSION", "NO_SERVICE", "CANCELLATION"}
 DISRUPTED_EFFECTS = {"SHUTTLE", "DETOUR", "DELAY"}
 
+# The effects that hold a train up
+SLOWING_EFFECTS = SEVERE_EFFECTS | DISRUPTED_EFFECTS
+
 # Alerts that leave the trains running
 ACCESS_EFFECTS = {
     "ELEVATOR_CLOSURE",
@@ -59,6 +62,7 @@ class LineAlert(TypedDict):
     detail: str
     since: str | None
     until: str | None
+    slowing: bool
 
 
 class LineStatus(TypedDict):
@@ -247,6 +251,7 @@ def render_line_alert(alert: dict[str, Any]) -> LineAlert:
         "detail": attributes["header"] or "",
         "since": earliest_start(alert),
         "until": latest_end(alert),
+        "slowing": attributes["effect"] in SLOWING_EFFECTS,
     }
 
 

@@ -15,6 +15,7 @@ export interface LineAlert {
     detail: string;
     since: string | null;
     until: string | null;
+    slowing: boolean;
 }
 
 // Fields every line has
