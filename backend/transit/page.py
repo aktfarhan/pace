@@ -3,9 +3,21 @@
 from datetime import datetime, time
 from typing import TypedDict
 
-from backend.lateness import Reading, bucket_of, read_series, read_typical
+from backend.lateness import (
+    Reading,
+    bucket_of,
+    read_series,
+    read_resumes,
+    read_typical,
+    read_headways,
+)
 from backend.status import SystemStatus
-from backend.timetable import SERVICE_ROLLOVER_HOUR, service_date_at
+from backend.timetable import (
+    SERVICE_ROLLOVER_HOUR,
+    gtfs_stamp,
+    service_date_at,
+    service_seconds,
+)
 
 
 class Transit(TypedDict):
@@ -14,6 +26,8 @@ class Transit(TypedDict):
     status: SystemStatus
     series: dict[str, list[Reading]]
     typical: dict[str, list[Reading]]
+    headways: dict[str, int]
+    resumes: dict[str, str]
 
 
 def read_transit(status: SystemStatus, now: datetime) -> Transit:
@@ -33,4 +47,8 @@ def read_transit(status: SystemStatus, now: datetime) -> Transit:
         "status": status,
         "series": read_series(began, bucket_of(now)),
         "typical": read_typical(began, bucket_of(now)),
+        "headways": read_headways(
+            service_date_at(now), service_seconds(now) // 3600, gtfs_stamp()
+        ),
+        "resumes": read_resumes(bucket_of(now), gtfs_stamp()),
     }

@@ -14,4 +14,6 @@ export interface Transit {
     status: SystemStatus;
     series: Record<string, Reading[]>;
     typical: Record<string, Reading[]>;
+    headways: Record<string, number>;
+    resumes: Record<string, string>;
 }

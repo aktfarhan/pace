@@ -75,6 +75,9 @@ TYPICAL_FLOOR = 2
 # The zone earlier days are read back in
 SERVICE_ZONE = ZoneInfo("America/New_York")
 
+# How wide a stretch one headway is read from
+HEADWAY_REACH = 3600
+
 # How long an arrival is remembered
 COUNTED_SECONDS = 3600
 
@@ -382,6 +385,113 @@ def keys_for(route_id: str) -> list[str]:
         keys.append(route_id)
 
     return keys
+
+
+@lru_cache(maxsize=2)
+def read_resumes(edge: datetime, scraped_at: float) -> dict[str, str]:
+    """Reads when each lines next train is booked.
+
+    Args:
+        edge: The quarter hour to look on from.
+        scraped_at: When the GTFS tables were scraped.
+
+    Returns:
+        When the next train is booked, per line and per branch.
+    """
+    target = service_date_at(edge)
+    try:
+        trips, connections = load_service_day(target, scraped_at)
+    except (OSError, KeyError, ValueError) as error:
+        print(f"lateness: {error}")
+        return {}
+
+    # The timetable counts from midnight
+    opened = datetime.combine(target, time(), SERVICE_ZONE)
+    clock = service_seconds(edge)
+
+    # The earliest departure still ahead
+    soonest: dict[str, int] = {}
+    for departure, _, _, _, trip_id, _, _ in connections:
+        # Already gone
+        if departure < clock:
+            continue
+
+        trip = trips.get(trip_id)
+
+        # Buses and anything that is not a line
+        if trip is None or trip[0] not in LINE_OF:
+            continue
+
+        for key in keys_for(trip[0]):
+            if key not in soonest or departure < soonest[key]:
+                soonest[key] = departure
+
+    return {
+        key: (opened + timedelta(seconds=seconds)).astimezone(timezone.utc).isoformat()
+        for key, seconds in soonest.items()
+    }
+
+
+@lru_cache(maxsize=2)
+def read_headways(target: date, hour: int, scraped_at: float) -> dict[str, int]:
+    """Reads how often each line is scheduled to come by around an hour.
+
+    Args:
+        target: The service date.
+        hour: The hour of the service day to read.
+        scraped_at: When the GTFS tables were scraped.
+
+    Returns:
+        Whole minutes between trains, per line and per branch.
+    """
+    try:
+        trips, connections = load_service_day(target, scraped_at)
+        _, _, parents, _ = load_stops(scraped_at)
+    except (OSError, KeyError, ValueError) as error:
+        print(f"lateness: {error}")
+        return {}
+
+    # Trains are read an hour either side of this
+    middle = hour * 3600
+
+    # Trains booked into each stop
+    booked: dict[tuple[str, str, str], list[int]] = {}
+    for _, _, arrival_seconds, arrival_stop, trip_id, _, _ in connections:
+        if abs(arrival_seconds - middle) > HEADWAY_REACH:
+            continue
+
+        trip = trips.get(trip_id)
+
+        # Buses and anything that is not a line
+        if trip is None or trip[0] not in LINE_OF:
+            continue
+
+        # A platform counts under its station
+        station = parents.get(arrival_stop, arrival_stop)
+        for key in keys_for(trip[0]):
+            booked.setdefault((key, station, trip[1]), []).append(arrival_seconds)
+
+    # The busiest stop is used
+    busiest: dict[str, list[int]] = {}
+    for (key, _, _), times in booked.items():
+        if len(times) > len(busiest.get(key, [])):
+            busiest[key] = times
+
+    headways: dict[str, int] = {}
+    for key, times in busiest.items():
+        times.sort()
+
+        # The wait between one train and the next
+        gaps = [later - sooner for sooner, later in zip(times, times[1:])]
+
+        # One train on its own shows no gap
+        if not gaps:
+            continue
+
+        # One long gap would drag a mean
+        headways[key] = max(round(median(gaps) / 60), 1)
+
+    return headways
 
 
 def rolling(quarters: list[Quarter]) -> list[Reading]:
