@@ -9,9 +9,13 @@ import httpx
 
 from backend.lines import LINES, LINE_OF
 from backend.mbta import fetch
+from backend.timetable import gtfs_stamp, load_stops
 
 # Heavy rail, light rail, and commuter rail
 RAIL_TYPES = "0,1,2"
+
+# A station id, as against a door
+STATION_PREFIX = "place-"
 
 # Worst effect first
 EFFECT_ORDER = {
@@ -63,6 +67,8 @@ class LineAlert(TypedDict):
     since: str | None
     until: str | None
     slowing: bool
+    where: str | None
+    spread: int
 
 
 class LineStatus(TypedDict):
@@ -218,6 +224,55 @@ def rank(alert: dict[str, Any]) -> tuple[int, int, str]:
     return (order, -attributes["severity"], earliest_start(alert) or "")
 
 
+def stations_of(alert: dict[str, Any]) -> set[str]:
+    """Names the stations an alert touches.
+
+    Args:
+        alert: An alert record.
+
+    Returns:
+        The station names.
+    """
+    names, _, parents, _ = load_stops(gtfs_stamp())
+
+    # A platform counts under its station
+    touched: set[str] = set()
+    for entity in alert["attributes"].get("informed_entity") or []:
+        stop = entity.get("stop")
+        if not stop:
+            continue
+
+        touched.add(parents.get(stop, stop))
+
+    # A named station
+    stations: set[str] = set()
+    for stop in touched:
+        if stop.startswith(STATION_PREFIX):
+            stations.add(stop)
+
+    named: set[str] = set()
+    for stop in stations or touched:
+        if stop in names:
+            named.add(names[stop])
+
+    return named
+
+
+def where_of(stations: set[str]) -> str | None:
+    """Names the station an alert is about.
+
+    Args:
+        stations: The stations it touches.
+
+    Returns:
+        The station's name, or None.
+    """
+    if len(stations) != 1:
+        return None
+
+    return next(iter(stations))
+
+
 def state_of(effect: str) -> State:
     """Returns the card a line's worst effect earns.
 
@@ -244,6 +299,7 @@ def render_line_alert(alert: dict[str, Any]) -> LineAlert:
         The alert's own row.
     """
     attributes = alert["attributes"]
+    stations = stations_of(alert)
     return {
         "alert_id": alert["id"],
         "effect": attributes["effect"],
@@ -252,6 +308,8 @@ def render_line_alert(alert: dict[str, Any]) -> LineAlert:
         "since": earliest_start(alert),
         "until": latest_end(alert),
         "slowing": attributes["effect"] in SLOWING_EFFECTS,
+        "where": where_of(stations),
+        "spread": len(stations),
     }
 
 
