@@ -1,4 +1,5 @@
 import Tabs from './Tabs';
+import Chart from './Chart';
 import { useState } from 'react';
 import { ageOf } from '@/lib/status';
 import { useNow } from '@/hooks/useNow';
@@ -25,6 +26,9 @@ function Transit() {
                 )}
             </div>
             <Tabs tab={tab} select={setTab} />
+            {transit !== null && (
+                <Chart series={transit.series} read={Date.parse(transit.status.retrieved_at)} />
+            )}
         </div>
     );
 }
