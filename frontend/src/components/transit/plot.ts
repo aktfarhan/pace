@@ -2,10 +2,11 @@ import { curveMonotoneX, line } from 'd3-shape';
 import type { Reading } from '@/types/transit';
 
 // The share the axis tops out at
-const TOP = 100;
+export const TOP = 100;
 
 // How much of the day one reading covers
-const BUCKET_MS = 15 * 60000;
+export const BUCKET_MS = 15 * 60000;
+export const HOUR_MS = 60 * 60000;
 
 // The edges a chart draws between
 export interface Box {
@@ -34,17 +35,17 @@ const draw = line<Spot | null>()
     .curve(curveMonotoneX);
 
 // How wide the window is
-function spanOf(start: number, end: number) {
+export function spanOf(start: number, end: number) {
     return Math.max(end - start, BUCKET_MS);
 }
 
-// Where a share sits across the plot
-function xOf(at: number, start: number, end: number, box: Box) {
+// Where a moment sits across the plot
+export function xOf(at: number, start: number, end: number, box: Box) {
     return box.left + ((at - start) / spanOf(start, end)) * (box.right - box.left);
 }
 
 // Where a share sits between the floor and the ceiling
-function yOf(share: number, box: Box) {
+export function yOf(share: number, box: Box) {
     return box.floor - (share / TOP) * (box.floor - box.ceil);
 }
 
