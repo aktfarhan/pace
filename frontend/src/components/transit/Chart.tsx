@@ -3,25 +3,10 @@ import Ends from './Ends';
 import { seriesOf } from './plot';
 import { windowOf } from './frame';
 import { LINES } from '@/lib/lines';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import type { Box } from './plot';
+import { useHover } from '@/hooks/useHover';
+import { useChartBox } from '@/hooks/useChartBox';
+import { useMemo } from 'react';
 import type { Reading } from '@/types/transit';
-
-// How tall the drawing is
-const HEIGHT = 278;
-
-// The edges the plot draws between
-const FLOOR = 246;
-const CEIL = 16;
-
-// Below this width the margins tighten
-const TIGHT = 380;
-
-// Room on the left for the share labels, and a gutter on the right
-const LEFT = 48;
-const TIGHT_LEFT = 34;
-const GUTTER = 16;
-const TIGHT_GUTTER = 12;
 
 interface ChartProps {
     series: Record<string, Reading[]>;
@@ -29,33 +14,12 @@ interface ChartProps {
 }
 
 function Chart({ series, read }: ChartProps) {
-    const cardRef = useRef<HTMLDivElement>(null);
-    const [width, setWidth] = useState(0);
+    const { cardRef, width, box, height } = useChartBox();
 
     const { start, end } = useMemo(() => {
         const days = LINES.map((line) => series[line.id] ?? []);
         return windowOf(read, days);
     }, [read, series]);
-
-    // Follow the card so one unit stays one pixel
-    useEffect(() => {
-        const card = cardRef.current;
-        if (card === null) return;
-
-        const watch = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
-        watch.observe(card);
-        return () => watch.disconnect();
-    }, []);
-
-    const box: Box = useMemo(() => {
-        const tight = width < TIGHT;
-        return {
-            left: tight ? TIGHT_LEFT : LEFT,
-            right: width - (tight ? TIGHT_GUTTER : GUTTER),
-            floor: FLOOR,
-            ceil: CEIL,
-        };
-    }, [width]);
 
     // Place the readings only when they or the box move
     const drawn = useMemo(
@@ -66,6 +30,11 @@ function Chart({ series, read }: ChartProps) {
             })),
         [series, start, end, box],
     );
+
+    // The lines the hover reads from
+    const shown = drawn.map((one) => one.line.id).join();
+    const sheets = useMemo(() => drawn.map((one) => one.spots), [drawn]);
+    const { follow, lift, clear } = useHover(sheets, shown, start, end, box);
 
     // Where each line has reached
     const ends = useMemo(
@@ -81,13 +50,17 @@ function Chart({ series, read }: ChartProps) {
 
     return (
         <div ref={cardRef} className="rounded-tile border border-seam bg-panel px-6 pt-5 pb-4">
-            <div style={{ height: HEIGHT }}>
+            <div style={{ height }}>
                 {width > 0 && (
                     <svg
                         role="img"
                         aria-label="How late each line has been running today"
-                        viewBox={`0 0 ${width} ${HEIGHT}`}
-                        className="block w-full overflow-visible"
+                        viewBox={`0 0 ${width} ${height}`}
+                        className="block w-full touch-pan-y overflow-visible"
+                        onPointerMove={follow}
+                        onPointerUp={lift}
+                        onPointerLeave={clear}
+                        onPointerCancel={clear}
                     >
                         <Axis box={box} start={start} end={end} />
                         {drawn.map((one) => (

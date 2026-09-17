@@ -49,6 +49,15 @@ export function yOf(share: number, box: Box) {
     return box.floor - (share / TOP) * (box.floor - box.ceil);
 }
 
+// The slot a point along the plot falls in
+export function slotAt(x: number, start: number, end: number, box: Box) {
+    const span = spanOf(start, end);
+    const slots = Math.floor((end - start) / BUCKET_MS);
+    const across = (x - box.left) / Math.max(box.right - box.left, 1);
+    const slot = Math.round((across * span) / BUCKET_MS);
+    return Math.min(Math.max(slot, 0), slots);
+}
+
 // One line's readings
 export function seriesOf(readings: Reading[], start: number, end: number, box: Box) {
     // The window measured in buckets
