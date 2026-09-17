@@ -1,5 +1,6 @@
+import Axis from './Axis';
 import { seriesOf } from './plot';
-import { windowOf } from './axis';
+import { windowOf } from './frame';
 import { LINES } from '@/lib/lines';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Box } from './plot';
@@ -17,7 +18,7 @@ const TIGHT = 380;
 
 // Room on the left for the share labels, and a gutter on the right
 const LEFT = 48;
-const TIGHT_LEFT = 32;
+const TIGHT_LEFT = 34;
 const GUTTER = 16;
 const TIGHT_GUTTER = 12;
 
@@ -75,6 +76,7 @@ function Chart({ series, read }: ChartProps) {
                         viewBox={`0 0 ${width} ${HEIGHT}`}
                         className="block w-full overflow-visible"
                     >
+                        <Axis box={box} start={start} end={end} />
                         {drawn.map((one) => (
                             <path
                                 key={one.line.id}
