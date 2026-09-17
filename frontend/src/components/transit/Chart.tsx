@@ -1,4 +1,5 @@
 import Axis from './Axis';
+import Ends from './Ends';
 import { seriesOf } from './plot';
 import { windowOf } from './frame';
 import { LINES } from '@/lib/lines';
@@ -66,6 +67,18 @@ function Chart({ series, read }: ChartProps) {
         [series, start, end, box],
     );
 
+    // Where each line has reached
+    const ends = useMemo(
+        () =>
+            drawn
+                .map((one) => {
+                    const spot = one.spots.findLast((seen) => seen !== null);
+                    return spot == null ? null : { id: one.line.id, stroke: one.line.stroke, spot };
+                })
+                .filter((one) => one !== null),
+        [drawn],
+    );
+
     return (
         <div ref={cardRef} className="rounded-tile border border-seam bg-panel px-6 pt-5 pb-4">
             <div style={{ height: HEIGHT }}>
@@ -88,6 +101,7 @@ function Chart({ series, read }: ChartProps) {
                                 className={one.line.stroke}
                             />
                         ))}
+                        <Ends ends={ends} />
                     </svg>
                 )}
             </div>
