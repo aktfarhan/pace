@@ -1,16 +1,14 @@
 import Tabs from './Tabs';
 import Chart from './Chart';
+import Stamp from './Stamp';
 import Waiting from './Waiting';
 import { useState } from 'react';
-import { ageOf } from '@/lib/status';
-import { useNow } from '@/hooks/useNow';
 import { useTransit } from '@/hooks/useTransit';
 import type { Tab } from './tints';
 
 function Transit() {
     const [tab, setTab] = useState<Tab>('All');
 
-    const now = useNow();
     const { transit, failed, retry } = useTransit();
 
     return (
@@ -18,12 +16,7 @@ function Transit() {
             <div className="flex items-end justify-between gap-6 pb-1">
                 <span className="text-board text-bright">Transit</span>
                 {transit !== null && transit.status.ok && (
-                    <span className="flex shrink-0 items-center gap-2 rounded-full border border-edge bg-bubble px-3.25 py-1.75">
-                        <span className="size-1.25 rounded-full bg-good shadow-glow" />
-                        <span className="font-mono text-stamp text-hush uppercase">
-                            Live · {ageOf(transit.status.retrieved_at, now)}
-                        </span>
-                    </span>
+                    <Stamp retrievedAt={transit.status.retrieved_at} />
                 )}
             </div>
             <Tabs tab={tab} select={setTab} />
