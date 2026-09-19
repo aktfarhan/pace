@@ -2,9 +2,11 @@ import Axis from './Axis';
 import Ends from './Ends';
 import Guide from './Guide';
 import Labels from './Labels';
+import Legend from './Legend';
 import { useMemo } from 'react';
 import { windowOf } from './frame';
 import { LINES } from '@/lib/lines';
+import { figuresOf } from './figures';
 import { useHover } from '@/hooks/useHover';
 import { useChartBox } from '@/hooks/useChartBox';
 import { seriesOf, stackOf, type Mark } from './plot';
@@ -59,6 +61,8 @@ function Chart({ series, read }: ChartProps) {
     const labels = stackOf(marks, box.floor);
     const guide = marks.length === 0 ? null : marks[0].spot;
 
+    const figures = useMemo(() => figuresOf(series), [series]);
+
     // Where each line has reached
     const ends = useMemo(
         () =>
@@ -73,7 +77,8 @@ function Chart({ series, read }: ChartProps) {
 
     return (
         <div ref={cardRef} className="rounded-tile border border-seam bg-panel px-6 pt-5 pb-4">
-            <div style={{ height }}>
+            <Legend lines={LINES} figures={figures} />
+            <div className="mt-3" style={{ height }}>
                 {width > 0 && (
                     <svg
                         role="img"
