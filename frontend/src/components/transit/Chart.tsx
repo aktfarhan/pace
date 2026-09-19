@@ -1,14 +1,15 @@
 import Axis from './Axis';
 import Ends from './Ends';
+import Heading from './Heading';
 import Guide from './Guide';
 import Labels from './Labels';
 import Legend from './Legend';
 import { useMemo } from 'react';
 import { windowOf } from './frame';
 import { LINES } from '@/lib/lines';
-import { figuresOf } from './figures';
 import { useHover } from '@/hooks/useHover';
 import { useChartBox } from '@/hooks/useChartBox';
+import { figuresOf, stretchedOf } from './figures';
 import { useEmphasis } from '@/hooks/useEmphasis';
 import { marksOf, nearestOf, seriesOf, stackOf } from './plot';
 import type { Reading } from '@/types/transit';
@@ -16,13 +17,15 @@ import type { Reading } from '@/types/transit';
 interface ChartProps {
     series: Record<string, Reading[]>;
     read: number;
+    late: number;
+    rolling: number;
 }
 
-function Chart({ series, read }: ChartProps) {
+function Chart({ series, read, late, rolling }: ChartProps) {
     const { cardRef, width, box, height, tight } = useChartBox();
 
     const { start, end } = useMemo(() => {
-        const days = LINES.map((line) => series[line.id] ?? []);
+        const days = LINES.map((line) => series[line.id]);
         return windowOf(read, days);
     }, [read, series]);
 
@@ -31,7 +34,7 @@ function Chart({ series, read }: ChartProps) {
         () =>
             LINES.map((line) => ({
                 line,
-                ...seriesOf(series[line.id] ?? [], start, end, box),
+                ...seriesOf(series[line.id], start, end, box),
             })),
         [series, start, end, box],
     );
@@ -50,6 +53,7 @@ function Chart({ series, read }: ChartProps) {
     const guide = marks.length === 0 ? null : marks[0].spot;
 
     const figures = useMemo(() => figuresOf(series), [series]);
+    const stretched = useMemo(() => stretchedOf(series, rolling), [series, rolling]);
 
     // Where each line has reached
     const ends = useMemo(
@@ -64,7 +68,11 @@ function Chart({ series, read }: ChartProps) {
     );
 
     return (
-        <div ref={cardRef} className="rounded-tile border border-seam bg-panel px-6 pt-5 pb-4">
+        <div
+            ref={cardRef}
+            className="flex flex-col gap-3 rounded-tile border border-seam bg-panel px-6 pt-5 pb-4"
+        >
+            <Heading late={late} stretched={stretched} tight={tight} />
             <Legend
                 figures={figures}
                 picked={picked}
@@ -72,7 +80,7 @@ function Chart({ series, read }: ChartProps) {
                 light={light}
                 toggle={toggle}
             />
-            <div className="mt-3" style={{ height }}>
+            <div style={{ height }}>
                 {width > 0 && (
                     <svg
                         role="img"

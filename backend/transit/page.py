@@ -4,6 +4,8 @@ from datetime import datetime, time
 from typing import TypedDict
 
 from backend.lateness import (
+    LATE_SECONDS,
+    ROLLING_SECONDS,
     Reading,
     bucket_of,
     read_series,
@@ -28,6 +30,8 @@ class Transit(TypedDict):
     typical: dict[str, list[Reading]]
     headways: dict[str, int]
     resumes: dict[str, str]
+    late_minutes: int
+    rolling_minutes: int
 
 
 def read_transit(status: SystemStatus, now: datetime) -> Transit:
@@ -51,4 +55,6 @@ def read_transit(status: SystemStatus, now: datetime) -> Transit:
             service_date_at(now), service_seconds(now) // 3600, gtfs_stamp()
         ),
         "resumes": read_resumes(bucket_of(now), gtfs_stamp()),
+        "late_minutes": LATE_SECONDS // 60,
+        "rolling_minutes": ROLLING_SECONDS // 60,
     }

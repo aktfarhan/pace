@@ -27,7 +27,12 @@ function Transit() {
             </div>
             <Tabs tab={tab} select={setTab} />
             {transit !== null && (
-                <Chart series={transit.series} read={Date.parse(transit.status.retrieved_at)} />
+                <Chart
+                    series={transit.series}
+                    read={Date.parse(transit.status.retrieved_at)}
+                    late={transit.late_minutes}
+                    rolling={transit.rolling_minutes}
+                />
             )}
         </div>
     );

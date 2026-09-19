@@ -16,4 +16,6 @@ export interface Transit {
     typical: Record<string, Reading[]>;
     headways: Record<string, number>;
     resumes: Record<string, string>;
+    late_minutes: number;
+    rolling_minutes: number;
 }

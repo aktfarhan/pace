@@ -45,7 +45,7 @@ function driftOf(readings: Reading[]) {
 export function figuresOf(series: Record<string, Reading[]>) {
     const figures: Figure[] = [];
     for (const line of LINES) {
-        const readings = series[line.id] ?? [];
+        const readings = series[line.id];
         figures.push({
             line,
             share: readings.length === 0 ? null : readings[readings.length - 1].share,
@@ -53,4 +53,12 @@ export function figuresOf(series: Record<string, Reading[]>) {
         });
     }
     return figures;
+}
+
+// Whether any line reached past the hour behind
+export function stretchedOf(series: Record<string, Reading[]>, rolling: number) {
+    for (const line of LINES) {
+        if (series[line.id].some((reading) => reading.reach > rolling)) return true;
+    }
+    return false;
 }
