@@ -66,7 +66,6 @@ function Chart({ series, read }: ChartProps) {
     return (
         <div ref={cardRef} className="rounded-tile border border-seam bg-panel px-6 pt-5 pb-4">
             <Legend
-                lines={LINES}
                 figures={figures}
                 picked={picked}
                 strengthOf={strengthOf}
