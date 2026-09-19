@@ -2,11 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Box } from '@/components/transit/plot';
 
 // How tall the drawing is
-const HEIGHT = 278;
+export const HEIGHT = 278;
 
 // The edges the plot draws between
-const FLOOR = 246;
-const CEIL = 16;
+export const FLOOR = 246;
+export const CEIL = 16;
 
 // Below this width the margins tighten
 const TIGHT = 380;

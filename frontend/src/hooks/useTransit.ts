@@ -1,5 +1,5 @@
 import { readTransit } from '@/lib/pace';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { Transit } from '@/types/transit';
 
 // How long a reading is held
@@ -8,6 +8,11 @@ const POLL_MS = 30000;
 // The transit page's data, re-read on a timer
 export function useTransit() {
     const [transit, setTransit] = useState<Transit | null>(null);
+    const [failed, setFailed] = useState(false);
+    const [attempt, setAttempt] = useState(0);
+
+    // Asking again starts the timer over
+    const retry = useCallback(() => setAttempt((count) => count + 1), []);
 
     useEffect(() => {
         const control = new AbortController();
@@ -15,9 +20,11 @@ export function useTransit() {
         async function read() {
             try {
                 setTransit(await readTransit(control.signal));
+                setFailed(false);
             } catch (error) {
                 if (!control.signal.aborted) {
                     console.error(error);
+                    setFailed(true);
                 }
             }
         }
@@ -28,7 +35,7 @@ export function useTransit() {
             control.abort();
             clearInterval(timer);
         };
-    }, []);
+    }, [attempt]);
 
-    return transit;
+    return { transit, failed, retry };
 }

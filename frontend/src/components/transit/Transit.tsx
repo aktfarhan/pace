@@ -1,5 +1,6 @@
 import Tabs from './Tabs';
 import Chart from './Chart';
+import Waiting from './Waiting';
 import { useState } from 'react';
 import { ageOf } from '@/lib/status';
 import { useNow } from '@/hooks/useNow';
@@ -10,7 +11,7 @@ function Transit() {
     const [tab, setTab] = useState<Tab>('All');
 
     const now = useNow();
-    const transit = useTransit();
+    const { transit, failed, retry } = useTransit();
 
     return (
         <div className="flex min-w-0 flex-col gap-4.5">
@@ -26,6 +27,12 @@ function Transit() {
                 )}
             </div>
             <Tabs tab={tab} select={setTab} />
+            {transit === null && (
+                <Waiting
+                    note={failed ? 'Readings could not be reached' : 'Reading the day'}
+                    retry={failed ? retry : null}
+                />
+            )}
             {transit !== null && (
                 <Chart
                     series={transit.series}
