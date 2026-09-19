@@ -9,7 +9,8 @@ import { LINES } from '@/lib/lines';
 import { figuresOf } from './figures';
 import { useHover } from '@/hooks/useHover';
 import { useChartBox } from '@/hooks/useChartBox';
-import { seriesOf, stackOf, type Mark } from './plot';
+import { useEmphasis } from '@/hooks/useEmphasis';
+import { marksOf, seriesOf, stackOf } from './plot';
 import type { Reading } from '@/types/transit';
 
 interface ChartProps {
@@ -19,6 +20,7 @@ interface ChartProps {
 
 function Chart({ series, read }: ChartProps) {
     const { cardRef, width, box, height, tight } = useChartBox();
+    const { picked, lead, strengthOf, toggle, light } = useEmphasis();
 
     const { start, end } = useMemo(() => {
         const days = LINES.map((line) => series[line.id] ?? []);
@@ -40,23 +42,7 @@ function Chart({ series, read }: ChartProps) {
     const sheets = useMemo(() => drawn.map((one) => one.spots), [drawn]);
     const { reading, follow, lift, clear } = useHover(sheets, shown, start, end, box);
 
-    // Every line's reading when hovered
-    const marks: Mark[] = [];
-    if (reading !== null) {
-        for (const one of drawn) {
-            const spot = one.spots[reading];
-            if (spot === null) continue;
-
-            marks.push({
-                id: one.line.id,
-                code: one.line.code,
-                mark: one.line.mark,
-                stroke: one.line.stroke,
-                spot,
-            });
-        }
-        marks.sort((a, b) => a.spot.y - b.spot.y);
-    }
+    const marks = marksOf(drawn, reading);
 
     const labels = stackOf(marks, box.floor);
     const guide = marks.length === 0 ? null : marks[0].spot;
@@ -77,7 +63,14 @@ function Chart({ series, read }: ChartProps) {
 
     return (
         <div ref={cardRef} className="rounded-tile border border-seam bg-panel px-6 pt-5 pb-4">
-            <Legend lines={LINES} figures={figures} />
+            <Legend
+                lines={LINES}
+                figures={figures}
+                picked={picked}
+                strengthOf={strengthOf}
+                light={light}
+                toggle={toggle}
+            />
             <div className="mt-3" style={{ height }}>
                 {width > 0 && (
                     <svg
@@ -97,7 +90,8 @@ function Chart({ series, read }: ChartProps) {
                                 key={one.line.id}
                                 d={one.path}
                                 fill="none"
-                                strokeWidth={1.75}
+                                strokeWidth={lead === one.line.id ? 2.75 : 1.75}
+                                strokeOpacity={strengthOf(one.line.id)}
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                                 className={one.line.stroke}

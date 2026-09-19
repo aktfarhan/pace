@@ -1,0 +1,35 @@
+import { useState } from 'react';
+
+// How far back a line sits while others are picked
+const ASIDE = 0.1;
+
+// How far back it sits while another is led
+const BEHIND = 0.3;
+
+// Which line the chart leans toward, and how far back the rest sit
+export function useEmphasis() {
+    const [picked, setPicked] = useState<Set<string>>(new Set());
+    const [lead, setLead] = useState<string | null>(null);
+
+    // Picking holds lines up
+    const strengthOf = (id: string) => {
+        if (picked.size > 0) return picked.has(id) ? 1 : ASIDE;
+        if (lead === null || lead === id) return 1;
+        return BEHIND;
+    };
+
+    // Whichever line the pointer or the keyboard is on
+    const light = (id: string | null) => setLead(id);
+
+    // Picking a line already held lets it go
+    const toggle = (id: string) =>
+        setPicked((held) => {
+            const next = new Set(held);
+            if (!next.delete(id)) next.add(id);
+            return next;
+        });
+
+    return { picked, lead, strengthOf, toggle, light };
+}
+
+export type Emphasis = ReturnType<typeof useEmphasis>;

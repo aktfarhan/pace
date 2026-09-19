@@ -1,4 +1,5 @@
 import { curveMonotoneX, line } from 'd3-shape';
+import type { Drawn } from '@/lib/lines';
 import type { Reading } from '@/types/transit';
 
 // The share the axis tops out at
@@ -35,12 +36,18 @@ export interface Spot {
 }
 
 // One line's reading under the pointer
-export interface Mark {
+interface Mark {
     id: string;
     code: string;
     mark: string;
     stroke: string;
     spot: Spot;
+}
+
+// One line and the spots drawn for it
+interface Sheet {
+    line: Drawn;
+    spots: (Spot | null)[];
 }
 
 // A mark with its readout placed
@@ -69,6 +76,28 @@ export function xOf(at: number, start: number, end: number, box: Box) {
 // Where a share sits between the floor and the ceiling
 export function yOf(share: number, box: Box) {
     return box.floor - (share / TOP) * (box.floor - box.ceil);
+}
+
+// Every line's reading at that slot
+export function marksOf(sheets: Sheet[], reading: number | null) {
+    const marks: Mark[] = [];
+    if (reading === null) return marks;
+
+    for (const sheet of sheets) {
+        const spot = sheet.spots[reading];
+        if (spot === null) continue;
+
+        marks.push({
+            id: sheet.line.id,
+            code: sheet.line.code,
+            mark: sheet.line.mark,
+            stroke: sheet.line.stroke,
+            spot,
+        });
+    }
+
+    marks.sort((a, b) => a.spot.y - b.spot.y);
+    return marks;
 }
 
 // Lifts each readout clear of the one above
