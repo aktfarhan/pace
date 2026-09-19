@@ -10,7 +10,7 @@ import { figuresOf } from './figures';
 import { useHover } from '@/hooks/useHover';
 import { useChartBox } from '@/hooks/useChartBox';
 import { useEmphasis } from '@/hooks/useEmphasis';
-import { marksOf, seriesOf, stackOf } from './plot';
+import { marksOf, nearestOf, seriesOf, stackOf } from './plot';
 import type { Reading } from '@/types/transit';
 
 interface ChartProps {
@@ -20,7 +20,6 @@ interface ChartProps {
 
 function Chart({ series, read }: ChartProps) {
     const { cardRef, width, box, height, tight } = useChartBox();
-    const { picked, lead, strengthOf, toggle, light } = useEmphasis();
 
     const { start, end } = useMemo(() => {
         const days = LINES.map((line) => series[line.id] ?? []);
@@ -40,9 +39,12 @@ function Chart({ series, read }: ChartProps) {
     // The lines the hover reads from
     const shown = drawn.map((one) => one.line.id).join();
     const sheets = useMemo(() => drawn.map((one) => one.spots), [drawn]);
-    const { reading, follow, lift, clear } = useHover(sheets, shown, start, end, box);
+    const { held, reading, follow, lift, clear } = useHover(sheets, shown, start, end, box);
 
     const marks = marksOf(drawn, reading);
+
+    const near = held === null ? null : nearestOf(marks, held.y);
+    const { picked, lead, strengthOf, toggle, light } = useEmphasis(near);
 
     const labels = stackOf(marks, box.floor);
     const guide = marks.length === 0 ? null : marks[0].spot;
@@ -97,7 +99,7 @@ function Chart({ series, read }: ChartProps) {
                                 className={one.line.stroke}
                             />
                         ))}
-                        <Ends ends={ends} />
+                        <Ends ends={ends} strengthOf={strengthOf} />
                         <Labels labels={labels} box={box} tight={tight} />
                     </svg>
                 )}

@@ -100,6 +100,20 @@ export function marksOf(sheets: Sheet[], reading: number | null) {
     return marks;
 }
 
+// The line the pointer sits nearest
+export function nearestOf(marks: Mark[], y: number) {
+    let near: string | null = null;
+    let away = Infinity;
+    for (const mark of marks) {
+        const gap = Math.abs(mark.spot.y - y);
+        if (gap >= away) continue;
+
+        away = gap;
+        near = mark.id;
+    }
+    return near;
+}
+
 // Lifts each readout clear of the one above
 export function stackOf(marks: Mark[], floor: number) {
     const labels: Label[] = [];

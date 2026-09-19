@@ -7,9 +7,12 @@ const ASIDE = 0.1;
 const BEHIND = 0.3;
 
 // Which line the chart leans toward, and how far back the rest sit
-export function useEmphasis() {
+export function useEmphasis(near: string | null) {
     const [picked, setPicked] = useState<Set<string>>(new Set());
-    const [lead, setLead] = useState<string | null>(null);
+    const [lit, setLit] = useState<string | null>(null);
+
+    // A chip under the cursor leads
+    const lead = lit ?? near;
 
     // Picking holds lines up
     const strengthOf = (id: string) => {
@@ -19,7 +22,7 @@ export function useEmphasis() {
     };
 
     // Whichever line the pointer or the keyboard is on
-    const light = (id: string | null) => setLead(id);
+    const light = (id: string | null) => setLit(id);
 
     // Picking a line already held lets it go
     const toggle = (id: string) =>
