@@ -41,5 +41,5 @@ export function useChartBox() {
         };
     }, [width]);
 
-    return { cardRef, width, box, height: HEIGHT };
+    return { cardRef, width, box, height: HEIGHT, tight: width < TIGHT };
 }

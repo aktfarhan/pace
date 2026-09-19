@@ -6,7 +6,15 @@ export const TOP = 100;
 
 // How much of the day one reading covers
 export const BUCKET_MS = 15 * 60000;
+
+// How long the axis counts by
 export const HOUR_MS = 60 * 60000;
+
+// How close two readouts may sit
+const LABEL_GAP = 11;
+
+// How far a readout drops to centre on its dot
+const LABEL_DROP = 3.5;
 
 // The edges a chart draws between
 export interface Box {
@@ -24,6 +32,20 @@ export interface Spot {
     share: number;
     seen: number;
     reach: number;
+}
+
+// One line's reading under the pointer
+export interface Mark {
+    id: string;
+    code: string;
+    mark: string;
+    stroke: string;
+    spot: Spot;
+}
+
+// A mark with its readout placed
+export interface Label extends Mark {
+    y: number;
 }
 
 // Draws a line of spots
@@ -47,6 +69,27 @@ export function xOf(at: number, start: number, end: number, box: Box) {
 // Where a share sits between the floor and the ceiling
 export function yOf(share: number, box: Box) {
     return box.floor - (share / TOP) * (box.floor - box.ceil);
+}
+
+// Lifts each readout clear of the one above
+export function stackOf(marks: Mark[], floor: number) {
+    const labels: Label[] = [];
+    let taken = -Infinity;
+    for (const mark of marks) {
+        const y = Math.max(mark.spot.y + LABEL_DROP, taken + LABEL_GAP);
+        taken = y;
+        labels.push({ ...mark, y });
+    }
+
+    // A stack past the floor is pushed back up
+    let under = floor;
+    for (let index = labels.length - 1; index >= 0; index -= 1) {
+        const lifted = Math.min(labels[index].y, under);
+        labels[index] = { ...labels[index], y: lifted };
+        under = lifted - LABEL_GAP;
+    }
+
+    return labels;
 }
 
 // The slot a point along the plot falls in

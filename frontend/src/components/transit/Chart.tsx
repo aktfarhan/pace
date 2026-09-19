@@ -1,11 +1,13 @@
 import Axis from './Axis';
 import Ends from './Ends';
-import { seriesOf } from './plot';
+import Guide from './Guide';
+import Labels from './Labels';
+import { useMemo } from 'react';
 import { windowOf } from './frame';
 import { LINES } from '@/lib/lines';
 import { useHover } from '@/hooks/useHover';
 import { useChartBox } from '@/hooks/useChartBox';
-import { useMemo } from 'react';
+import { seriesOf, stackOf, type Mark } from './plot';
 import type { Reading } from '@/types/transit';
 
 interface ChartProps {
@@ -14,7 +16,7 @@ interface ChartProps {
 }
 
 function Chart({ series, read }: ChartProps) {
-    const { cardRef, width, box, height } = useChartBox();
+    const { cardRef, width, box, height, tight } = useChartBox();
 
     const { start, end } = useMemo(() => {
         const days = LINES.map((line) => series[line.id] ?? []);
@@ -34,7 +36,28 @@ function Chart({ series, read }: ChartProps) {
     // The lines the hover reads from
     const shown = drawn.map((one) => one.line.id).join();
     const sheets = useMemo(() => drawn.map((one) => one.spots), [drawn]);
-    const { follow, lift, clear } = useHover(sheets, shown, start, end, box);
+    const { reading, follow, lift, clear } = useHover(sheets, shown, start, end, box);
+
+    // Every line's reading when hovered
+    const marks: Mark[] = [];
+    if (reading !== null) {
+        for (const one of drawn) {
+            const spot = one.spots[reading];
+            if (spot === null) continue;
+
+            marks.push({
+                id: one.line.id,
+                code: one.line.code,
+                mark: one.line.mark,
+                stroke: one.line.stroke,
+                spot,
+            });
+        }
+        marks.sort((a, b) => a.spot.y - b.spot.y);
+    }
+
+    const labels = stackOf(marks, box.floor);
+    const guide = marks.length === 0 ? null : marks[0].spot;
 
     // Where each line has reached
     const ends = useMemo(
@@ -63,6 +86,7 @@ function Chart({ series, read }: ChartProps) {
                         onPointerCancel={clear}
                     >
                         <Axis box={box} start={start} end={end} />
+                        {guide !== null && <Guide spot={guide} box={box} />}
                         {drawn.map((one) => (
                             <path
                                 key={one.line.id}
@@ -75,6 +99,7 @@ function Chart({ series, read }: ChartProps) {
                             />
                         ))}
                         <Ends ends={ends} />
+                        <Labels labels={labels} box={box} tight={tight} />
                     </svg>
                 )}
             </div>
