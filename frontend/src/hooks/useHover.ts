@@ -5,7 +5,7 @@ import type { Box, Spot } from '@/components/transit/plot';
 
 // Where the pointer is
 interface Held {
-    slot: number;
+    x: number;
     y: number;
 }
 
@@ -31,24 +31,22 @@ export function useHover(
         if (held === null) return null;
 
         const slots = sheets.length === 0 ? 0 : sheets[0].length;
+        const under = slotAt(held.x, start, end, box);
         for (let away = 0; away < slots; away += 1) {
-            for (const slot of [held.slot - away, held.slot + away]) {
+            for (const slot of [under - away, under + away]) {
                 if (slot < 0 || slot >= slots) continue;
                 if (sheets.some((spots) => spots[slot] != null)) return slot;
             }
         }
         return null;
-    }, [held, sheets]);
+    }, [held, sheets, start, end, box]);
 
     const clear = () => setHeld(null);
 
     // Read out every line at whichever quarter hour the pointer is over
     const follow = (event: PointerEvent<SVGSVGElement>) => {
         const edge = event.currentTarget.getBoundingClientRect();
-        setHeld({
-            slot: slotAt(event.clientX - edge.left, start, end, box),
-            y: event.clientY - edge.top,
-        });
+        setHeld({ x: event.clientX - edge.left, y: event.clientY - edge.top });
     };
 
     // A touch leaves nothing behind once it lifts

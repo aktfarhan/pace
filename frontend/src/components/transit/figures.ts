@@ -54,11 +54,3 @@ export function figuresOf(series: Record<string, Reading[]>) {
     }
     return figures;
 }
-
-// Whether any line reached past the hour behind
-export function stretchedOf(series: Record<string, Reading[]>, rolling: number) {
-    for (const line of LINES) {
-        if (series[line.id].some((reading) => reading.reach > rolling)) return true;
-    }
-    return false;
-}

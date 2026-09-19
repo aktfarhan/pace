@@ -26,7 +26,7 @@ const CLOCK = new Intl.DateTimeFormat('en-US', {
 });
 
 // The stretch of the day the chart covers
-export function windowOf(now: number, shown: Reading[][]) {
+export function windowOf(now: number, shown: Reading[][], hours: number | null) {
     let first = Infinity;
     for (const readings of shown) {
         const at = readings.length === 0 ? NaN : Date.parse(readings[0].at);
@@ -41,6 +41,12 @@ export function windowOf(now: number, shown: Reading[][]) {
         }
         dawn.setHours(FIRST_HOUR, 0, 0, 0);
         first = dawn.getTime();
+    }
+
+    // Readings land on the quarter hour
+    if (hours !== null) {
+        const back = Math.floor((now - hours * HOUR_MS) / BUCKET_MS) * BUCKET_MS;
+        first = Math.max(back, first);
     }
 
     // Hold it a bucket wide, so now reaches the edge

@@ -9,7 +9,10 @@ export const TABS: { label: Tab; dot: string | null }[] = [
 ];
 
 // The chart's small controls
-const SHELL = 'rounded-chip border border-edge bg-bubble';
+export const SHELL = 'rounded-chip border border-edge bg-bubble';
 
 // A label for the chart's corners
 export const CHIP = `${SHELL} px-2.25 py-0.75 font-mono text-chip uppercase`;
+
+// One pick inside a raised control
+export const SEGMENT = 'cursor-pointer rounded-chip px-1.75 py-0.5 font-mono text-chip uppercase';

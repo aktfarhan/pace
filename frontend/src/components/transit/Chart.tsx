@@ -4,14 +4,14 @@ import Heading from './Heading';
 import Guide from './Guide';
 import Labels from './Labels';
 import Legend from './Legend';
-import { useMemo } from 'react';
 import { windowOf } from './frame';
 import { LINES } from '@/lib/lines';
+import { figuresOf } from './figures';
+import { useMemo, useState } from 'react';
 import { useHover } from '@/hooks/useHover';
 import { useChartBox } from '@/hooks/useChartBox';
-import { figuresOf, stretchedOf } from './figures';
 import { useEmphasis } from '@/hooks/useEmphasis';
-import { marksOf, nearestOf, seriesOf, stackOf } from './plot';
+import { marksOf, nearestOf, seriesOf, stackOf, stretchedOf } from './plot';
 import type { Reading } from '@/types/transit';
 
 interface ChartProps {
@@ -23,11 +23,12 @@ interface ChartProps {
 
 function Chart({ series, read, late, rolling }: ChartProps) {
     const { cardRef, width, box, height, tight } = useChartBox();
+    const [span, setSpan] = useState<number | null>(null);
 
     const { start, end } = useMemo(() => {
         const days = LINES.map((line) => series[line.id]);
-        return windowOf(read, days);
-    }, [read, series]);
+        return windowOf(read, days, span);
+    }, [read, series, span]);
 
     // Place the readings only when they or the box move
     const drawn = useMemo(
@@ -53,7 +54,7 @@ function Chart({ series, read, late, rolling }: ChartProps) {
     const guide = marks.length === 0 ? null : marks[0].spot;
 
     const figures = useMemo(() => figuresOf(series), [series]);
-    const stretched = useMemo(() => stretchedOf(series, rolling), [series, rolling]);
+    const stretched = useMemo(() => stretchedOf(drawn, rolling), [drawn, rolling]);
 
     // Where each line has reached
     const ends = useMemo(
@@ -72,7 +73,7 @@ function Chart({ series, read, late, rolling }: ChartProps) {
             ref={cardRef}
             className="flex flex-col gap-3 rounded-tile border border-seam bg-panel px-6 pt-5 pb-4"
         >
-            <Heading late={late} stretched={stretched} tight={tight} />
+            <Heading late={late} stretched={stretched} tight={tight} span={span} select={setSpan} />
             <Legend
                 figures={figures}
                 picked={picked}

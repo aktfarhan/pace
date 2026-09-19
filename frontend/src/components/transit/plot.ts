@@ -100,6 +100,14 @@ export function marksOf(sheets: Sheet[], reading: number | null) {
     return marks;
 }
 
+// Whether any reading drawn reached past the hour behind
+export function stretchedOf(drawn: Sheet[], rolling: number) {
+    for (const sheet of drawn) {
+        if (sheet.spots.some((spot) => spot !== null && spot.reach > rolling)) return true;
+    }
+    return false;
+}
+
 // The line the pointer sits nearest
 export function nearestOf(marks: Mark[], y: number) {
     let near: string | null = null;
