@@ -7,9 +7,17 @@ const ASIDE = 0.1;
 const BEHIND = 0.3;
 
 // Which line the chart leans toward, and how far back the rest sit
-export function useEmphasis(near: string | null) {
+export function useEmphasis(shown: string, near: string | null) {
+    const [forLines, setForLines] = useState(shown);
     const [picked, setPicked] = useState<Set<string>>(new Set());
     const [lit, setLit] = useState<string | null>(null);
+
+    // Show only the selected lines
+    if (forLines !== shown) {
+        setForLines(shown);
+        setPicked(new Set());
+        setLit(null);
+    }
 
     // A chip under the cursor leads
     const lead = lit ?? near;

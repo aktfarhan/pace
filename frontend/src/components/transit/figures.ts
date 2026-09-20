@@ -1,5 +1,5 @@
 import { HOUR_MS } from './plot';
-import { LINES, type Drawn } from '@/lib/lines';
+import type { Drawn } from '@/lib/lines';
 import type { Reading } from '@/types/transit';
 
 // Minimum required points
@@ -42,9 +42,9 @@ function driftOf(readings: Reading[]) {
 }
 
 // What every line is running at now, and which way its moving
-export function figuresOf(series: Record<string, Reading[]>) {
+export function figuresOf(lines: readonly Drawn[], series: Record<string, Reading[]>) {
     const figures: Figure[] = [];
-    for (const line of LINES) {
+    for (const line of lines) {
         const readings = series[line.id];
         figures.push({
             line,

@@ -5,39 +5,40 @@ import Guide from './Guide';
 import Labels from './Labels';
 import Legend from './Legend';
 import { windowOf } from './frame';
-import { LINES } from '@/lib/lines';
 import { figuresOf } from './figures';
 import { useMemo, useState } from 'react';
 import { useHover } from '@/hooks/useHover';
 import { useChartBox } from '@/hooks/useChartBox';
 import { useEmphasis } from '@/hooks/useEmphasis';
 import { marksOf, nearestOf, seriesOf, stackOf, stretchedOf } from './plot';
+import type { Drawn } from '@/lib/lines';
 import type { Reading } from '@/types/transit';
 
 interface ChartProps {
+    lines: readonly Drawn[];
     series: Record<string, Reading[]>;
     read: number;
     late: number;
     rolling: number;
 }
 
-function Chart({ series, read, late, rolling }: ChartProps) {
+function Chart({ lines, series, read, late, rolling }: ChartProps) {
     const { cardRef, width, box, height, tight } = useChartBox();
     const [span, setSpan] = useState<number | null>(null);
 
     const { start, end } = useMemo(() => {
-        const days = LINES.map((line) => series[line.id]);
+        const days = lines.map((line) => series[line.id]);
         return windowOf(read, days, span);
-    }, [read, series, span]);
+    }, [lines, read, series, span]);
 
     // Place the readings only when they or the box move
     const drawn = useMemo(
         () =>
-            LINES.map((line) => ({
+            lines.map((line) => ({
                 line,
                 ...seriesOf(series[line.id], start, end, box),
             })),
-        [series, start, end, box],
+        [lines, series, start, end, box],
     );
 
     // The lines the hover reads from
@@ -48,12 +49,12 @@ function Chart({ series, read, late, rolling }: ChartProps) {
     const marks = marksOf(drawn, reading);
 
     const near = held === null ? null : nearestOf(marks, held.y);
-    const { picked, lead, strengthOf, toggle, light } = useEmphasis(near);
+    const { picked, lead, strengthOf, toggle, light } = useEmphasis(shown, near);
 
     const labels = stackOf(marks, box.floor);
     const guide = marks.length === 0 ? null : marks[0].spot;
 
-    const figures = useMemo(() => figuresOf(series), [series]);
+    const figures = useMemo(() => figuresOf(lines, series), [lines, series]);
     const stretched = useMemo(() => stretchedOf(drawn, rolling), [drawn, rolling]);
 
     // Where each line has reached
