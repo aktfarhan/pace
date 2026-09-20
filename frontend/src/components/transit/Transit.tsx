@@ -3,6 +3,7 @@ import Chart from './Chart';
 import Stamp from './Stamp';
 import Waiting from './Waiting';
 import { LINES } from '@/lib/lines';
+import { SHORT_CODE } from './tints';
 import { useMemo, useState } from 'react';
 import { useTransit } from '@/hooks/useTransit';
 import type { Tab } from './tints';
@@ -36,7 +37,8 @@ function Transit() {
         const name = transit?.branches[focused.id]?.find((one) => one.id === branch)?.name;
         if (name === undefined) return [focused];
 
-        return [{ ...focused, id: branch, label: `${focused.label} ${name}`, code: name }];
+        const code = name.length > SHORT_CODE ? focused.code : name;
+        return [{ ...focused, id: branch, label: `${focused.label} ${name}`, code }];
     }, [focused, branch, transit]);
 
     return (
