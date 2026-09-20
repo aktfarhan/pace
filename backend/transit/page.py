@@ -13,6 +13,7 @@ from backend.lateness import (
     read_typical,
     read_headways,
 )
+from backend.lines import BRANCH_LIST
 from backend.status import SystemStatus
 from backend.timetable import (
     SERVICE_ROLLOVER_HOUR,
@@ -30,6 +31,7 @@ class Transit(TypedDict):
     typical: dict[str, list[Reading]]
     headways: dict[str, int]
     resumes: dict[str, str]
+    branches: dict[str, list[dict[str, str]]]
     late_minutes: int
     rolling_minutes: int
 
@@ -55,6 +57,7 @@ def read_transit(status: SystemStatus, now: datetime) -> Transit:
             service_date_at(now), service_seconds(now) // 3600, gtfs_stamp()
         ),
         "resumes": read_resumes(bucket_of(now), gtfs_stamp()),
+        "branches": BRANCH_LIST,
         "late_minutes": LATE_SECONDS // 60,
         "rolling_minutes": ROLLING_SECONDS // 60,
     }

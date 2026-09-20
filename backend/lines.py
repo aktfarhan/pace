@@ -40,6 +40,12 @@ for line_id, _, _, routes in LINES:
     for route in routes:
         LINE_OF[route] = line_id
 
+# Every branch a line runs
+BRANCH_LIST: dict[str, list[dict[str, str]]] = {}
+for line, branches in BRANCHES.items():
+    for route, name in branches.items():
+        BRANCH_LIST.setdefault(line, []).append({"id": route, "name": name})
+
 # Every route that is a branch of a line
 BRANCH_ROUTES: set[str] = set()
 for branches in BRANCHES.values():
