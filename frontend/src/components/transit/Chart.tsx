@@ -5,8 +5,9 @@ import Heading from './Heading';
 import Guide from './Guide';
 import Labels from './Labels';
 import Legend from './Legend';
+import Typical from './Typical';
 import { windowOf } from './frame';
-import { figuresOf } from './figures';
+import { figuresOf, typicalOf } from './figures';
 import { useMemo, useState } from 'react';
 import { useHover } from '@/hooks/useHover';
 import { useChartBox } from '@/hooks/useChartBox';
@@ -18,12 +19,13 @@ import type { Reading } from '@/types/transit';
 interface ChartProps {
     lines: readonly Drawn[];
     series: Record<string, Reading[]>;
+    typical: Record<string, Reading[]>;
     read: number;
     late: number;
     rolling: number;
 }
 
-function Chart({ lines, series, read, late, rolling }: ChartProps) {
+function Chart({ lines, series, typical, read, late, rolling }: ChartProps) {
     const { cardRef, width, box, height, tight } = useChartBox();
     const [span, setSpan] = useState<number | null>(null);
 
@@ -56,6 +58,15 @@ function Chart({ lines, series, read, late, rolling }: ChartProps) {
     const guide = marks.length === 0 ? null : marks[0].spot;
 
     const figures = useMemo(() => figuresOf(lines, series), [lines, series]);
+    const typically = useMemo(() => typicalOf(typical, lines), [typical, lines]);
+
+    // The typical is only for specific lines
+    const typicalPath = useMemo(() => {
+        if (lines.length !== 1) return null;
+
+        const { path } = seriesOf(typical[lines[0].id], start, end, box);
+        return path === '' ? null : { path, stroke: lines[0].stroke };
+    }, [lines, typical, start, end, box]);
     const stretched = useMemo(() => stretchedOf(drawn, rolling), [drawn, rolling]);
 
     // Where each line has reached
@@ -77,7 +88,7 @@ function Chart({ lines, series, read, late, rolling }: ChartProps) {
         >
             <Heading late={late} stretched={stretched} tight={tight} span={span} select={setSpan} />
             {figures.length === 1 ? (
-                <Focus figure={figures[0]} />
+                <Focus figure={figures[0]} typically={typically} />
             ) : (
                 <Legend
                     figures={figures}
@@ -101,6 +112,9 @@ function Chart({ lines, series, read, late, rolling }: ChartProps) {
                     >
                         <Axis box={box} start={start} end={end} />
                         {guide !== null && <Guide spot={guide} box={box} />}
+                        {typicalPath !== null && (
+                            <Typical path={typicalPath.path} stroke={typicalPath.stroke} />
+                        )}
                         {drawn.map((one) => (
                             <path
                                 key={one.line.id}

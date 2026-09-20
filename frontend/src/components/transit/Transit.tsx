@@ -37,6 +37,7 @@ function Transit() {
                 <Chart
                     lines={lines}
                     series={transit.series}
+                    typical={transit.typical}
                     read={Date.parse(transit.status.retrieved_at)}
                     late={transit.late_minutes}
                     rolling={transit.rolling_minutes}

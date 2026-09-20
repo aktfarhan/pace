@@ -66,10 +66,10 @@ ROLLING_FLOOR = 10
 # How far back a thin stretch may keep reaching
 ROLLING_CAP = 3 * ROLLING_SECONDS
 
-# How many days go into a usual day
+# How many days go into a typical day
 TYPICAL_DAYS = 14
 
-# Too few days to call anything usual
+# Too few days to call anything typical
 TYPICAL_FLOOR = 2
 
 # The zone earlier days are read back in
@@ -560,7 +560,7 @@ def empty_series() -> dict[str, list[Reading]]:
 
 @lru_cache(maxsize=2)
 def read_typical(began: datetime, edge: datetime) -> dict[str, list[Reading]]:
-    """Reads the share each line usually runs at, by time of day.
+    """Reads the share each line typically runs at, by time of day.
 
     Args:
         began: When today's service day started.

@@ -12,6 +12,12 @@ export interface Figure {
     drift: number | null;
 }
 
+// What a line typically runs at
+export interface Typically {
+    share: number;
+    days: number;
+}
+
 // How far one line has moved in the last hour
 function driftOf(readings: Reading[]) {
     if (readings.length === 0) return null;
@@ -53,4 +59,18 @@ export function figuresOf(lines: readonly Drawn[], series: Record<string, Readin
         });
     }
     return figures;
+}
+
+// Where a line typically is by now
+export function typicalOf(
+    typical: Record<string, Reading[]>,
+    lines: readonly Drawn[],
+): Typically | null {
+    if (lines.length !== 1) return null;
+
+    const readings = typical[lines[0].id];
+    if (readings.length === 0) return null;
+
+    const last = readings[readings.length - 1];
+    return { share: last.share, days: last.days ?? 0 };
 }
