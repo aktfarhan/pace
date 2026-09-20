@@ -1,5 +1,6 @@
 import Axis from './Axis';
 import Ends from './Ends';
+import Focus from './Focus';
 import Heading from './Heading';
 import Guide from './Guide';
 import Labels from './Labels';
@@ -75,13 +76,17 @@ function Chart({ lines, series, read, late, rolling }: ChartProps) {
             className="flex flex-col gap-3 rounded-tile border border-seam bg-panel px-6 pt-5 pb-4"
         >
             <Heading late={late} stretched={stretched} tight={tight} span={span} select={setSpan} />
-            <Legend
-                figures={figures}
-                picked={picked}
-                strengthOf={strengthOf}
-                light={light}
-                toggle={toggle}
-            />
+            {figures.length === 1 ? (
+                <Focus figure={figures[0]} />
+            ) : (
+                <Legend
+                    figures={figures}
+                    picked={picked}
+                    strengthOf={strengthOf}
+                    light={light}
+                    toggle={toggle}
+                />
+            )}
             <div style={{ height }}>
                 {width > 0 && (
                     <svg
