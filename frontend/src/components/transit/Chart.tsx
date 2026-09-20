@@ -14,7 +14,7 @@ import { useChartBox } from '@/hooks/useChartBox';
 import { useEmphasis } from '@/hooks/useEmphasis';
 import { marksOf, nearestOf, seriesOf, stackOf, stretchedOf } from './plot';
 import type { Drawn } from '@/lib/lines';
-import type { Reading } from '@/types/transit';
+import type { Branching, Reading } from '@/types/transit';
 
 interface ChartProps {
     lines: readonly Drawn[];
@@ -23,9 +23,10 @@ interface ChartProps {
     read: number;
     late: number;
     rolling: number;
+    branching: Branching | null;
 }
 
-function Chart({ lines, series, typical, read, late, rolling }: ChartProps) {
+function Chart({ lines, series, typical, read, late, rolling, branching }: ChartProps) {
     const { cardRef, width, box, height, tight } = useChartBox();
     const [span, setSpan] = useState<number | null>(null);
 
@@ -86,7 +87,14 @@ function Chart({ lines, series, typical, read, late, rolling }: ChartProps) {
             ref={cardRef}
             className="flex flex-col gap-3 rounded-tile border border-seam bg-panel px-6 pt-5 pb-4"
         >
-            <Heading late={late} stretched={stretched} tight={tight} span={span} select={setSpan} />
+            <Heading
+                late={late}
+                stretched={stretched}
+                tight={tight}
+                span={span}
+                select={setSpan}
+                branching={branching}
+            />
             {figures.length === 1 ? (
                 <Focus figure={figures[0]} typically={typically} />
             ) : (

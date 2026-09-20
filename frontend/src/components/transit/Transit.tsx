@@ -6,17 +6,38 @@ import { LINES } from '@/lib/lines';
 import { useMemo, useState } from 'react';
 import { useTransit } from '@/hooks/useTransit';
 import type { Tab } from './tints';
+import type { Branching } from '@/types/transit';
 
 function Transit() {
     const [tab, setTab] = useState<Tab>('All');
-
+    const [branch, setBranch] = useState<string | null>(null);
     const { transit, failed, retry } = useTransit();
 
-    // The All tab draws every line, any other draws its own
+    const focused = LINES.find((line) => line.label === tab);
+
+    // A new tab drops the branch
+    const choose = (next: Tab) => {
+        setTab(next);
+        setBranch(null);
+    };
+
+    // No picker unless the line has branches
+    const branching: Branching | null =
+        focused === undefined || transit === null || transit.branches[focused.id] === undefined
+            ? null
+            : { line: focused, branches: transit.branches[focused.id], branch, pick: setBranch };
+
+    // Which lines the chart draws
     const lines = useMemo(() => {
-        const focused = LINES.find((line) => line.label === tab);
-        return focused === undefined ? LINES : [focused];
-    }, [tab]);
+        if (focused === undefined) return LINES;
+        if (branch === null) return [focused];
+
+        // The branch under its line's colours
+        const name = transit?.branches[focused.id]?.find((one) => one.id === branch)?.name;
+        if (name === undefined) return [focused];
+
+        return [{ ...focused, id: branch, label: `${focused.label} ${name}`, code: name }];
+    }, [focused, branch, transit]);
 
     return (
         <div className="flex min-w-0 flex-col gap-4.5">
@@ -26,7 +47,7 @@ function Transit() {
                     <Stamp retrievedAt={transit.status.retrieved_at} />
                 )}
             </div>
-            <Tabs tab={tab} select={setTab} />
+            <Tabs tab={tab} select={choose} />
             {transit === null && (
                 <Waiting
                     note={failed ? 'Readings could not be reached' : 'Reading the day'}
@@ -41,6 +62,7 @@ function Transit() {
                     read={Date.parse(transit.status.retrieved_at)}
                     late={transit.late_minutes}
                     rolling={transit.rolling_minutes}
+                    branching={branching}
                 />
             )}
         </div>
