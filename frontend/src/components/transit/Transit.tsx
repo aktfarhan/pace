@@ -101,7 +101,7 @@ function Transit() {
             )}
             <Cards name="Right now" standing={standing} />
             <Cards name="Branches" standing={running} />
-            <Notices notices={notices} bare={focused === undefined} />
+            <Notices key={tab} notices={notices} bare={focused === undefined} />
         </div>
     );
 }

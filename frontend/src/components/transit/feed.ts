@@ -55,3 +55,16 @@ export function noticesOf(transit: Transit, focused: Line | undefined) {
         (a, b) => Number(b.alert.slowing) - Number(a.alert.slowing) || began(b) - began(a),
     );
 }
+
+// Every word a notice carries, for a search to look through
+export function wordsOf({ lines, alert }: Notice) {
+    const said = [
+        ...lines.map((one) => one.label),
+        alert.where,
+        alert.effect,
+        alert.headline,
+        alert.detail,
+    ];
+
+    return said.join(' ').toLowerCase();
+}
