@@ -1,4 +1,5 @@
 import Tabs from './Tabs';
+import Cards from './Cards';
 import Chart from './Chart';
 import Stamp from './Stamp';
 import Waiting from './Waiting';
@@ -6,6 +7,7 @@ import { LINES } from '@/lib/lines';
 import { SHORT_CODE } from './tints';
 import { useMemo, useState } from 'react';
 import { useTransit } from '@/hooks/useTransit';
+import { feedOf, lookOf, nameOf } from './standing';
 import type { Tab } from './tints';
 import type { Branching } from '@/types/transit';
 
@@ -41,6 +43,28 @@ function Transit() {
         return [{ ...focused, id: branch, label: `${focused.label} ${name}`, code }];
     }, [focused, branch, transit]);
 
+    // Where every line stands right now
+    const standing = useMemo(() => {
+        if (transit === null || focused !== undefined) return [];
+
+        return LINES.map((line) => ({
+            ...feedOf(transit, line.id),
+            ...lookOf(line),
+            name: nameOf(transit, line),
+        }));
+    }, [transit, focused]);
+
+    // Where each branch of a selected line stands
+    const running = useMemo(() => {
+        if (transit === null || focused === undefined) return [];
+
+        return (transit.branches[focused.id] ?? []).map(({ id, name }) => ({
+            ...feedOf(transit, id),
+            ...lookOf(focused),
+            name,
+        }));
+    }, [transit, focused]);
+
     return (
         <div className="flex min-w-0 flex-col gap-4.5">
             <div className="flex items-end justify-between gap-6 pb-1">
@@ -67,6 +91,8 @@ function Transit() {
                     branching={branching}
                 />
             )}
+            <Cards name="Right now" standing={standing} />
+            <Cards name="Branches" standing={running} />
         </div>
     );
 }

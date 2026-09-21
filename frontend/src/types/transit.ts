@@ -35,3 +35,16 @@ export interface Branching {
     branch: string | null;
     pick: (branch: string | null) => void;
 }
+
+// One line or branch, and how it is running
+export interface Standing {
+    id: string;
+    code: string;
+    name: string;
+    chip: string;
+    text: string;
+    share: number | null;
+    drift: number | null;
+    every: number | null;
+    next: string | null;
+}

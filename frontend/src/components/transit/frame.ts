@@ -25,6 +25,11 @@ const CLOCK = new Intl.DateTimeFormat('en-US', {
     hour12: true,
 });
 
+// The hour and minute of a time
+export function clockOf(at: number) {
+    return CLOCK.format(at);
+}
+
 // The stretch of the day the chart covers
 export function windowOf(now: number, shown: Reading[][], hours: number | null) {
     let first = Infinity;

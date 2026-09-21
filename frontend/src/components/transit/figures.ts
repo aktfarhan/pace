@@ -47,16 +47,19 @@ function driftOf(readings: Reading[]) {
     return Math.abs(moved) < DRIFT ? null : moved;
 }
 
+// Where one set of readings stands right now
+export function standingOf(readings: Reading[]) {
+    return {
+        share: readings.length === 0 ? null : readings[readings.length - 1].share,
+        drift: driftOf(readings),
+    };
+}
+
 // What every line is running at now, and which way its moving
 export function figuresOf(lines: readonly Drawn[], series: Record<string, Reading[]>) {
     const figures: Figure[] = [];
     for (const line of lines) {
-        const readings = series[line.id];
-        figures.push({
-            line,
-            share: readings.length === 0 ? null : readings[readings.length - 1].share,
-            drift: driftOf(readings),
-        });
+        figures.push({ line, ...standingOf(series[line.id]) });
     }
     return figures;
 }
