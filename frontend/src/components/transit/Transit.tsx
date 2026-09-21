@@ -2,7 +2,9 @@ import Tabs from './Tabs';
 import Cards from './Cards';
 import Chart from './Chart';
 import Stamp from './Stamp';
+import Notices from './Notices';
 import Waiting from './Waiting';
+import { noticesOf } from './feed';
 import { LINES } from '@/lib/lines';
 import { SHORT_CODE } from './tints';
 import { useMemo, useState } from 'react';
@@ -65,6 +67,12 @@ function Transit() {
         }));
     }, [transit, focused]);
 
+    // Everything the feed is saying about notices
+    const notices = useMemo(
+        () => (transit === null ? [] : noticesOf(transit, focused)),
+        [transit, focused],
+    );
+
     return (
         <div className="flex min-w-0 flex-col gap-4.5">
             <div className="flex items-end justify-between gap-6 pb-1">
@@ -93,6 +101,7 @@ function Transit() {
             )}
             <Cards name="Right now" standing={standing} />
             <Cards name="Branches" standing={running} />
+            <Notices notices={notices} bare={focused === undefined} />
         </div>
     );
 }

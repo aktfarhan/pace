@@ -1,5 +1,5 @@
 import type { Line } from '@/lib/lines';
-import type { SystemStatus } from '@/types/status';
+import type { LineAlert, SystemStatus } from '@/types/status';
 
 // One line's share of late arrivals across the stretch before it
 export interface Reading {
@@ -47,4 +47,10 @@ export interface Standing {
     drift: number | null;
     every: number | null;
     next: string | null;
+}
+
+// One alert with every line it names
+export interface Notice {
+    lines: Line[];
+    alert: LineAlert;
 }
