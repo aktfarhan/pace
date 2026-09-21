@@ -12,7 +12,7 @@ export const TABS: { label: Tab; dot: string | null }[] = [
 export const SHELL = 'rounded-chip border border-edge bg-bubble';
 
 // A label for the chart's corners
-export const CHIP = `${SHELL} px-2.25 py-0.75 font-mono text-chip uppercase`;
+export const CHIP = `${SHELL} px-2.25 py-1 font-mono text-chip uppercase`;
 
 // The chip that opens a list
 export const OPENER = `${CHIP} flex cursor-pointer items-center gap-1.5`;

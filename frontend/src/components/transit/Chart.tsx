@@ -1,17 +1,17 @@
 import Axis from './Axis';
 import Ends from './Ends';
 import Focus from './Focus';
-import Heading from './Heading';
 import Guide from './Guide';
 import Labels from './Labels';
 import Legend from './Legend';
+import Heading from './Heading';
 import Typical from './Typical';
 import { windowOf } from './frame';
-import { figuresOf, typicalOf } from './figures';
 import { useMemo, useState } from 'react';
 import { useHover } from '@/hooks/useHover';
 import { useChartBox } from '@/hooks/useChartBox';
 import { useEmphasis } from '@/hooks/useEmphasis';
+import { figuresOf, readoutOf, typicalOf } from './figures';
 import { marksOf, nearestOf, seriesOf, stackOf, stretchedOf } from './plot';
 import type { Drawn } from '@/lib/lines';
 import type { Branching, Reading } from '@/types/transit';
@@ -61,13 +61,17 @@ function Chart({ lines, series, typical, read, late, rolling, branching }: Chart
     const figures = useMemo(() => figuresOf(lines, series), [lines, series]);
     const typically = useMemo(() => typicalOf(typical, lines), [typical, lines]);
 
-    // The typical is only for specific lines
-    const typicalPath = useMemo(() => {
+    // The typical line
+    const usual = useMemo(() => {
         if (lines.length !== 1) return null;
 
-        const { path } = seriesOf(typical[lines[0].id], start, end, box);
-        return path === '' ? null : { path, stroke: lines[0].stroke };
+        const { path, spots } = seriesOf(typical[lines[0].id], start, end, box);
+        return path === '' ? null : { path, stroke: lines[0].stroke, spots };
     }, [lines, typical, start, end, box]);
+
+    // What the chart is saying when hovered
+    const weighed = reading === null ? null : (usual?.spots[reading]?.share ?? null);
+    const readout = readoutOf(marks, weighed, rolling, lines.length === 1);
     const stretched = useMemo(() => stretchedOf(drawn, rolling), [drawn, rolling]);
 
     // Where each line has reached
@@ -92,6 +96,7 @@ function Chart({ lines, series, typical, read, late, rolling, branching }: Chart
                 stretched={stretched}
                 tight={tight}
                 span={span}
+                readout={readout}
                 select={setSpan}
                 branching={branching}
             />
@@ -120,9 +125,7 @@ function Chart({ lines, series, typical, read, late, rolling, branching }: Chart
                     >
                         <Axis box={box} start={start} end={end} />
                         {guide !== null && <Guide spot={guide} box={box} />}
-                        {typicalPath !== null && (
-                            <Typical path={typicalPath.path} stroke={typicalPath.stroke} />
-                        )}
+                        {usual !== null && <Typical path={usual.path} stroke={usual.stroke} />}
                         {drawn.map((one) => (
                             <path
                                 key={one.line.id}

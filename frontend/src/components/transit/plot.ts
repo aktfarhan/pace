@@ -36,7 +36,7 @@ export interface Spot {
 }
 
 // One line's reading under the pointer
-interface Mark {
+export interface Mark {
     id: string;
     code: string;
     mark: string;

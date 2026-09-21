@@ -1,4 +1,6 @@
 import { HOUR_MS } from './plot';
+import { clockOf } from './frame';
+import type { Mark } from './plot';
 import type { Drawn } from '@/lib/lines';
 import type { Reading } from '@/types/transit';
 
@@ -76,4 +78,27 @@ export function typicalOf(
 
     const last = readings[readings.length - 1];
     return { share: last.share, days: last.days ?? 0 };
+}
+
+// How far back a reading reached
+function reachOf(minutes: number) {
+    const hours = minutes / 60;
+    return `${Number.isInteger(hours) ? hours : hours.toFixed(1)}h`;
+}
+
+// What the chart is saying when hovered
+export function readoutOf(marks: Mark[], usual: number | null, rolling: number, alone: boolean) {
+    if (marks.length === 0) return null;
+
+    const { at, seen, reach } = marks[0].spot;
+    const said = [clockOf(at)];
+
+    // Arrivals that belong to one line
+    if (alone) {
+        const over = reach > rolling ? ` over ${reachOf(reach)}` : '';
+        said.push(`${seen} arrivals${over}`);
+    }
+    if (usual !== null) said.push(`usually ${usual}%`);
+
+    return said.join(' · ');
 }
