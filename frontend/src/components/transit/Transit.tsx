@@ -74,7 +74,7 @@ function Transit() {
     );
 
     return (
-        <div className="flex min-w-0 flex-col gap-4.5">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4.5">
             <div className="flex items-end justify-between gap-6 pb-1">
                 <span className="text-board text-bright">Transit</span>
                 {transit !== null && transit.status.ok && (
@@ -82,26 +82,28 @@ function Transit() {
                 )}
             </div>
             <Tabs tab={tab} select={choose} />
-            {transit === null && (
-                <Waiting
-                    note={failed ? 'Readings could not be reached' : 'Reading the day'}
-                    retry={failed ? retry : null}
-                />
-            )}
-            {transit !== null && (
-                <Chart
-                    lines={lines}
-                    series={transit.series}
-                    typical={transit.typical}
-                    read={Date.parse(transit.status.retrieved_at)}
-                    late={transit.late_minutes}
-                    rolling={transit.rolling_minutes}
-                    branching={branching}
-                />
-            )}
-            <Cards name="Right now" standing={standing} />
-            <Cards name="Branches" standing={running} />
-            <Notices key={tab} notices={notices} bare={focused === undefined} />
+            <div className="flex min-h-0 flex-1 flex-col gap-4.5 overflow-y-auto">
+                {transit === null && (
+                    <Waiting
+                        note={failed ? 'Readings could not be reached' : 'Reading the day'}
+                        retry={failed ? retry : null}
+                    />
+                )}
+                {transit !== null && (
+                    <Chart
+                        lines={lines}
+                        series={transit.series}
+                        typical={transit.typical}
+                        read={Date.parse(transit.status.retrieved_at)}
+                        late={transit.late_minutes}
+                        rolling={transit.rolling_minutes}
+                        branching={branching}
+                    />
+                )}
+                <Cards name="Right now" standing={standing} />
+                <Cards name="Branches" standing={running} />
+                <Notices key={tab} notices={notices} bare={focused === undefined} />
+            </div>
         </div>
     );
 }
