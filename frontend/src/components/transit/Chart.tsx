@@ -3,6 +3,7 @@ import Ends from './Ends';
 import Wash from './Wash';
 import Focus from './Focus';
 import Guide from './Guide';
+import Sweep from './Sweep';
 import Labels from './Labels';
 import Legend from './Legend';
 import Heading from './Heading';
@@ -128,22 +129,24 @@ function Chart({ lines, series, typical, read, late, rolling, branching }: Chart
                         onPointerCancel={clear}
                     >
                         <Axis box={box} start={start} end={end} />
-                        {wash !== null && <Wash path={wash.under} text={wash.line.text} />}
-                        {guide !== null && <Guide spot={guide} box={box} />}
-                        {usual !== null && <Typical path={usual.path} stroke={usual.stroke} />}
-                        {drawn.map((one) => (
-                            <path
-                                key={one.line.id}
-                                d={one.path}
-                                fill="none"
-                                strokeWidth={lead === one.line.id ? 2.75 : 1.75}
-                                strokeOpacity={strengthOf(one.line.id)}
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                className={one.line.stroke}
-                            />
-                        ))}
-                        <Ends ends={ends} strengthOf={strengthOf} />
+                        <Sweep shown={shown} left={box.left} width={width} height={height}>
+                            {wash !== null && <Wash path={wash.under} text={wash.line.text} />}
+                            {guide !== null && <Guide spot={guide} box={box} />}
+                            {usual !== null && <Typical path={usual.path} stroke={usual.stroke} />}
+                            {drawn.map((one) => (
+                                <path
+                                    key={one.line.id}
+                                    d={one.path}
+                                    fill="none"
+                                    strokeWidth={lead === one.line.id ? 2.75 : 1.75}
+                                    strokeOpacity={strengthOf(one.line.id)}
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className={one.line.stroke}
+                                />
+                            ))}
+                            <Ends ends={ends} strengthOf={strengthOf} />
+                        </Sweep>
                         <Labels labels={labels} box={box} tight={tight} />
                     </svg>
                 )}
