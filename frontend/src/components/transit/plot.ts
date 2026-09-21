@@ -1,4 +1,4 @@
-import { curveMonotoneX, line } from 'd3-shape';
+import { area, curveMonotoneX, line } from 'd3-shape';
 import type { Drawn } from '@/lib/lines';
 import type { Reading } from '@/types/transit';
 
@@ -186,6 +186,14 @@ export function seriesOf(readings: Reading[], start: number, end: number, box: B
         });
     }
 
+    // Fills beneath the line
+    const wash = area<Spot | null>()
+        .defined((spot) => spot !== null)
+        .x((spot) => (spot === null ? 0 : spot.x))
+        .y0(box.floor)
+        .y1((spot) => (spot === null ? 0 : spot.y))
+        .curve(curveMonotoneX);
+
     // An empty series draws nothing
-    return { path: draw(spots) ?? '', spots };
+    return { path: draw(spots) ?? '', under: wash(spots) ?? '', spots };
 }

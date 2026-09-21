@@ -1,5 +1,6 @@
 import Axis from './Axis';
 import Ends from './Ends';
+import Wash from './Wash';
 import Focus from './Focus';
 import Guide from './Guide';
 import Labels from './Labels';
@@ -74,6 +75,9 @@ function Chart({ lines, series, typical, read, late, rolling, branching }: Chart
     const readout = readoutOf(marks, weighed, rolling, lines.length === 1);
     const stretched = useMemo(() => stretchedOf(drawn, rolling), [drawn, rolling]);
 
+    // Color for individual lines
+    const wash = drawn.length === 1 && drawn[0].under !== '' ? drawn[0] : null;
+
     // Where each line has reached
     const ends = useMemo(
         () =>
@@ -124,6 +128,7 @@ function Chart({ lines, series, typical, read, late, rolling, branching }: Chart
                         onPointerCancel={clear}
                     >
                         <Axis box={box} start={start} end={end} />
+                        {wash !== null && <Wash path={wash.under} text={wash.line.text} />}
                         {guide !== null && <Guide spot={guide} box={box} />}
                         {usual !== null && <Typical path={usual.path} stroke={usual.stroke} />}
                         {drawn.map((one) => (
