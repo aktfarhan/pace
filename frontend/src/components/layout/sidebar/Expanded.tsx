@@ -2,8 +2,8 @@ import clsx from 'clsx';
 import Code from './Code';
 import Status from './Status';
 import Toggle from './Toggle';
-import { NAV, type Page } from './tints';
 import { Settings } from 'lucide-react';
+import { AWAY, HERE, NAV, type Page } from './tints';
 import type { SystemStatus } from '@/types/status';
 
 const ROW = 'flex h-11 items-center gap-3.25 rounded-row px-3 text-sm';
@@ -39,18 +39,14 @@ function Expanded({ status, toggle, page, select }: ExpandedProps) {
                             onClick={() => select(label)}
                             className={clsx(
                                 ROW,
-                                'cursor-pointer',
-                                current
-                                    ? 'bg-accent/11 font-strong text-accent'
-                                    : 'font-medium text-quiet',
+                                current ? `${HERE} font-strong` : `${AWAY} font-medium`,
                             )}
                         >
                             <Icon
                                 size={20}
                                 strokeWidth={1.8}
                                 fill={current ? 'currentColor' : 'none'}
-                                stroke={current ? 'none' : 'currentColor'}
-                                className={current ? undefined : 'text-hush'}
+                                fillOpacity={0.22}
                                 aria-hidden="true"
                             />
                             {label}

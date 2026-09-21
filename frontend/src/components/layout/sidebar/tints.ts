@@ -12,6 +12,15 @@ export const NAV: { label: Page; Icon: typeof MessageSquare }[] = [
     { label: 'Saved', Icon: Bookmark },
 ];
 
+// A nav row
+const TAB = 'cursor-pointer transition-colors';
+
+// Focused tab
+export const HERE = `${TAB} bg-accent/7 text-accent ring-1 ring-accent/16`;
+
+// Away tab
+export const AWAY = `${TAB} text-quiet hover:bg-accent/6 hover:text-cream`;
+
 // The card, tinted once a line stops running
 export const CARDS: Record<State, string> = {
     clear: 'border-seam bg-panel',

@@ -3,7 +3,7 @@ import Toggle from './Toggle';
 import { running } from '@/lib/status';
 import { Settings } from 'lucide-react';
 import { LINE_BY_ID } from '@/lib/lines';
-import { NAV, type Page } from './tints';
+import { AWAY, HERE, NAV, type Page } from './tints';
 import type { SystemStatus } from '@/types/status';
 
 const CELL = 'grid size-11 shrink-0 place-items-center rounded-row';
@@ -31,14 +31,13 @@ function Collapsed({ status, toggle, page, select }: CollapsedProps) {
                             type="button"
                             title={label}
                             onClick={() => select(label)}
-                            className={clsx(CELL, 'cursor-pointer', current && 'bg-accent/11')}
+                            className={clsx(CELL, current ? HERE : AWAY)}
                         >
                             <Icon
                                 size={20}
                                 strokeWidth={1.8}
                                 fill={current ? 'currentColor' : 'none'}
-                                stroke={current ? 'none' : 'currentColor'}
-                                className={current ? 'text-accent' : 'text-hush'}
+                                fillOpacity={0.22}
                                 aria-hidden="true"
                             />
                         </button>
