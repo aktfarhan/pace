@@ -9,13 +9,16 @@ import httpx
 
 from backend.lines import LINES, LINE_OF
 from backend.mbta import fetch
-from backend.timetable import gtfs_stamp, load_stops
+from backend.timetable import gtfs_stamp, load_routes, load_stops
 
 # Heavy rail, light rail, and commuter rail
 RAIL_TYPES = "0,1,2"
 
 # A station id, as against a door
 STATION_PREFIX = "place-"
+
+# What narrows an alert below its whole mode
+NARROWING = {"stop", "trip", "facility"}
 
 # Worst effect first
 EFFECT_ORDER = {
@@ -104,13 +107,12 @@ def fetch_rail_alerts() -> list[dict[str, Any]]:
     """Fetches the alerts in effect on the rail lines.
 
     Returns:
-        The alerts, each carrying the routes it names.
+        The alerts in effect.
     """
     params = {
         "filter[datetime]": "NOW",
         "filter[route_type]": RAIL_TYPES,
         "filter[activity]": "ALL",
-        "include": "routes",
     }
     return fetch("/alerts", params)["data"]
 
@@ -175,6 +177,33 @@ def delay_minutes(alert: dict[str, Any]) -> tuple[int, int] | None:
             most = fewest if spread is None else int(spread)
             return (fewest, most)
     return None
+
+
+def routes_of(alert: dict[str, Any]) -> set[str]:
+    """Names the routes an alert covers.
+
+    Args:
+        alert: An alert record.
+
+    Returns:
+        The route ids.
+    """
+    labels = load_routes(gtfs_stamp())
+
+    routes = set()
+    for entity in alert["attributes"]["informed_entity"]:
+        if "route" in entity:
+            routes.add(entity["route"])
+            continue
+
+        if entity.keys() & NARROWING:
+            continue
+
+        # Only a whole mode covers every route
+        for route, (_, _, mode) in labels.items():
+            if route in LINE_OF and mode == entity.get("route_type"):
+                routes.add(route)
+    return routes
 
 
 def directions_of(alert: dict[str, Any]) -> list[int]:
@@ -360,11 +389,6 @@ def read_line(
     worst = min(scored, key=rank)
     attributes = worst["attributes"]
 
-    # Every route the worst alert names
-    branches = set()
-    for record in worst["relationships"]["routes"]["data"]:
-        branches.add(record["id"])
-
     return {
         "line_id": line_id,
         "badge_text": badge_text,
@@ -376,7 +400,7 @@ def read_line(
         "alert_delay_minutes": delay_minutes(worst),
         "since": earliest_start(worst),
         "until": latest_end(worst),
-        "branch_ids": sorted(branches),
+        "branch_ids": sorted(routes_of(worst)),
         "directions": directions_of(worst),
         "stop_count": stops_of(worst),
         "alert_count": len(scored),
@@ -423,8 +447,8 @@ def read_status() -> SystemStatus:
     filed: dict[str, list[dict[str, Any]]] = {}
     for alert in alerts:
         seen = set()
-        for record in alert["relationships"]["routes"]["data"]:
-            line_id = LINE_OF.get(record["id"])
+        for route in routes_of(alert):
+            line_id = LINE_OF.get(route)
             if line_id is not None and line_id not in seen:
                 seen.add(line_id)
                 filed.setdefault(line_id, []).append(alert)
