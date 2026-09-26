@@ -1,8 +1,8 @@
-"""The MBTA V3 API client every live fetch goes through."""
+"""The MBTA V3 API client every live fetch goes through, and the alert it returns."""
 
 import os
 import sys
-from typing import Any
+from typing import Any, TypedDict
 
 import httpx
 from dotenv import load_dotenv
@@ -15,6 +15,45 @@ BASE_URL = "https://api-v3.mbta.com"
 
 # Longest an MBTA call may run before it is dropped
 MBTA_TIMEOUT = 5.0
+
+
+class InformedEntity(TypedDict, total=False):
+    """One thing an alert names."""
+
+    route: str
+    route_type: int
+    direction_id: int
+    stop: str
+    trip: str
+    facility: str
+
+
+class ActivePeriod(TypedDict):
+    """When an alert is in effect."""
+
+    start: str
+    end: str | None
+
+
+class AlertAttributes(TypedDict):
+    """What an alert says."""
+
+    effect: str
+    cause: str
+    severity: int
+    header: str
+    service_effect: str
+    lifecycle: str
+    updated_at: str
+    active_period: list[ActivePeriod]
+    informed_entity: list[InformedEntity]
+
+
+class Alert(TypedDict):
+    """One alert from the feed."""
+
+    id: str
+    attributes: AlertAttributes
 
 
 def fetch(path: str, params: dict) -> dict[str, Any]:

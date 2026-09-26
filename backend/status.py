@@ -3,12 +3,12 @@
 import json
 import re
 from datetime import datetime, timezone
-from typing import Any, Literal, TypedDict
+from typing import Literal, TypedDict
 
 import httpx
 
 from backend.lines import LINES, LINE_OF
-from backend.mbta import fetch
+from backend.mbta import Alert, fetch
 from backend.timetable import gtfs_stamp, load_routes, load_stops
 
 # Heavy rail, light rail, and commuter rail
@@ -103,7 +103,7 @@ class SystemStatus(TypedDict):
     ok: bool
 
 
-def fetch_rail_alerts() -> list[dict[str, Any]]:
+def fetch_rail_alerts() -> list[Alert]:
     """Fetches the alerts in effect on the rail lines.
 
     Returns:
@@ -117,7 +117,7 @@ def fetch_rail_alerts() -> list[dict[str, Any]]:
     return fetch("/alerts", params)["data"]
 
 
-def earliest_start(alert: dict[str, Any]) -> str | None:
+def earliest_start(alert: Alert) -> str | None:
     """Returns the moment an alert came into effect.
 
     Args:
@@ -128,14 +128,13 @@ def earliest_start(alert: dict[str, Any]) -> str | None:
     """
     starts = []
     for period in alert["attributes"]["active_period"]:
-        if period["start"] is not None:
-            starts.append(period["start"])
+        starts.append(period["start"])
     if not starts:
         return None
     return min(starts)
 
 
-def latest_end(alert: dict[str, Any]) -> str | None:
+def latest_end(alert: Alert) -> str | None:
     """Returns the moment an alert stops being in effect.
 
     Args:
@@ -154,7 +153,7 @@ def latest_end(alert: dict[str, Any]) -> str | None:
     return max(ends)
 
 
-def delay_minutes(alert: dict[str, Any]) -> tuple[int, int] | None:
+def delay_minutes(alert: Alert) -> tuple[int, int] | None:
     """Reads the delay number MBTA writes.
 
     Args:
@@ -168,9 +167,8 @@ def delay_minutes(alert: dict[str, Any]) -> tuple[int, int] | None:
         return None
 
     # The first phrasing that matches carries the number
-    header = attributes["header"] or ""
     for pattern in DELAY_FIGURES:
-        found = pattern.search(header)
+        found = pattern.search(attributes["header"])
         if found is not None:
             spread = found.group(2)
             fewest = int(found.group(1))
@@ -179,7 +177,7 @@ def delay_minutes(alert: dict[str, Any]) -> tuple[int, int] | None:
     return None
 
 
-def routes_of(alert: dict[str, Any]) -> set[str]:
+def routes_of(alert: Alert) -> set[str]:
     """Names the routes an alert covers.
 
     Args:
@@ -206,7 +204,7 @@ def routes_of(alert: dict[str, Any]) -> set[str]:
     return routes
 
 
-def directions_of(alert: dict[str, Any]) -> list[int]:
+def directions_of(alert: Alert) -> list[int]:
     """Returns the directions of travel an alert names.
 
     Args:
@@ -222,7 +220,7 @@ def directions_of(alert: dict[str, Any]) -> list[int]:
     return sorted(directions)
 
 
-def stops_of(alert: dict[str, Any]) -> int:
+def stops_of(alert: Alert) -> int:
     """Counts the stops an alert names.
 
     Args:
@@ -238,7 +236,7 @@ def stops_of(alert: dict[str, Any]) -> int:
     return len(stops)
 
 
-def rank(alert: dict[str, Any]) -> tuple[int, int, str]:
+def rank(alert: Alert) -> tuple[int, int, str]:
     """Sorts an alert against the others on its line.
 
     Args:
@@ -253,7 +251,7 @@ def rank(alert: dict[str, Any]) -> tuple[int, int, str]:
     return (order, -attributes["severity"], earliest_start(alert) or "")
 
 
-def stations_of(alert: dict[str, Any]) -> set[str]:
+def stations_of(alert: Alert) -> set[str]:
     """Names the stations an alert touches.
 
     Args:
@@ -266,7 +264,7 @@ def stations_of(alert: dict[str, Any]) -> set[str]:
 
     # A platform counts under its station
     touched: set[str] = set()
-    for entity in alert["attributes"].get("informed_entity") or []:
+    for entity in alert["attributes"]["informed_entity"]:
         stop = entity.get("stop")
         if not stop:
             continue
@@ -318,7 +316,7 @@ def state_of(effect: str) -> State:
     return "notice"
 
 
-def render_line_alert(alert: dict[str, Any]) -> LineAlert:
+def render_line_alert(alert: Alert) -> LineAlert:
     """Shapes one alert the way the transit page reads it.
 
     Args:
@@ -333,7 +331,7 @@ def render_line_alert(alert: dict[str, Any]) -> LineAlert:
         "alert_id": alert["id"],
         "effect": attributes["effect"],
         "headline": attributes["service_effect"],
-        "detail": attributes["header"] or "",
+        "detail": attributes["header"],
         "since": earliest_start(alert),
         "until": latest_end(alert),
         "slowing": attributes["effect"] in SLOWING_EFFECTS,
@@ -343,7 +341,7 @@ def render_line_alert(alert: dict[str, Any]) -> LineAlert:
 
 
 def read_line(
-    line_id: str, badge_text: str, line_name: str, alerts: list[dict[str, Any]]
+    line_id: str, badge_text: str, line_name: str, alerts: list[Alert]
 ) -> LineStatus:
     """Reduces one line's alerts to the card it draws.
 
@@ -444,7 +442,7 @@ def read_status() -> SystemStatus:
         }
 
     # One alert can name several routes on one line
-    filed: dict[str, list[dict[str, Any]]] = {}
+    filed: dict[str, list[Alert]] = {}
     for alert in alerts:
         seen = set()
         for route in routes_of(alert):

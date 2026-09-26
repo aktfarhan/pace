@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 import httpx
 
-from backend.mbta import fetch
+from backend.mbta import Alert, fetch
 from backend.retrieve import Row, match_route_ids, match_station_ids
 from data.schema import connect
 
@@ -24,7 +24,7 @@ SERVICE_EFFECTS = {
 }
 
 
-def render_alert(alert: dict, retrieved_at: str) -> Row:
+def render_alert(alert: Alert, retrieved_at: str) -> Row:
     """Builds one alert row shaped like a retrieved chunk.
 
     Args:
