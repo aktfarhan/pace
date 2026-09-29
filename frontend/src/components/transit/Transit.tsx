@@ -13,18 +13,24 @@ import { feedOf, lookOf, nameOf } from './standing';
 import type { Tab } from './tints';
 import type { Branching } from '@/types/transit';
 
-function Transit() {
-    const [tab, setTab] = useState<Tab>('All');
-    const [branch, setBranch] = useState<string | null>(null);
+interface TransitProps {
+    tab: Tab;
+    choose: (tab: Tab) => void;
+}
+
+function Transit({ tab, choose }: TransitProps) {
+    const [picked, setPicked] = useState<{ tab: Tab; branch: string | null }>({
+        tab,
+        branch: null,
+    });
     const { transit, failed, retry } = useTransit();
 
     const focused = LINES.find((line) => line.label === tab);
 
-    // A new tab drops the branch
-    const choose = (next: Tab) => {
-        setTab(next);
-        setBranch(null);
-    };
+    // A new tab clears the branch
+    if (picked.tab !== tab) setPicked({ tab, branch: null });
+    const branch = picked.branch;
+    const setBranch = (next: string | null) => setPicked({ tab, branch: next });
 
     // No picker unless the line has branches
     const branching: Branching | null =

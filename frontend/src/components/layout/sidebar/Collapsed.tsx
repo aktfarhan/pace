@@ -1,11 +1,12 @@
 import clsx from 'clsx';
 import Tip from './Tip';
 import Toggle from './Toggle';
-import { running } from '@/lib/status';
 import { Settings } from 'lucide-react';
 import { LINE_BY_ID } from '@/lib/lines';
 import { useGlide } from '@/hooks/useGlide';
+import { useShowLine } from '@/hooks/useShowLine';
 import { GLIDE } from '@/components/layout/tints';
+import { effectWord, running } from '@/lib/status';
 import { AWAY, GLIDE_ROUND, HERE, NAV, OUTLINED } from './tints';
 import type { Page } from './tints';
 import type { SystemStatus } from '@/types/status';
@@ -21,6 +22,7 @@ interface CollapsedProps {
 
 function Collapsed({ status, toggle, page, select }: CollapsedProps) {
     const { rowRef, glideRef } = useGlide<HTMLElement>(page, 1, GLIDE_ROUND);
+    const show = useShowLine();
 
     return (
         <div className="flex h-full w-collapsed flex-col overflow-y-auto">
@@ -65,26 +67,30 @@ function Collapsed({ status, toggle, page, select }: CollapsedProps) {
                 <div className="mt-5.5 flex flex-col items-center gap-3">
                     {status.lines.map((line) => {
                         const ok = running(line);
+                        const shown =
+                            ok || line.state === 'clear' ? 'On time' : effectWord(line.effect);
                         const tint = LINE_BY_ID[line.line_id];
                         return (
-                            <div
-                                key={line.line_id}
-                                title={line.line_name}
-                                className={clsx(
-                                    CELL,
-                                    'relative border',
-                                    ok ? tint?.tag : tint?.tagHit,
-                                )}
-                            >
-                                <span className="font-mono text-code">{tint?.code}</span>
-                                <span
+                            <Tip key={line.line_id} label={`${line.line_name} · ${shown}`}>
+                                <button
+                                    type="button"
+                                    onClick={() => show(line.line_id)}
+                                    aria-label={`Show ${line.line_name} on Transit, ${shown}`}
                                     className={clsx(
-                                        'absolute -top-hair -right-hair size-2.5 rounded-full ring-[2.5px] ring-rail',
-                                        ok ? 'bg-good' : 'animate-beacon bg-amber',
+                                        CELL,
+                                        'relative cursor-pointer border transition-[scale,filter] duration-150 ease-out hover:brightness-125 active:scale-96',
+                                        ok ? tint.tag : tint.tagHit,
                                     )}
-                                    aria-hidden="true"
-                                />
-                            </div>
+                                >
+                                    <span className="font-mono text-code">{tint.code}</span>
+                                    <span
+                                        className={clsx(
+                                            'absolute -top-hair -right-hair size-2.5 rounded-full ring-[2.5px] ring-rail',
+                                            ok ? 'bg-good' : 'animate-beacon bg-amber',
+                                        )}
+                                    />
+                                </button>
+                            </Tip>
                         );
                     })}
                 </div>

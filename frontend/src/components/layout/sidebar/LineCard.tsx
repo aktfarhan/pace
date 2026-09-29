@@ -1,6 +1,7 @@
 import clsx from 'clsx';
 import { LINE_BY_ID } from '@/lib/lines';
 import { CARDS, CHIPS, PILLS } from './tints';
+import { useShowLine } from '@/hooks/useShowLine';
 import { chipsOf, effectWord, running } from '@/lib/status';
 import type { LineStatus } from '@/types/status';
 
@@ -9,6 +10,7 @@ interface LineCardProps {
 }
 
 function LineCard({ line }: LineCardProps) {
+    const show = useShowLine();
     const chips = chipsOf(line);
     const ok = running(line);
 
@@ -18,7 +20,7 @@ function LineCard({ line }: LineCardProps) {
     return (
         <div
             className={clsx(
-                'flex flex-col gap-2.25 rounded-tile border px-3.5 py-3.25',
+                'relative flex flex-col gap-2.25 rounded-tile border px-3.5 py-3.25 transition-[scale] duration-150 ease-out active:scale-98',
                 ok ? CARDS.clear : CARDS[line.state],
             )}
         >
@@ -26,7 +28,7 @@ function LineCard({ line }: LineCardProps) {
                 <span
                     className={clsx(
                         'shrink-0 rounded-chip border px-2 py-hair font-mono text-badge uppercase',
-                        LINE_BY_ID[line.line_id]?.chip,
+                        LINE_BY_ID[line.line_id].chip,
                     )}
                 >
                     {line.badge_text}
@@ -77,6 +79,12 @@ function LineCard({ line }: LineCardProps) {
                     </span>
                 ))}
             </div>
+            <button
+                type="button"
+                onClick={() => show(line.line_id)}
+                aria-label={`Show ${line.line_name} on Transit`}
+                className="absolute inset-0 cursor-pointer rounded-tile transition-[background-color] duration-150 ease-out hover:bg-white/4 active:bg-white/6"
+            />
         </div>
     );
 }
