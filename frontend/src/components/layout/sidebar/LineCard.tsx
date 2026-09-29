@@ -1,4 +1,5 @@
 import clsx from 'clsx';
+import BranchMarks from './BranchMarks';
 import { LINE_BY_ID } from '@/lib/lines';
 import { CARDS, CHIPS, PILLS } from './tints';
 import { useShowLine } from '@/hooks/useShowLine';
@@ -78,6 +79,7 @@ function LineCard({ line }: LineCardProps) {
                         {chip.text}
                     </span>
                 ))}
+                <BranchMarks line={line} />
             </div>
             <button
                 type="button"

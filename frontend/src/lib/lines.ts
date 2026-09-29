@@ -118,3 +118,6 @@ export function tintOf(routeId: string) {
     if (routeId.startsWith('CR-')) return LINE_BY_ID.CR;
     return LINE_BY_ID[routeId] ?? null;
 }
+
+// The Green Line branches' letters
+export const GREEN_LETTERS = ['B', 'C', 'D', 'E'];

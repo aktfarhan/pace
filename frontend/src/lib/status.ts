@@ -1,3 +1,4 @@
+import { GREEN_LETTERS } from '@/lib/lines';
 import type { Chip, State, AlertedLine, LineStatus, SystemStatus } from '@/types/status';
 
 // A group of lines under one heading
@@ -62,8 +63,8 @@ const EFFECT_WORDS: Record<string, string> = {
 // The effects that change how a train runs
 const SERVICE_EFFECTS = new Set(Object.keys(EFFECT_WORDS));
 
-// The only line whose branches the feed names separately
-export const BRANCHED = 'Green';
+// The only line whose branches go by letters
+const BRANCHED = 'Green';
 
 // Whether the train is running, whatever the alert is about
 export function running(line: LineStatus) {
@@ -199,6 +200,20 @@ export function sublineOf(status: SystemStatus, now: number) {
 // No direction on an alert means it covers every direction
 function bothDirections(line: LineStatus) {
     return line.directions.length !== 1;
+}
+
+// Show only specific branches
+export function branchLettersOf(line: LineStatus) {
+    if (line.line_id !== BRANCHED) return [];
+    if (running(line)) return GREEN_LETTERS;
+    return GREEN_LETTERS.filter((one) => line.branch_ids.includes(`Green-${one}`));
+}
+
+// An effect as heard, with the branches it reaches
+export function branchesHeard(word: string, hit: string[]) {
+    if (hit.length === 0) return word;
+    if (hit.length === GREEN_LETTERS.length) return `${word} on every branch`;
+    return `${word} on the ${hit.join(', ')} ${hit.length === 1 ? 'branch' : 'branches'}`;
 }
 
 // The two facts under a card's title row

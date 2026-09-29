@@ -1,10 +1,8 @@
 import clsx from 'clsx';
 import Subline from './Subline';
-import { Fragment } from 'react';
-import Branches from './Branches';
 import LineCard from './LineCard';
 import SectionHeading from './SectionHeading';
-import { BRANCHED, headlineOf, running, runningCount, sectionsOf } from '@/lib/status';
+import { headlineOf, runningCount, sectionsOf } from '@/lib/status';
 import type { SystemStatus } from '@/types/status';
 
 interface StatusProps {
@@ -37,30 +35,16 @@ function Status({ status }: StatusProps) {
             </div>
 
             {status.ok &&
-                sectionsOf(status.lines).map((section) => {
-                    const branched = section.lines.find((line) => line.line_id === BRANCHED);
-                    return (
-                        <Fragment key={section.heading}>
-                            <div className="px-1">
-                                <SectionHeading label={section.heading} />
-                                <div className="flex flex-col gap-2">
-                                    {section.lines.map((line) => (
-                                        <LineCard key={line.line_id} line={line} />
-                                    ))}
-                                </div>
-                            </div>
-
-                            {branched !== undefined &&
-                                branched.state !== 'clear' &&
-                                !running(branched) && (
-                                    <div className="px-1">
-                                        <SectionHeading label="Branches" />
-                                        <Branches line={branched} />
-                                    </div>
-                                )}
-                        </Fragment>
-                    );
-                })}
+                sectionsOf(status.lines).map((section) => (
+                    <div key={section.heading} className="px-1">
+                        <SectionHeading label={section.heading} />
+                        <div className="flex flex-col gap-2">
+                            {section.lines.map((line) => (
+                                <LineCard key={line.line_id} line={line} />
+                            ))}
+                        </div>
+                    </div>
+                ))}
         </div>
     );
 }

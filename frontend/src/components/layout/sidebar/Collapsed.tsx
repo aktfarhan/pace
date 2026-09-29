@@ -6,8 +6,8 @@ import { LINE_BY_ID } from '@/lib/lines';
 import { useGlide } from '@/hooks/useGlide';
 import { useShowLine } from '@/hooks/useShowLine';
 import { GLIDE } from '@/components/layout/tints';
-import { effectWord, running } from '@/lib/status';
 import { AWAY, GLIDE_ROUND, HERE, NAV, OUTLINED } from './tints';
+import { branchLettersOf, branchesHeard, effectWord, running } from '@/lib/status';
 import type { Page } from './tints';
 import type { SystemStatus } from '@/types/status';
 
@@ -67,15 +67,17 @@ function Collapsed({ status, toggle, page, select }: CollapsedProps) {
                 <div className="mt-5.5 flex flex-col items-center gap-3">
                     {status.lines.map((line) => {
                         const ok = running(line);
+                        const hit = ok ? [] : branchLettersOf(line);
+                        const at = hit.length > 0 ? ` · ${hit.join(' ')}` : '';
                         const shown =
                             ok || line.state === 'clear' ? 'On time' : effectWord(line.effect);
                         const tint = LINE_BY_ID[line.line_id];
                         return (
-                            <Tip key={line.line_id} label={`${line.line_name} · ${shown}`}>
+                            <Tip key={line.line_id} label={`${line.line_name} · ${shown}${at}`}>
                                 <button
                                     type="button"
                                     onClick={() => show(line.line_id)}
-                                    aria-label={`Show ${line.line_name} on Transit, ${shown}`}
+                                    aria-label={`Show ${line.line_name} on Transit, ${branchesHeard(shown, hit)}`}
                                     className={clsx(
                                         CELL,
                                         'relative cursor-pointer border transition-[scale,filter] duration-150 ease-out hover:brightness-125 active:scale-96',

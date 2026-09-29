@@ -72,6 +72,10 @@
     --text-subline--font-weight: 600;
     --text-subline--letter-spacing: 0.1em;
 
+    --text-letter: 0.625rem;
+    --text-letter--line-height: 1;
+    --text-letter--font-weight: 700;
+
     --text-badge: 0.625rem;
     --text-badge--font-weight: 700;
     --text-badge--letter-spacing: 0.06em;
