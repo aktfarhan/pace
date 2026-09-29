@@ -92,6 +92,7 @@ class LineStatus(TypedDict):
     stop_count: int
     alert_count: int
     alerts: list[LineAlert]
+    typical_share: int | None
 
 
 class SystemStatus(TypedDict):
@@ -341,7 +342,11 @@ def render_line_alert(alert: Alert) -> LineAlert:
 
 
 def read_line(
-    line_id: str, badge_text: str, line_name: str, alerts: list[Alert]
+    line_id: str,
+    badge_text: str,
+    line_name: str,
+    alerts: list[Alert],
+    typical_share: int | None,
 ) -> LineStatus:
     """Reduces one line's alerts to the card it draws.
 
@@ -350,6 +355,7 @@ def read_line(
         badge_text: The badge's wording.
         line_name: The line's spoken name.
         alerts: Every alert on that line.
+        typical_share: The share of arrivals typically late by now.
 
     Returns:
         The line's card.
@@ -382,6 +388,7 @@ def read_line(
             "stop_count": 0,
             "alert_count": 0,
             "alerts": listed,
+            "typical_share": typical_share,
         }
 
     worst = min(scored, key=rank)
@@ -403,6 +410,7 @@ def read_line(
         "stop_count": stops_of(worst),
         "alert_count": len(scored),
         "alerts": listed,
+        "typical_share": typical_share,
     }
 
 
@@ -421,8 +429,11 @@ def without_alerts(live: SystemStatus) -> SystemStatus:
     return {**live, "lines": lines}
 
 
-def read_status() -> SystemStatus:
+def read_status(typical: dict[str, int]) -> SystemStatus:
     """Reads every rail line's state from the live alert feed.
+
+    Args:
+        typical: Each line's typical late share by now.
 
     Returns:
         One card per line in board order.
@@ -433,7 +444,9 @@ def read_status() -> SystemStatus:
     except httpx.HTTPError:
         lines = []
         for line_id, badge_text, line_name, _ in LINES:
-            lines.append(read_line(line_id, badge_text, line_name, []))
+            lines.append(
+                read_line(line_id, badge_text, line_name, [], typical.get(line_id))
+            )
         return {
             "lines": lines,
             "clear_count": len(LINES),
@@ -454,7 +467,13 @@ def read_status() -> SystemStatus:
     lines = []
     clear_count = 0
     for line_id, badge_text, line_name, _ in LINES:
-        line = read_line(line_id, badge_text, line_name, filed.get(line_id, []))
+        line = read_line(
+            line_id,
+            badge_text,
+            line_name,
+            filed.get(line_id, []),
+            typical.get(line_id),
+        )
         if line["state"] == "clear":
             clear_count += 1
         lines.append(line)
@@ -468,4 +487,4 @@ def read_status() -> SystemStatus:
 
 
 if __name__ == "__main__":
-    print(json.dumps(read_status(), indent=2))
+    print(json.dumps(read_status({}), indent=2))

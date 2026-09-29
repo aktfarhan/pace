@@ -23,7 +23,7 @@ from backend.trips import Kept, SavedTrip, add_trip, read_trips, remove_trip
 from backend.risk import warm as warm_model
 from backend.status import SystemStatus, read_status, without_alerts
 from backend.timetable import warm
-from backend.transit.page import Transit, read_transit
+from backend.transit.page import Transit, read_transit, read_usual
 from data.schema import connect
 
 # Where the frontend runs
@@ -171,7 +171,7 @@ def status_during(bucket: int) -> SystemStatus:
     Returns:
         That window's reading. Only the current bucket is kept.
     """
-    return read_status()
+    return read_status(read_usual(datetime.now().astimezone()))
 
 
 @app.get("/v1/status")

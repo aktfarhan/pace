@@ -90,7 +90,7 @@ def mint_code() -> str:
     """Makes a code a user can type on another device.
 
     Returns:
-        Two words and four characters, dash separated.
+        Two words and eight characters, dash separated.
     """
     tail = "".join(secrets.choice(LETTERS) for _ in range(TAIL))
     return f"{secrets.choice(WORDS)}-{secrets.choice(WORDS)}-{tail}"

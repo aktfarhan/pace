@@ -6,7 +6,7 @@ from collections import defaultdict, deque
 from datetime import date, datetime, time, timedelta, timezone
 from functools import lru_cache
 from statistics import median
-from typing import NotRequired, TypedDict
+from typing import TypedDict
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -108,7 +108,12 @@ class Reading(TypedDict):
     share: int
     seen: int
     reach: int
-    days: NotRequired[int]
+
+
+class TypicalReading(Reading):
+    """A reading over today from the middle of earlier days."""
+
+    days: int
 
 
 # Each line's arrivals inside the window
@@ -559,7 +564,7 @@ def empty_series() -> dict[str, list[Reading]]:
 
 
 @lru_cache(maxsize=2)
-def read_typical(began: datetime, edge: datetime) -> dict[str, list[Reading]]:
+def read_typical(began: datetime, edge: datetime) -> dict[str, list[TypicalReading]]:
     """Reads the share each line typically runs at, by time of day.
 
     Args:
@@ -569,7 +574,7 @@ def read_typical(began: datetime, edge: datetime) -> dict[str, list[Reading]]:
     Returns:
         One list of readings per line and per branch, laid over today's clock.
     """
-    typical = empty_series()
+    typical: dict[str, list[TypicalReading]] = {key: [] for key in empty_series()}
     start = began - timedelta(days=TYPICAL_DAYS)
     try:
         with connect() as connection, connection.cursor() as cursor:
@@ -615,7 +620,7 @@ def read_typical(began: datetime, edge: datetime) -> dict[str, list[Reading]]:
         if at >= edge:
             continue
 
-        typical.setdefault(key, []).append(
+        typical[key].append(
             {
                 "at": at.astimezone(timezone.utc).isoformat(),
                 "share": round(median(x["share"] for x in stood)),
