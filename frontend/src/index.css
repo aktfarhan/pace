@@ -249,4 +249,26 @@
     * {
         scrollbar-width: none;
     }
+
+    @media (prefers-contrast: more) {
+        :root {
+            --color-seam: #4a4b50;
+            --color-line: #5a5b61;
+            --color-edge: #6e6f76;
+            --color-quiet: #b0b0b6;
+            --color-hush: #a4a4aa;
+            --color-dim: #98989e;
+            --color-faint: #8c8c92;
+            --color-ghost: #808086;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        :root {
+            --animate-blink: none;
+            --animate-beacon: none;
+            --animate-pace: none;
+            --animate-spin: blink 1.1s ease-in-out infinite;
+        }
+    }
 }
