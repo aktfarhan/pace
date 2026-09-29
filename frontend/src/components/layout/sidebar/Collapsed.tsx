@@ -1,4 +1,5 @@
 import clsx from 'clsx';
+import Tip from './Tip';
 import Toggle from './Toggle';
 import { running } from '@/lib/status';
 import { Settings } from 'lucide-react';
@@ -29,17 +30,18 @@ function Collapsed({ status, toggle, page, select }: CollapsedProps) {
 
             <nav ref={rowRef} className="relative mt-4.5 flex flex-col items-center gap-0.5">
                 {NAV.map(({ label, Icon }) => (
-                    <button
-                        key={label}
-                        type="button"
-                        title={label}
-                        aria-current={label === page ? 'page' : undefined}
-                        data-picked={label === page}
-                        onClick={() => select(label)}
-                        className={clsx(CELL, AWAY)}
-                    >
-                        <Icon {...OUTLINED} />
-                    </button>
+                    <Tip key={label} label={label}>
+                        <button
+                            type="button"
+                            aria-label={label}
+                            aria-current={label === page ? 'page' : undefined}
+                            data-picked={label === page}
+                            onClick={() => select(label)}
+                            className={clsx(CELL, AWAY)}
+                        >
+                            <Icon {...OUTLINED} />
+                        </button>
+                    </Tip>
                 ))}
                 <div
                     ref={glideRef}
