@@ -49,7 +49,6 @@
 
     --font-sans: Geist, ui-sans-serif, system-ui, sans-serif;
     --font-mono: 'Geist Mono', ui-monospace, monospace;
-    --font-serif: Newsreader, Georgia, serif;
 
     --text-label: 0.625rem;
     --text-label--line-height: 1.4;
@@ -64,18 +63,10 @@
     --text-brand--font-weight: 700;
     --text-brand--letter-spacing: 0.2em;
 
-    --text-coverage: 0.53125rem;
-    --text-coverage--font-weight: 700;
-    --text-coverage--letter-spacing: 0.14em;
-
-    --text-device: 0.59375rem;
-    --text-device--font-weight: 600;
-    --text-device--letter-spacing: 0.06em;
-
     --text-headline: 1.3125rem;
     --text-headline--line-height: 1.1;
     --text-headline--font-weight: 650;
-    --text-headline--letter-spacing: -0.02em;
+    --text-headline--letter-spacing: -0.015em;
 
     --text-subline: 0.5625rem;
     --text-subline--font-weight: 600;
@@ -111,7 +102,7 @@
     --text-hero: 1.5625rem;
     --text-hero--line-height: 1;
     --text-hero--font-weight: 700;
-    --text-hero--letter-spacing: -0.03em;
+    --text-hero--letter-spacing: -0.02em;
 
     --text-unit: 0.5625rem;
     --text-unit--font-weight: 600;
@@ -132,7 +123,7 @@
     --text-depart: 2.875rem;
     --text-depart--line-height: 1.05;
     --text-depart--font-weight: 650;
-    --text-depart--letter-spacing: -0.025em;
+    --text-depart--letter-spacing: -0.03em;
 
     --text-depart-unit: 1.1875rem;
     --text-depart-unit--font-weight: 600;
@@ -173,7 +164,7 @@
     --text-board: 2rem;
     --text-board--line-height: 1;
     --text-board--font-weight: 650;
-    --text-board--letter-spacing: -0.02em;
+    --text-board--letter-spacing: -0.025em;
 
     --grid-template-columns-directions: repeat(auto-fit, minmax(12rem, 1fr));
 
@@ -232,6 +223,9 @@
     html {
         background-color: var(--color-ink);
         color-scheme: dark;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
     }
 
     html,
@@ -244,6 +238,16 @@
         -webkit-user-select: none;
         user-select: none;
         -webkit-touch-callout: none;
+    }
+
+    ::selection {
+        background-color: color-mix(in oklab, var(--color-accent) 22%, transparent);
+        color: var(--color-bright);
+    }
+
+    :focus-visible {
+        outline: 2px solid color-mix(in oklab, var(--color-accent) 55%, transparent);
+        outline-offset: 2px;
     }
 
     * {
