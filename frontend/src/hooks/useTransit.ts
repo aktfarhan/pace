@@ -1,9 +1,7 @@
+import { poll } from '@/lib/poll';
 import { readTransit } from '@/lib/pace';
 import { useCallback, useEffect, useState } from 'react';
 import type { Transit } from '@/types/transit';
-
-// How long a reading is held
-const POLL_MS = 30000;
 
 // The transit page's data, re-read on a timer
 export function useTransit() {
@@ -29,11 +27,10 @@ export function useTransit() {
             }
         }
 
-        read();
-        const timer = setInterval(read, POLL_MS);
+        const stop = poll(read);
         return () => {
             control.abort();
-            clearInterval(timer);
+            stop();
         };
     }, [attempt]);
 

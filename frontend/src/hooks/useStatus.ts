@@ -1,9 +1,7 @@
+import { poll } from '@/lib/poll';
 import { readStatus } from '@/lib/pace';
 import { useEffect, useState } from 'react';
 import type { SystemStatus } from '@/types/status';
-
-// How long a reading is held
-const POLL_MS = 30000;
 
 // The line status, re-read on a timer
 export function useStatus() {
@@ -22,11 +20,10 @@ export function useStatus() {
             }
         }
 
-        read();
-        const timer = setInterval(read, POLL_MS);
+        const stop = poll(read);
         return () => {
             control.abort();
-            clearInterval(timer);
+            stop();
         };
     }, []);
 
