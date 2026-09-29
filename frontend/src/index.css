@@ -219,10 +219,31 @@
     }
 }
 
+/* Hover only with a real pointer */
+@custom-variant hover {
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
+            @slot;
+        }
+    }
+}
+
 @layer base {
     html {
         background-color: var(--color-ink);
         color-scheme: dark;
+    }
+
+    html,
+    body {
+        overscroll-behavior: none;
+    }
+
+    button {
+        touch-action: manipulation;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
     }
 
     * {
