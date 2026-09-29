@@ -6,6 +6,7 @@ import Chance from './Chance';
 import { useState } from 'react';
 import Timeline from './Timeline';
 import { saveTrip } from '@/lib/pace';
+import { useNow } from '@/hooks/useNow';
 import { fullClock, leaveOf } from '@/lib/trip';
 import { Bookmark, RotateCw } from 'lucide-react';
 import type { Level, TripCard } from '@/types/answer';
@@ -22,7 +23,8 @@ const PILL =
     'flex shrink-0 cursor-pointer items-center rounded-full border border-edge bg-bubble py-1.75 text-hush transition-colors hover:border-ghost hover:bg-line hover:text-cream';
 
 function TripPlan({ card, risk, chance, refresh, refreshing }: TripPlanProps) {
-    const leave = leaveOf(card, Date.now());
+    const now = useNow();
+    const leave = leaveOf(card, now);
     const [saved, setSaved] = useState(false);
     const [saving, setSaving] = useState(false);
 

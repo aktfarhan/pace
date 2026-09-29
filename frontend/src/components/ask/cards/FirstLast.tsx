@@ -10,7 +10,6 @@ interface FirstLastProps {
 
 function FirstLast({ card }: FirstLastProps) {
     const now = useNow();
-    const moment = now === 0 ? Date.now() : now;
 
     const tint = tintOf(card.route_id);
     const title = card.edge === 'first' ? 'First' : 'Last';
@@ -35,7 +34,7 @@ function FirstLast({ card }: FirstLastProps) {
             <div className="grid grid-cols-directions">
                 {card.directions.map((direction, index) => {
                     const { time, meridiem } = clockParts(direction.time);
-                    const passed = Date.parse(direction.time) < moment;
+                    const passed = Date.parse(direction.time) < now;
                     return (
                         <div
                             key={index}

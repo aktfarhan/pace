@@ -9,7 +9,7 @@ interface LeaveProps {
 function Leave({ card }: LeaveProps) {
     const now = useNow();
 
-    const leave = leaveOf(card, now === 0 ? Date.now() : now);
+    const leave = leaveOf(card, now);
 
     return (
         <>
