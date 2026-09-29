@@ -13,7 +13,8 @@ export const NAV: { label: Page; Icon: typeof MessageSquare }[] = [
 ];
 
 // A nav row
-const TAB = 'cursor-pointer transition-colors';
+const TAB =
+    'cursor-pointer transition-[color,background-color,scale] duration-150 ease-out active:scale-98';
 
 // Focused tab
 export const HERE = `${TAB} bg-accent/7 text-accent ring-1 ring-accent/16`;
@@ -42,3 +43,9 @@ export const CHIPS: Record<Chip['tone'], string> = {
     quiet: 'border-seam text-faint',
     blank: 'border-dashed border-line text-ghost',
 };
+
+// Every page's icon as an outline
+export const OUTLINED = { size: 20, strokeWidth: 1.8 };
+
+// The picked look's corner
+export const GLIDE_ROUND = 'calc(var(--radius-row) + 1px)';

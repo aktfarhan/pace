@@ -3,7 +3,10 @@ import Code from './Code';
 import Status from './Status';
 import Toggle from './Toggle';
 import { Settings } from 'lucide-react';
-import { AWAY, HERE, NAV, type Page } from './tints';
+import { useGlide } from '@/hooks/useGlide';
+import { GLIDE } from '@/components/layout/tints';
+import { AWAY, GLIDE_ROUND, HERE, NAV, OUTLINED } from './tints';
+import type { Page } from './tints';
 import type { SystemStatus } from '@/types/status';
 
 const ROW = 'flex h-11 items-center gap-3.25 rounded-row px-3 text-sm';
@@ -16,6 +19,8 @@ interface ExpandedProps {
 }
 
 function Expanded({ status, toggle, page, select }: ExpandedProps) {
+    const { rowRef, glideRef } = useGlide<HTMLElement>(page, 1, GLIDE_ROUND);
+
     return (
         <div className="flex h-full w-expanded flex-col overflow-y-auto px-3">
             <div className="sticky top-0 z-10 flex items-center gap-3 bg-rail px-1.5 pt-5 pb-1">
@@ -29,30 +34,34 @@ function Expanded({ status, toggle, page, select }: ExpandedProps) {
                 </div>
             </div>
 
-            <nav className="mt-3.5 flex flex-col gap-0.5 px-1.5">
-                {NAV.map(({ label, Icon }) => {
-                    const current = label === page;
-                    return (
-                        <button
-                            key={label}
-                            type="button"
-                            onClick={() => select(label)}
-                            className={clsx(
-                                ROW,
-                                current ? `${HERE} font-strong` : `${AWAY} font-medium`,
-                            )}
-                        >
-                            <Icon
-                                size={20}
-                                strokeWidth={1.8}
-                                fill={current ? 'currentColor' : 'none'}
-                                fillOpacity={0.22}
-                                aria-hidden="true"
-                            />
-                            {label}
-                        </button>
-                    );
-                })}
+            <nav ref={rowRef} className="relative mt-3.5 flex flex-col gap-0.5 px-1.5">
+                {NAV.map(({ label, Icon }) => (
+                    <button
+                        key={label}
+                        type="button"
+                        aria-current={label === page ? 'page' : undefined}
+                        data-picked={label === page}
+                        onClick={() => select(label)}
+                        className={clsx(ROW, AWAY, 'font-medium')}
+                    >
+                        <Icon {...OUTLINED} />
+                        {label}
+                    </button>
+                ))}
+                <div
+                    ref={glideRef}
+                    aria-hidden="true"
+                    className={`${GLIDE} flex flex-col gap-0.5 px-1.5`}
+                >
+                    {NAV.map(({ label, Icon }) => (
+                        <span key={label} className="rounded-row bg-rail">
+                            <span className={clsx(ROW, HERE, 'font-strong')}>
+                                <Icon {...OUTLINED} />
+                                {label}
+                            </span>
+                        </span>
+                    ))}
+                </div>
             </nav>
 
             <Status status={status} />

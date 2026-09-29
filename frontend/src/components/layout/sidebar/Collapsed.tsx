@@ -3,7 +3,10 @@ import Toggle from './Toggle';
 import { running } from '@/lib/status';
 import { Settings } from 'lucide-react';
 import { LINE_BY_ID } from '@/lib/lines';
-import { AWAY, HERE, NAV, type Page } from './tints';
+import { useGlide } from '@/hooks/useGlide';
+import { GLIDE } from '@/components/layout/tints';
+import { AWAY, GLIDE_ROUND, HERE, NAV, OUTLINED } from './tints';
+import type { Page } from './tints';
 import type { SystemStatus } from '@/types/status';
 
 const CELL = 'grid size-11 shrink-0 place-items-center rounded-row';
@@ -16,33 +19,41 @@ interface CollapsedProps {
 }
 
 function Collapsed({ status, toggle, page, select }: CollapsedProps) {
+    const { rowRef, glideRef } = useGlide<HTMLElement>(page, 1, GLIDE_ROUND);
+
     return (
         <div className="flex h-full w-collapsed flex-col overflow-y-auto">
             <div className="sticky top-0 z-10 flex flex-col items-center bg-rail pt-5">
                 <Toggle toggle={toggle} />
             </div>
 
-            <nav className="mt-4.5 flex flex-col items-center gap-0.5">
-                {NAV.map(({ label, Icon }) => {
-                    const current = label === page;
-                    return (
-                        <button
-                            key={label}
-                            type="button"
-                            title={label}
-                            onClick={() => select(label)}
-                            className={clsx(CELL, current ? HERE : AWAY)}
-                        >
-                            <Icon
-                                size={20}
-                                strokeWidth={1.8}
-                                fill={current ? 'currentColor' : 'none'}
-                                fillOpacity={0.22}
-                                aria-hidden="true"
-                            />
-                        </button>
-                    );
-                })}
+            <nav ref={rowRef} className="relative mt-4.5 flex flex-col items-center gap-0.5">
+                {NAV.map(({ label, Icon }) => (
+                    <button
+                        key={label}
+                        type="button"
+                        title={label}
+                        aria-current={label === page ? 'page' : undefined}
+                        data-picked={label === page}
+                        onClick={() => select(label)}
+                        className={clsx(CELL, AWAY)}
+                    >
+                        <Icon {...OUTLINED} />
+                    </button>
+                ))}
+                <div
+                    ref={glideRef}
+                    aria-hidden="true"
+                    className={`${GLIDE} flex flex-col items-center gap-0.5`}
+                >
+                    {NAV.map(({ label, Icon }) => (
+                        <span key={label} className="rounded-row bg-rail">
+                            <span className={clsx(CELL, HERE)}>
+                                <Icon {...OUTLINED} />
+                            </span>
+                        </span>
+                    ))}
+                </div>
             </nav>
 
             <div className="mx-3.5 mt-4.5 h-px bg-seam" />
