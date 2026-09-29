@@ -29,8 +29,8 @@ function Collapsed({ status, toggle, page, select }: CollapsedProps) {
             </div>
 
             <nav ref={rowRef} className="relative mt-4.5 flex flex-col items-center gap-0.5">
-                {NAV.map(({ label, Icon }) => (
-                    <Tip key={label} label={label}>
+                {NAV.map(({ label, Icon }, index) => (
+                    <Tip key={label} label={label} keycap={String(index + 1)}>
                         <button
                             type="button"
                             aria-label={label}
@@ -45,6 +45,7 @@ function Collapsed({ status, toggle, page, select }: CollapsedProps) {
                 ))}
                 <div
                     ref={glideRef}
+                    data-glide
                     aria-hidden="true"
                     className={`${GLIDE} flex flex-col items-center gap-0.5`}
                 >

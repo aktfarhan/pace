@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { ArrowUp } from 'lucide-react';
+import type { Ref } from 'react';
 import type { AskController } from '@/hooks/useAsk';
 
 interface AskInputProps {
     send: AskController['send'];
     busy: boolean;
+    ref: Ref<HTMLInputElement>;
 }
 
-function AskInput({ send, busy }: AskInputProps) {
+function AskInput({ send, busy, ref }: AskInputProps) {
     const [query, setQuery] = useState('');
     const blocked = busy || query.trim() === '';
 
@@ -22,6 +24,7 @@ function AskInput({ send, busy }: AskInputProps) {
     return (
         <div className="flex items-center gap-2">
             <input
+                ref={ref}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 onKeyDown={(event) => event.key === 'Enter' && submit()}

@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { flushSync } from 'react-dom';
 import { useAsk } from '@/hooks/useAsk';
+import { useRef, useState } from 'react';
 import Saved from '@/components/saved/Saved';
 import TurnList from '@/components/ask/TurnList';
 import AskInput from '@/components/ask/AskInput';
 import Transit from '@/components/transit/Transit';
 import History from '@/components/history/History';
+import { useShortcuts } from '@/hooks/useShortcuts';
 import Sidebar from '@/components/layout/sidebar/Sidebar';
 import type { Page } from '@/components/layout/sidebar/tints';
 
@@ -12,6 +14,16 @@ function App() {
     const { turns, stage, busy, send, refresh, refreshing } = useAsk();
     const [sidebar, setSidebar] = useState(true);
     const [page, setPage] = useState<Page>('Ask');
+
+    // The question box, used for the slash key
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    // Focus the question box by the slash key
+    const toAsk = () => {
+        flushSync(() => setPage('Ask'));
+        inputRef.current?.focus();
+    };
+    useShortcuts(setPage, toAsk);
 
     return (
         <div className="flex h-dvh">
@@ -30,7 +42,7 @@ function App() {
                             refresh={refresh}
                             refreshing={refreshing}
                         />
-                        <AskInput send={send} busy={busy} />
+                        <AskInput ref={inputRef} send={send} busy={busy} />
                     </>
                 )}
                 {page === 'Saved' && <Saved />}

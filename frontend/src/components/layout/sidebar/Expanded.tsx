@@ -50,6 +50,7 @@ function Expanded({ status, toggle, page, select }: ExpandedProps) {
                 ))}
                 <div
                     ref={glideRef}
+                    data-glide
                     aria-hidden="true"
                     className={`${GLIDE} flex flex-col gap-0.5 px-1.5`}
                 >
