@@ -216,21 +216,26 @@ export function branchesHeard(word: string, hit: string[]) {
     return `${word} on the ${hit.join(', ')} ${hit.length === 1 ? 'branch' : 'branches'}`;
 }
 
+// How late the line usually runs by now
+function typicalChip(line: LineStatus): Chip {
+    const share = line.typical_share;
+    return share === null
+        ? { text: 'Typical —', tone: 'blank' }
+        : { text: `Typically ${share}% late`, tone: 'quiet' };
+}
+
 // The two facts under a card's title row
 export function chipsOf(line: LineStatus): Chip[] {
     if (running(line)) {
-        return [
-            { text: 'Typical —', tone: 'blank' },
-            { text: 'Both directions', tone: 'quiet' },
-        ];
+        return [typicalChip(line), { text: 'Both ways', tone: 'quiet' }];
     }
 
     const scope: Chip = {
-        text: bothDirections(line) ? 'Both directions' : 'One direction',
+        text: bothDirections(line) ? 'Both ways' : 'One direction',
         tone: 'read',
     };
     if (line.alert_count > 1) {
         return [scope, { text: `${line.alert_count} alerts`, tone: 'quiet' }];
     }
-    return [scope, { text: 'Typical —', tone: 'blank' }];
+    return [scope, typicalChip(line)];
 }
