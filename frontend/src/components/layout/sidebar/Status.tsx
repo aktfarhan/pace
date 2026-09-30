@@ -2,6 +2,7 @@ import clsx from 'clsx';
 import Subline from './Subline';
 import LineCard from './LineCard';
 import SectionHeading from './SectionHeading';
+import { BEHIND, LIVE } from '@/components/layout/tints';
 import { headlineOf, runningCount, sectionsOf } from '@/lib/status';
 import type { SystemStatus } from '@/types/status';
 
@@ -21,10 +22,7 @@ function Status({ status }: StatusProps) {
             <div className="flex flex-col gap-1.25 px-1.5">
                 <div className="flex items-center gap-2.5">
                     <span
-                        className={clsx(
-                            'size-2 shrink-0 rounded-full',
-                            calm ? 'bg-good shadow-glow' : 'animate-beacon bg-amber shadow-pulse',
-                        )}
+                        className={clsx('size-2 shrink-0 rounded-full', calm ? LIVE : BEHIND)}
                         aria-hidden="true"
                     />
                     <span className="min-w-0 flex-1 truncate text-headline text-bright">

@@ -2,6 +2,7 @@ import clsx from 'clsx';
 import BranchMarks from './BranchMarks';
 import { LINE_BY_ID } from '@/lib/lines';
 import { CARDS, CHIPS, PILLS } from './tints';
+import { LIVE } from '@/components/layout/tints';
 import { useShowLine } from '@/hooks/useShowLine';
 import { chipsOf, effectWord, running } from '@/lib/status';
 import type { LineStatus } from '@/types/status';
@@ -37,7 +38,7 @@ function LineCard({ line }: LineCardProps) {
 
                 {ok && (
                     <span className="flex shrink-0 items-center gap-1.75">
-                        <span className="size-1.75 rounded-full bg-good shadow-glow" />
+                        <span className={clsx('size-1.75 rounded-full', LIVE)} />
                         <span className="font-mono text-state text-steady uppercase">On time</span>
                     </span>
                 )}
