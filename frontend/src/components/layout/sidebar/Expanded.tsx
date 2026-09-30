@@ -18,7 +18,7 @@ function Expanded({ status, toggle, page, select }: ExpandedProps) {
     const { rowRef, glideRef } = useGlide<HTMLElement>(page, 1, GLIDE_ROUND);
 
     return (
-        <div className="flex h-full w-full flex-col overflow-y-auto px-3">
+        <div className="flex h-full w-full touch-pan-y touch-pinch-zoom flex-col overflow-y-auto px-3">
             <div className="sticky top-0 z-10 flex items-center gap-3 bg-rail px-1.5 pt-5 pb-1">
                 <span className="relative grid size-7 shrink-0 place-items-center rounded-mark bg-accent">
                     <span className="text-mark text-onaccent" aria-hidden="true">

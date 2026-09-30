@@ -3,6 +3,7 @@ import Toggle from './Toggle';
 import Expanded from './Expanded';
 import { useModal } from '@/hooks/useModal';
 import { onWide, wide } from '@/lib/device';
+import { useSwipeAway } from '@/hooks/useSwipeAway';
 import { useEffect, useRef, useState } from 'react';
 import { setDrawer, useDrawer } from '@/hooks/useDrawer';
 import { ShowLine, useShowLine } from '@/hooks/useShowLine';
@@ -23,6 +24,9 @@ function Drawer({ status, page, select }: DrawerProps) {
 
     // Widening past the drawer puts it away
     useEffect(() => onWide(() => wide() && setDrawer(false)), []);
+
+    // A swipe to the left closes it
+    useSwipeAway(panelRef, scrimRef, open, close);
 
     // Keeps focus inside while it's open
     useModal(panelRef, scrimRef, open, close);

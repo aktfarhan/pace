@@ -1,3 +1,6 @@
+// The system asks for less motion
+export const still = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 // Room for the full sidebar
 const WIDE = '(min-width: 64rem)';
 
