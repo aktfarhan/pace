@@ -6,32 +6,32 @@ import { Settings } from 'lucide-react';
 import { useGlide } from '@/hooks/useGlide';
 import { GLIDE } from '@/components/layout/tints';
 import { AWAY, GLIDE_ROUND, HERE, NAV, OUTLINED } from './tints';
-import type { Page } from './tints';
-import type { SystemStatus } from '@/types/status';
+import type { PaneProps } from './tints';
 
 const ROW = 'flex h-11 items-center gap-3.25 rounded-row px-3 text-sm';
 
-interface ExpandedProps {
-    status: SystemStatus | null;
-    toggle: () => void;
-    page: Page;
-    select: (page: Page) => void;
+interface ExpandedProps extends Omit<PaneProps, 'toggle'> {
+    toggle?: () => void;
 }
 
 function Expanded({ status, toggle, page, select }: ExpandedProps) {
     const { rowRef, glideRef } = useGlide<HTMLElement>(page, 1, GLIDE_ROUND);
 
     return (
-        <div className="flex h-full w-expanded flex-col overflow-y-auto px-3">
+        <div className="flex h-full w-full flex-col overflow-y-auto px-3">
             <div className="sticky top-0 z-10 flex items-center gap-3 bg-rail px-1.5 pt-5 pb-1">
                 <span className="relative grid size-7 shrink-0 place-items-center rounded-mark bg-accent">
-                    <span className="text-mark text-onaccent">p</span>
+                    <span className="text-mark text-onaccent" aria-hidden="true">
+                        p
+                    </span>
                     <span className="absolute right-hair bottom-hair size-1.25 rounded-full bg-ember" />
                 </span>
                 <span className="text-brand text-bright uppercase">Pace</span>
-                <div className="ml-auto">
-                    <Toggle toggle={toggle} />
-                </div>
+                {toggle !== undefined && (
+                    <div className="ml-auto">
+                        <Toggle toggle={toggle} expanded={true} />
+                    </div>
+                )}
             </div>
 
             <nav ref={rowRef} className="relative mt-3.5 flex flex-col gap-0.5 px-1.5">

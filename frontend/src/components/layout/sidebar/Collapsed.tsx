@@ -8,26 +8,18 @@ import { useShowLine } from '@/hooks/useShowLine';
 import { GLIDE } from '@/components/layout/tints';
 import { AWAY, GLIDE_ROUND, HERE, NAV, OUTLINED } from './tints';
 import { branchLettersOf, branchesHeard, effectWord, running } from '@/lib/status';
-import type { Page } from './tints';
-import type { SystemStatus } from '@/types/status';
+import type { PaneProps } from './tints';
 
 const CELL = 'grid size-11 shrink-0 place-items-center rounded-row';
 
-interface CollapsedProps {
-    status: SystemStatus | null;
-    toggle: () => void;
-    page: Page;
-    select: (page: Page) => void;
-}
-
-function Collapsed({ status, toggle, page, select }: CollapsedProps) {
+function Collapsed({ status, toggle, page, select }: PaneProps) {
     const { rowRef, glideRef } = useGlide<HTMLElement>(page, 1, GLIDE_ROUND);
     const show = useShowLine();
 
     return (
         <div className="flex h-full w-collapsed flex-col overflow-y-auto">
             <div className="sticky top-0 z-10 flex flex-col items-center bg-rail pt-5">
-                <Toggle toggle={toggle} />
+                <Toggle toggle={toggle} expanded={false} />
             </div>
 
             <nav ref={rowRef} className="relative mt-4.5 flex flex-col items-center gap-0.5">

@@ -1,8 +1,16 @@
 import { Bookmark, Clock, MessageSquare, TrainFront } from 'lucide-react';
-import type { Chip, State } from '@/types/status';
+import type { Chip, State, SystemStatus } from '@/types/status';
 
 // The pages the sidebar switches between
 export type Page = 'Ask' | 'Transit' | 'History' | 'Saved';
+
+// What both sidebar states are given
+export interface PaneProps {
+    status: SystemStatus | null;
+    toggle: () => void;
+    page: Page;
+    select: (page: Page) => void;
+}
 
 // The tabs both sidebar states list
 export const NAV: { label: Page; Icon: typeof MessageSquare }[] = [

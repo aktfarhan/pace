@@ -1,5 +1,6 @@
-import { useEffect, useEffectEvent, useRef } from 'react';
+import { drawerOpen } from './useDrawer';
 import { NAV } from '@/components/layout/sidebar/tints';
+import { useEffect, useEffectEvent, useRef } from 'react';
 import type { Page } from '@/components/layout/sidebar/tints';
 
 // How long a keyed switch holds the highlight
@@ -17,6 +18,9 @@ export function useShortcuts(go: (page: Page) => void, ask: () => void) {
         // Skips keys used with modifiers or typed in the text box
         if (event.metaKey || event.ctrlKey || event.altKey) return;
         if (event.target instanceof HTMLInputElement) return;
+
+        // The open drawer keeps its keys to itself
+        if (drawerOpen()) return;
 
         // The page a number key switches to
         const page: Page | undefined = KEYED[Number(event.key) - 1];
