@@ -50,6 +50,8 @@ function App() {
                                 stage={stage}
                                 refresh={refresh}
                                 refreshing={refreshing}
+                                ask={send}
+                                status={status}
                             />
                             <AskInput ref={inputRef} send={send} busy={busy} />
                         </>
