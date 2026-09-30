@@ -1,13 +1,16 @@
 import clsx from 'clsx';
 import { RISE } from './tints';
+import { History } from 'lucide-react';
+import { readHistory } from '@/lib/history';
 import { useEffect, useState } from 'react';
 import { useShowLine } from '@/hooks/useShowLine';
+import { foldOf, mostAsked } from '@/lib/insights';
 import { effectWord, running } from '@/lib/status';
 import type { AskController } from '@/hooks/useAsk';
 import type { AlertedLine, SystemStatus } from '@/types/status';
 
 const CHIP =
-    'relative cursor-pointer rounded-full border border-edge bg-field px-3.5 py-2 text-sm text-soft transition-[color,background-color,scale] ease-out hover:bg-bubble hover:text-cream active:scale-97 pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-1';
+    'relative flex max-w-full cursor-pointer items-center gap-2 rounded-full border border-edge bg-field px-3.5 py-2 text-sm text-soft transition-[color,background-color,scale] ease-out hover:bg-bubble hover:text-cream active:scale-97 pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-1';
 
 // Questions on the ask screen
 const STARTERS = [
@@ -39,6 +42,12 @@ function Starters({ ask, status }: StartersProps) {
         ? status.lines.filter((line): line is AlertedLine => !running(line))
         : [];
 
+    // What this code asks most comes first
+    const [usual] = useState(() => mostAsked(readHistory(), 2).map((one) => one.query));
+    const starters = STARTERS.filter(
+        (query) => !usual.some((own) => foldOf(own) === foldOf(query)),
+    );
+
     return (
         <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4 text-center">
             <div className={clsx('flex flex-col gap-2', first && RISE)}>
@@ -64,11 +73,23 @@ function Starters({ ask, status }: StartersProps) {
             )}
             <div
                 className={clsx(
-                    'flex max-w-xl flex-wrap justify-center gap-2',
+                    'flex w-full max-w-xl flex-wrap justify-center gap-2',
                     first && [RISE, 'delay-75'],
                 )}
             >
-                {STARTERS.map((query) => (
+                {usual.map((query) => (
+                    <button
+                        key={query}
+                        type="button"
+                        title={query}
+                        onClick={() => ask(query)}
+                        className={CHIP}
+                    >
+                        <History size={13} strokeWidth={2} className="shrink-0 text-quiet" />
+                        <span className="min-w-0 truncate">{query}</span>
+                    </button>
+                ))}
+                {starters.map((query) => (
                     <button key={query} type="button" onClick={() => ask(query)} className={CHIP}>
                         {query}
                     </button>
