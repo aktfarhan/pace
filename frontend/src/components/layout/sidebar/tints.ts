@@ -37,11 +37,10 @@ export const PILLS: Record<Exclude<State, 'clear'>, string> = {
     severe: 'border-red-fill/28 bg-red-fill/14 text-red',
 };
 
-// A chip: read for the fact, quiet for the other, dashed for a placeholder
+// A chip's text
 export const CHIPS: Record<Chip['tone'], string> = {
-    read: 'border-seam text-dim',
-    quiet: 'border-seam text-faint',
-    blank: 'border-dashed border-line text-ghost',
+    quiet: 'text-hush',
+    blank: 'text-faint',
 };
 
 // Every page's icon as an outline

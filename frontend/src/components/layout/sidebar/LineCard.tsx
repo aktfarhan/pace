@@ -15,9 +15,6 @@ function LineCard({ line }: LineCardProps) {
     const chips = chipsOf(line);
     const ok = running(line);
 
-    const tinted = line.state === 'disrupted' || line.state === 'severe';
-    const chipFill = tinted ? 'bg-panel' : 'bg-ink';
-
     return (
         <div
             className={clsx(
@@ -71,8 +68,7 @@ function LineCard({ line }: LineCardProps) {
                     <span
                         key={chip.text}
                         className={clsx(
-                            'rounded-chip border px-2 py-0.75 font-mono text-chip whitespace-nowrap uppercase',
-                            chipFill,
+                            'rounded-chip border border-white/8 bg-white/3 px-2 py-0.75 font-mono text-chip whitespace-nowrap uppercase',
                             CHIPS[chip.tone],
                         )}
                     >

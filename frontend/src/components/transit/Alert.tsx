@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 import { sinceOf } from './feed';
 import { effectWord } from '@/lib/status';
-import { CARDS, CHIPS, PILLS } from '@/components/layout/sidebar/tints';
+import { CARDS, PILLS } from '@/components/layout/sidebar/tints';
 import type { Notice } from '@/types/transit';
 
 function Alert({ lines, alert }: Notice) {
@@ -42,21 +42,11 @@ function Alert({ lines, alert }: Notice) {
             </div>
 
             <div className="flex items-center gap-1.75">
-                <span
-                    className={clsx(
-                        'rounded-chip border bg-ink px-2 py-0.75 font-mono text-chip whitespace-nowrap uppercase',
-                        CHIPS.read,
-                    )}
-                >
+                <span className="rounded-chip border border-seam bg-ink px-2 py-0.75 font-mono text-chip whitespace-nowrap text-dim uppercase">
                     {sinceOf(alert.since)}
                 </span>
                 {alert.where !== null && (
-                    <span
-                        className={clsx(
-                            'truncate rounded-chip border bg-ink px-2 py-0.75 font-mono text-chip whitespace-nowrap uppercase',
-                            CHIPS.quiet,
-                        )}
-                    >
+                    <span className="truncate rounded-chip border border-seam bg-ink px-2 py-0.75 font-mono text-chip whitespace-nowrap text-faint uppercase">
                         {alert.where}
                     </span>
                 )}

@@ -4,7 +4,7 @@ export type State = 'clear' | 'notice' | 'disrupted' | 'severe';
 // One fact under a card's title row
 export interface Chip {
     text: string;
-    tone: 'read' | 'quiet' | 'blank';
+    tone: 'quiet' | 'blank';
 }
 
 // One alert in effect on a line

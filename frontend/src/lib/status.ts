@@ -232,7 +232,7 @@ export function chipsOf(line: LineStatus): Chip[] {
 
     const scope: Chip = {
         text: bothDirections(line) ? 'Both ways' : 'One direction',
-        tone: 'read',
+        tone: 'quiet',
     };
     if (line.alert_count > 1) {
         return [scope, { text: `${line.alert_count} alerts`, tone: 'quiet' }];
