@@ -64,7 +64,12 @@ function App() {
                                 ask={start}
                                 status={status}
                             />
-                            <AskInput ref={inputRef} send={send} busy={busy} />
+                            <AskInput
+                                ref={inputRef}
+                                send={send}
+                                busy={busy}
+                                last={turns.at(-1)?.query}
+                            />
                         </>
                     )}
                     {page === 'Saved' && <Saved />}

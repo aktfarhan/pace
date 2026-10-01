@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ArrowUp } from 'lucide-react';
+import { readHistory } from '@/lib/history';
 import { useStrayKeys } from '@/hooks/useStrayKeys';
 import type { RefObject } from 'react';
 import type { AskController } from '@/hooks/useAsk';
@@ -7,10 +8,11 @@ import type { AskController } from '@/hooks/useAsk';
 interface AskInputProps {
     send: AskController['send'];
     busy: boolean;
+    last: string | undefined;
     ref: RefObject<HTMLInputElement | null>;
 }
 
-function AskInput({ send, busy, ref }: AskInputProps) {
+function AskInput({ send, busy, last, ref }: AskInputProps) {
     const [query, setQuery] = useState('');
     const blocked = busy || query.trim() === '';
 
@@ -31,7 +33,15 @@ function AskInput({ send, busy, ref }: AskInputProps) {
                 ref={ref}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                onKeyDown={(event) => event.key === 'Enter' && submit()}
+                onKeyDown={(event) => {
+                    if (event.key === 'Enter') submit();
+                    if (event.key === 'ArrowUp' && query === '') {
+                        const back = last ?? readHistory()[0]?.query;
+                        if (back === undefined) return;
+                        event.preventDefault();
+                        setQuery(back);
+                    }
+                }}
                 placeholder="Ask about trips, alerts, or parking"
                 aria-label="Ask a question"
                 className="h-13 min-w-0 flex-1 rounded-xl border border-edge bg-field px-4.5 text-sm text-cream outline-none placeholder:text-faint"
