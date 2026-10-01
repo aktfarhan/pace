@@ -68,7 +68,7 @@ function App() {
                                 ref={inputRef}
                                 send={send}
                                 busy={busy}
-                                last={turns.at(-1)?.query}
+                                asked={turns.map((turn) => turn.query)}
                             />
                         </>
                     )}

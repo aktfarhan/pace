@@ -2,17 +2,17 @@ import { useState } from 'react';
 import { ArrowUp } from 'lucide-react';
 import { readHistory } from '@/lib/history';
 import { useStrayKeys } from '@/hooks/useStrayKeys';
-import type { RefObject } from 'react';
 import type { AskController } from '@/hooks/useAsk';
+import type { KeyboardEvent, RefObject } from 'react';
 
 interface AskInputProps {
     send: AskController['send'];
     busy: boolean;
-    last: string | undefined;
+    asked: string[];
     ref: RefObject<HTMLInputElement | null>;
 }
 
-function AskInput({ send, busy, last, ref }: AskInputProps) {
+function AskInput({ send, busy, asked, ref }: AskInputProps) {
     const [query, setQuery] = useState('');
     const blocked = busy || query.trim() === '';
 
@@ -27,6 +27,26 @@ function AskInput({ send, busy, last, ref }: AskInputProps) {
         setQuery('');
     }
 
+    // Browse past queries
+    function browsePastQueries(event: KeyboardEvent<HTMLInputElement>) {
+        if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+
+        // This session's queries, then the history
+        const queries = [
+            ...new Set([...asked.toReversed(), ...readHistory().map((one) => one.query)]),
+        ];
+
+        // Which one the box shows
+        const shown = queries.indexOf(query);
+        if (shown === -1 && query !== '') return;
+        event.preventDefault();
+
+        // Up shows older, and down shows newer
+        const next = shown + (event.key === 'ArrowUp' ? 1 : -1);
+        if (next < -1 || next === queries.length) return;
+        setQuery(next === -1 ? '' : queries[next]);
+    }
+
     return (
         <div className="flex items-center gap-2">
             <input
@@ -35,12 +55,7 @@ function AskInput({ send, busy, last, ref }: AskInputProps) {
                 onChange={(event) => setQuery(event.target.value)}
                 onKeyDown={(event) => {
                     if (event.key === 'Enter') submit();
-                    if (event.key === 'ArrowUp' && query === '') {
-                        const back = last ?? readHistory()[0]?.query;
-                        if (back === undefined) return;
-                        event.preventDefault();
-                        setQuery(back);
-                    }
+                    else browsePastQueries(event);
                 }}
                 placeholder="Ask about trips, alerts, or parking"
                 aria-label="Ask a question"
