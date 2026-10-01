@@ -4,14 +4,13 @@ import { useLayoutEffect, useRef } from 'react';
 import type { Turn } from '@/types/turn';
 import type { Stage } from '@/types/answer';
 import type { SystemStatus } from '@/types/status';
-import type { AskController } from '@/hooks/useAsk';
 
 interface TurnListProps {
     turns: Turn[];
     stage: Stage | null;
     refresh: (id: number, query: string) => void;
     refreshing: number | null;
-    ask: AskController['send'];
+    ask: (query: string) => void;
     status: SystemStatus | null;
 }
 

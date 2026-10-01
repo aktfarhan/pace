@@ -1,17 +1,21 @@
 import { useState } from 'react';
 import { ArrowUp } from 'lucide-react';
-import type { Ref } from 'react';
+import { useStrayKeys } from '@/hooks/useStrayKeys';
+import type { RefObject } from 'react';
 import type { AskController } from '@/hooks/useAsk';
 
 interface AskInputProps {
     send: AskController['send'];
     busy: boolean;
-    ref: Ref<HTMLInputElement>;
+    ref: RefObject<HTMLInputElement | null>;
 }
 
 function AskInput({ send, busy, ref }: AskInputProps) {
     const [query, setQuery] = useState('');
     const blocked = busy || query.trim() === '';
+
+    // A key typed outside text fields starts the question
+    useStrayKeys(ref, (key) => setQuery((was) => was + key));
 
     function submit() {
         if (blocked) {

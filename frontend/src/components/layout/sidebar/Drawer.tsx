@@ -1,6 +1,7 @@
 import clsx from 'clsx';
 import Toggle from './Toggle';
 import Expanded from './Expanded';
+import { flushSync } from 'react-dom';
 import { useModal } from '@/hooks/useModal';
 import { onWide, wide } from '@/lib/device';
 import { useSwipeAway } from '@/hooks/useSwipeAway';
@@ -71,7 +72,7 @@ function Drawer({ status, page, select }: DrawerProps) {
                             status={status}
                             page={page}
                             select={(next) => {
-                                close();
+                                flushSync(close);
                                 select(next);
                             }}
                         />

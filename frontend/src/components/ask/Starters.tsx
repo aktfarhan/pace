@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react';
 import { useShowLine } from '@/hooks/useShowLine';
 import { foldOf, mostAsked } from '@/lib/insights';
 import { effectWord, running } from '@/lib/status';
-import type { AskController } from '@/hooks/useAsk';
 import type { AlertedLine, SystemStatus } from '@/types/status';
 
 const CHIP =
@@ -24,7 +23,7 @@ const STARTERS = [
 let greeted = false;
 
 interface StartersProps {
-    ask: AskController['send'];
+    ask: (query: string) => void;
     status: SystemStatus | null;
 }
 

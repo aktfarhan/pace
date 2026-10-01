@@ -1,3 +1,6 @@
+// A mouse or trackpad
+export const pointing = () => matchMedia('(pointer: fine)').matches;
+
 // The system asks for less motion
 export const still = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
