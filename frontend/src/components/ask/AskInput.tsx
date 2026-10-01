@@ -29,8 +29,6 @@ function AskInput({ send, busy, asked, ref }: AskInputProps) {
 
     // Browse past queries
     function browsePastQueries(event: KeyboardEvent<HTMLInputElement>) {
-        if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
-
         // This session's queries, then the history
         const queries = [
             ...new Set([...asked.toReversed(), ...readHistory().map((one) => one.query)]),
@@ -47,28 +45,42 @@ function AskInput({ send, busy, asked, ref }: AskInputProps) {
         setQuery(next === -1 ? '' : queries[next]);
     }
 
+    // Handle input box functions like submit, clear, and past queries
+    function handleKey(event: KeyboardEvent<HTMLInputElement>) {
+        switch (event.key) {
+            case 'Enter':
+                submit();
+                break;
+            case 'Escape':
+                if (query === '') event.currentTarget.blur();
+                else setQuery('');
+                break;
+            case 'ArrowUp':
+            case 'ArrowDown':
+                browsePastQueries(event);
+        }
+    }
+
     return (
         <div className="flex items-center gap-2">
             <input
                 ref={ref}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                onKeyDown={(event) => {
-                    if (event.key === 'Enter') submit();
-                    else browsePastQueries(event);
-                }}
-                placeholder="Ask about trips, alerts, or parking"
+                onKeyDown={handleKey}
+                enterKeyHint="send"
+                placeholder="Ask about trips, schedules, or alerts"
                 aria-label="Ask a question"
-                className="h-13 min-w-0 flex-1 rounded-xl border border-edge bg-field px-4.5 text-sm text-cream outline-none placeholder:text-faint"
+                className="h-13 min-w-0 flex-1 rounded-xl border border-edge bg-field px-4.5 text-sm text-cream transition-colors outline-none placeholder:text-quiet focus:border-accent/40 contrast-more:focus:border-accent pointer-coarse:text-base"
             />
             <button
                 type="button"
                 onClick={submit}
                 disabled={blocked}
                 aria-label="Ask"
-                className="grid size-13 shrink-0 place-items-center rounded-xl bg-accent text-onaccent disabled:opacity-30"
+                className="grid size-13 shrink-0 cursor-pointer place-items-center rounded-xl bg-accent text-onaccent transition-[background-color,opacity,scale] ease-out enabled:hover:bg-bright enabled:active:scale-97 disabled:cursor-default disabled:opacity-30"
             >
-                <ArrowUp size={17} strokeWidth={2.2} aria-hidden="true" />
+                <ArrowUp size={17} strokeWidth={2.2} />
             </button>
         </div>
     );
