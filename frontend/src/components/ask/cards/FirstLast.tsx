@@ -1,8 +1,11 @@
-import clsx from 'clsx';
 import { tintOf } from '@/lib/lines';
 import { useNow } from '@/hooks/useNow';
 import { clockParts } from '@/lib/trip';
 import type { EdgeCard } from '@/types/answer';
+
+// Each column's rule sits mid-gap
+const COLUMN =
+    'relative pt-4 pb-4.5 before:absolute before:inset-y-0 before:-left-6 before:w-px before:bg-seam';
 
 interface FirstLastProps {
     card: EdgeCard;
@@ -13,17 +16,16 @@ function FirstLast({ card }: FirstLastProps) {
 
     const tint = tintOf(card.route_id);
     const title = card.edge === 'first' ? 'First' : 'Last';
-    const last = card.directions.length - 1;
 
     return (
         <div className="rounded-card border border-edge bg-field px-7 py-3 text-cream">
-            <div className="flex items-end justify-between border-b border-seam pt-3.5 pb-3.25">
+            <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1.5 border-b border-seam pt-3.5 pb-3.25">
                 <div className="text-title text-bright">
                     {title}{' '}
                     <span className={tint === null ? undefined : tint.text}>{card.label}</span> from{' '}
                     {card.station}
                 </div>
-                <span className="flex items-center gap-1.75 pb-0.5">
+                <span className="flex shrink-0 items-center gap-1.75 pb-0.5 whitespace-nowrap">
                     <span className="size-1.5 rounded-full border border-dim" />
                     <span className="font-mono text-timetable text-ghost uppercase">
                         {card.day} timetable
@@ -31,19 +33,12 @@ function FirstLast({ card }: FirstLastProps) {
                 </span>
             </div>
 
-            <div className="grid grid-cols-directions">
+            <div className="grid grid-cols-directions gap-x-12 overflow-hidden">
                 {card.directions.map((direction, index) => {
                     const { time, meridiem } = clockParts(direction.time);
                     const passed = Date.parse(direction.time) < now;
                     return (
-                        <div
-                            key={index}
-                            className={clsx(
-                                'pt-4 pb-4.5',
-                                index > 0 && 'border-l border-seam pl-6',
-                                index < last && 'pr-6',
-                            )}
-                        >
+                        <div key={index} className={COLUMN}>
                             <div className="flex items-baseline justify-between">
                                 <span className="font-mono text-toward text-ghost uppercase">
                                     Toward

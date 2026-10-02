@@ -170,7 +170,7 @@
     --text-board--font-weight: 650;
     --text-board--letter-spacing: -0.025em;
 
-    --grid-template-columns-directions: repeat(auto-fit, minmax(12rem, 1fr));
+    --grid-template-columns-directions: repeat(auto-fit, minmax(10rem, 1fr));
 
     --font-weight-strong: 650;
 

@@ -15,7 +15,7 @@ const DOTS: Record<Level, string> = {
     high: 'bg-red',
 };
 
-const PILL = 'rounded-full border px-2.25 py-hair font-mono text-tag uppercase';
+const PILL = 'rounded-full border px-2.25 py-hair font-mono text-tag whitespace-nowrap uppercase';
 
 interface RiskProps {
     risk: Level | null;

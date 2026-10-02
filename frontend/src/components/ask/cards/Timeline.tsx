@@ -19,7 +19,7 @@ function Timeline({ card }: TimelineProps) {
                     {clock(card.arrive)}
                 </span>
                 <span className="grid size-7 shrink-0 place-items-center rounded-mark border border-good/30 bg-good/12 text-green">
-                    <MapPin size={14} strokeWidth={1.9} aria-hidden="true" />
+                    <MapPin size={14} strokeWidth={1.9} />
                 </span>
                 <span className="min-w-0 flex-1 truncate text-row font-semibold text-cream">
                     Arrive · {card.destination}
