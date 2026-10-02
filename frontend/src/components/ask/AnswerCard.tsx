@@ -1,3 +1,5 @@
+import clsx from 'clsx';
+import { RISE } from './tints';
 import TripPlan from './cards/TripPlan';
 import FirstLast from './cards/FirstLast';
 import type { Answer } from '@/types/answer';
@@ -8,9 +10,10 @@ interface AnswerCardProps {
     answer: Answer;
     refresh: () => void;
     refreshing: boolean;
+    fresh: boolean;
 }
 
-function AnswerCard({ answer, refresh, refreshing }: AnswerCardProps) {
+function AnswerCard({ answer, refresh, refreshing, fresh }: AnswerCardProps) {
     // Build the body of the answer
     let body;
     if (answer.card?.kind === 'trip') {
@@ -34,7 +37,7 @@ function AnswerCard({ answer, refresh, refreshing }: AnswerCardProps) {
     }
 
     return (
-        <div className="flex flex-col gap-2">
+        <div className={clsx('flex flex-col gap-2', fresh && RISE)}>
             {body}
             {answer.sources.length > 0 && (
                 <p className="pl-1 font-mono text-label text-faint uppercase">

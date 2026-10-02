@@ -11,11 +11,19 @@ interface TurnBodyProps {
     stage: Stage | null;
     refresh: () => void;
     refreshing: boolean;
+    fresh: boolean;
 }
 
-function TurnBody({ turn, stage, refresh, refreshing }: TurnBodyProps) {
+function TurnBody({ turn, stage, refresh, refreshing, fresh }: TurnBodyProps) {
     if (turn.answer !== null) {
-        return <AnswerCard answer={turn.answer} refresh={refresh} refreshing={refreshing} />;
+        return (
+            <AnswerCard
+                answer={turn.answer}
+                refresh={refresh}
+                refreshing={refreshing}
+                fresh={fresh}
+            />
+        );
     }
     // A failed question can be asked again
     if (turn.failed && !refreshing) {
