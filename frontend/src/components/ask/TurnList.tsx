@@ -8,7 +8,7 @@ import type { SystemStatus } from '@/types/status';
 interface TurnListProps {
     turns: Turn[];
     stage: Stage | null;
-    refresh: (id: number, query: string) => void;
+    refresh: (id: number, query: string, failed: boolean) => void;
     refreshing: number | null;
     ask: (query: string) => void;
     status: SystemStatus | null;
@@ -38,7 +38,7 @@ function TurnList({ turns, stage, refresh, refreshing, ask, status }: TurnListPr
                     <TurnBody
                         turn={turn}
                         stage={stage}
-                        refresh={() => refresh(turn.id, turn.query)}
+                        refresh={() => refresh(turn.id, turn.query, turn.failed)}
                         refreshing={refreshing === turn.id}
                     />
                 </div>

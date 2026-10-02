@@ -67,7 +67,7 @@ export function useAsk() {
 
     // Runs a turn's question again and swaps the answer in place
     const refresh = useCallback(
-        async (id: number, query: string) => {
+        async (id: number, query: string, failed: boolean) => {
             if (running.current) {
                 return;
             }
@@ -78,7 +78,10 @@ export function useAsk() {
 
             try {
                 const answer = await ask(query, () => {});
-                amend(id, { answer });
+                amend(id, { answer, failed: false });
+
+                // Keep the question even tho it failed
+                if (failed) keep(query, answer);
             } catch (error) {
                 console.error(error);
             } finally {
