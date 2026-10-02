@@ -5,3 +5,7 @@ export const GLIDE =
 // A status dot
 export const LIVE = 'bg-good shadow-glow';
 export const BEHIND = 'animate-beacon bg-amber shadow-pulse';
+
+// Changed text fades in from a slight blur
+export const TICK =
+    'transition-[opacity,filter] duration-200 ease-out starting:opacity-0 starting:blur-xs';

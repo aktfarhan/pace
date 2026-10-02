@@ -4,7 +4,6 @@ import Failed from '@/components/layout/Failed';
 import type { Turn } from '@/types/turn';
 import type { Stage } from '@/types/answer';
 
-const WORKING = 'Working';
 const UNREACHABLE = "Couldn't get an answer";
 
 interface TurnBodyProps {
@@ -22,10 +21,7 @@ function TurnBody({ turn, stage, refresh, refreshing }: TurnBodyProps) {
     if (turn.failed && !refreshing) {
         return <Failed said={UNREACHABLE} retry={refresh} />;
     }
-    if (turn.failed || stage === null) {
-        return <p className="text-sm text-dim">{WORKING}</p>;
-    }
-    return <Thinking stage={stage} />;
+    return <Thinking stage={turn.failed ? null : stage} />;
 }
 
 export default TurnBody;

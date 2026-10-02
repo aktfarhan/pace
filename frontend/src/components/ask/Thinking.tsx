@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import { useNow } from '@/hooks/useNow';
+import { TICK } from '@/components/layout/tints';
 import type { Stage } from '@/types/answer';
 
 const LABELS: Record<Stage, string> = {
@@ -10,14 +13,28 @@ const LABELS: Record<Stage, string> = {
 };
 
 interface ThinkingProps {
-    stage: Stage;
+    stage: Stage | null;
 }
 
 function Thinking({ stage }: ThinkingProps) {
+    // How long the answer has taken so far
+    const [start] = useState(Date.now);
+    const now = useNow();
+    const seconds = Math.floor((now - start) / 1000);
+    const took = seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+
     return (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 text-xs">
             <span className="size-1.5 shrink-0 animate-blink rounded-full bg-accent" />
-            <span className="text-xs text-dim">{LABELS[stage]}</span>
+            <span className="text-dim tabular-nums">{took}</span>
+            <span className="text-ghost" aria-hidden="true">
+                ·
+            </span>
+            <span role="status">
+                <span key={stage ?? 'working'} className={`shimmer ${TICK}`}>
+                    {stage === null ? 'Working' : LABELS[stage]}
+                </span>
+            </span>
         </div>
     );
 }
