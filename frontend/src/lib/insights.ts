@@ -1,3 +1,4 @@
+import { KEPT } from '@/lib/history';
 import type { Entry } from '@/types/history';
 import type { Intent } from '@/types/answer';
 
@@ -80,6 +81,44 @@ export function todayOf(entries: Entry[]): Tally[] {
         });
     }
     return hours;
+}
+
+// A full log's oldest question, or null when there's still room
+function droppedBefore(entries: Entry[]) {
+    return entries.length >= KEPT
+        ? Math.min(...entries.map((entry) => Date.parse(entry.at)))
+        : null;
+}
+
+// Number of questions in a window
+function countBetween(entries: Entry[], start: number, end: number) {
+    const cut = droppedBefore(entries);
+    if (cut !== null && cut > start) return 0;
+
+    return entries.filter((entry) => {
+        const at = Date.parse(entry.at);
+        return at >= start && at < end;
+    }).length;
+}
+
+// Yesterday's questions at this time
+function yesterdayOf(entries: Entry[]) {
+    const end = new Date();
+    end.setDate(end.getDate() - 1);
+    const start = new Date(end);
+    start.setHours(0, 0, 0, 0);
+
+    return countBetween(entries, start.getTime(), end.getTime());
+}
+
+// Today against yesterday at this time
+export function versusYesterday(entries: Entry[], asked: number) {
+    const before = yesterdayOf(entries);
+    if (before === 0) return 'Today so far';
+
+    const change = asked - before;
+    if (change === 0) return 'Same as this time yesterday';
+    return `${change > 0 ? '↑' : '↓'} ${Math.abs(change)} from this time yesterday`;
 }
 
 // A question folded for comparing

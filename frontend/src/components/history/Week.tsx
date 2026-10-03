@@ -2,7 +2,7 @@ import clsx from 'clsx';
 import Bars from './Bars';
 import { useState } from 'react';
 import { CARD, FILLS, lookOf } from './tints';
-import { dayKey, todayOf } from '@/lib/insights';
+import { dayKey, todayOf, versusYesterday } from '@/lib/insights';
 import type { Entry } from '@/types/history';
 
 interface WeekProps {
@@ -27,7 +27,7 @@ function Week({ entries, jump }: WeekProps) {
             </div>
             <div className="mt-0.5 flex h-4.5 min-w-0 items-center gap-2.5 overflow-hidden text-xs whitespace-nowrap text-hush">
                 {bar === null ? (
-                    'Today so far'
+                    versusYesterday(entries, asked)
                 ) : (
                     <>
                         <span className="text-soft">{bar.name}</span>

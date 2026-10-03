@@ -6,7 +6,7 @@ import type { Answer, Card } from '@/types/answer';
 const HISTORY_KEY = 'pace.history';
 
 // How many questions the device holds
-const KEPT = 200;
+export const KEPT = 200;
 
 // Formatter for day title
 const DAY = new Intl.DateTimeFormat('en-US', {
