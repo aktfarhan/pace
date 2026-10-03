@@ -1,10 +1,10 @@
 import clsx from 'clsx';
-import { RISE } from './tints';
+import { linesOf } from '@/lib/answer';
+import { RISE, SURFACE } from './tints';
 import TripPlan from './cards/TripPlan';
 import FirstLast from './cards/FirstLast';
+import { sourcesOf } from '@/lib/sources';
 import type { Answer } from '@/types/answer';
-
-const GROUNDED = 'Grounded';
 
 interface AnswerCardProps {
     answer: Answer;
@@ -14,6 +14,8 @@ interface AnswerCardProps {
 }
 
 function AnswerCard({ answer, refresh, refreshing, fresh }: AnswerCardProps) {
+    const sources = sourcesOf(answer.sources);
+
     // Build the body of the answer
     let body;
     if (answer.card?.kind === 'trip') {
@@ -30,8 +32,17 @@ function AnswerCard({ answer, refresh, refreshing, fresh }: AnswerCardProps) {
         body = <FirstLast card={answer.card} />;
     } else {
         body = (
-            <div className="rounded-card border border-edge bg-field p-4">
-                <p className="text-sm/relaxed whitespace-pre-line text-soft">{answer.answer}</p>
+            <div className={`${SURFACE} flex flex-col gap-2 py-5.5 text-sm/relaxed text-pretty`}>
+                {linesOf(answer.answer).map((line, index) =>
+                    line.bullet ? (
+                        <p key={index} className="flex gap-2.5">
+                            <span className="mt-2.25 size-1 shrink-0 rounded-full bg-hush" />
+                            {line.text}
+                        </p>
+                    ) : (
+                        <p key={index}>{line.text}</p>
+                    ),
+                )}
             </div>
         );
     }
@@ -39,9 +50,9 @@ function AnswerCard({ answer, refresh, refreshing, fresh }: AnswerCardProps) {
     return (
         <div className={clsx('flex flex-col gap-2', fresh && RISE)}>
             {body}
-            {answer.sources.length > 0 && (
-                <p className="pl-1 font-mono text-label text-faint uppercase">
-                    {GROUNDED} — {answer.sources.join(' · ')}
+            {sources.length > 0 && (
+                <p className="px-5 font-mono text-label text-hush uppercase sm:px-7">
+                    Based on {sources.join(' · ')}
                 </p>
             )}
         </div>

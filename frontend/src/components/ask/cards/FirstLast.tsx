@@ -1,6 +1,7 @@
 import { tintOf } from '@/lib/lines';
 import { useNow } from '@/hooks/useNow';
 import { clockParts } from '@/lib/trip';
+import { SURFACE } from '@/components/ask/tints';
 import type { EdgeCard } from '@/types/answer';
 
 // Each column's rule sits mid-gap
@@ -18,7 +19,7 @@ function FirstLast({ card }: FirstLastProps) {
     const title = card.edge === 'first' ? 'First' : 'Last';
 
     return (
-        <div className="rounded-card border border-edge bg-field px-7 py-3 text-cream">
+        <div className={`${SURFACE} py-3`}>
             <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1.5 border-b border-seam pt-3.5 pb-3.25">
                 <div className="text-title text-bright">
                     {title}{' '}

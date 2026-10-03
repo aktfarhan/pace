@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Bookmark } from 'lucide-react';
 import Spin from '@/components/layout/Spin';
 import { isKept, saveTrip } from '@/lib/pace';
+import { SURFACE } from '@/components/ask/tints';
 import { FAILED_MS, useMoment } from '@/hooks/useMoment';
 import type { Level, TripCard } from '@/types/answer';
 
@@ -42,7 +43,7 @@ function TripPlan({ card, risk, chance, refresh, refreshing }: TripPlanProps) {
     };
 
     return (
-        <div className="flex flex-col gap-3.5 rounded-card border border-edge bg-field px-7 pt-6.5 pb-5 text-cream">
+        <div className={`${SURFACE} flex flex-col gap-3.5 pt-6.5 pb-5`}>
             <div className="flex items-center justify-between gap-4">
                 <div className="truncate text-title text-bright">
                     {card.origin} <span className="font-medium text-hush">to</span>{' '}
