@@ -1,6 +1,6 @@
 import { Ban, Bell, CircleParking, Clock, Info, TrainFront } from 'lucide-react';
-import type { Kind } from '@/lib/insights';
 import type { Intent } from '@/types/answer';
+import type { Kind, Tally } from '@/lib/insights';
 
 // What a refusal draws
 const REFUSAL = {
@@ -36,4 +36,24 @@ const KINDS: Record<Intent, { Icon: typeof Clock; tile: string; pill?: string; l
 
 export function lookOf(kind: Kind) {
     return kind === 'refused' ? REFUSAL : KINDS[kind];
+}
+
+// The color each intent takes in the charts
+export const FILLS: Record<Kind, string> = {
+    route: 'bg-red-fill',
+    schedule: 'bg-blue-fill',
+    alert: 'bg-amber',
+    info: 'bg-quiet',
+    refused: 'bg-ghost',
+    'off-topic': 'bg-ghost',
+    'parking-rules': 'bg-commuter-fill',
+};
+
+// A panel beside the list
+export const CARD = 'rounded-tile border border-seam bg-panel p-4';
+
+// What a screen reader says for a bar
+export function ariaLabelOf(bar: Tally) {
+    const parts = bar.parts.map(([kind, count]) => `${count} ${lookOf(kind).label}`).join(', ');
+    return `${bar.name}: ${bar.total} ${bar.total === 1 ? 'question' : 'questions'}, ${parts}`;
 }
