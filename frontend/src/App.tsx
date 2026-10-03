@@ -1,5 +1,6 @@
 import { pointing } from '@/lib/device';
 import { useAsk } from '@/hooks/useAsk';
+import { setDraft } from '@/hooks/useDraft';
 import Saved from '@/components/saved/Saved';
 import { useStatus } from '@/hooks/useStatus';
 import { ShowLine } from '@/hooks/useShowLine';
@@ -42,6 +43,13 @@ function App() {
         if (pointing()) inputRef.current?.focus();
     };
 
+    // Asks a History question again
+    const askAgain = (query: string) => {
+        setPage('Ask');
+        if (busy) setDraft(query);
+        else send(query);
+    };
+
     return (
         <ShowLine value={show}>
             <div className="flex h-dvh flex-col sm:flex-row">
@@ -73,7 +81,7 @@ function App() {
                         </>
                     )}
                     {page === 'Saved' && <Saved />}
-                    {page === 'History' && <History />}
+                    {page === 'History' && <History ask={askAgain} />}
                     {page === 'Transit' && <Transit tab={tab} choose={setTab} />}
                 </main>
             </div>

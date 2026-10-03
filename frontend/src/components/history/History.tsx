@@ -8,7 +8,11 @@ const EMPTY = 'No questions asked yet.';
 const CLEAR =
     'shrink-0 cursor-pointer font-mono text-tag text-faint uppercase transition-colors hover:text-cream';
 
-function History() {
+interface HistoryProps {
+    ask: (query: string) => void;
+}
+
+function History({ ask }: HistoryProps) {
     const [entries, setEntries] = useState(readHistory);
 
     const empty = entries.length === 0;
@@ -45,7 +49,7 @@ function History() {
                     <SectionHeading label={day.heading} />
                     <div className="divide-y divide-seam overflow-hidden rounded-tile border border-seam bg-panel">
                         {day.entries.map((entry) => (
-                            <Row key={entry.at} entry={entry} />
+                            <Row key={entry.at} entry={entry} ask={ask} />
                         ))}
                     </div>
                 </div>

@@ -1,7 +1,7 @@
-import { useState } from 'react';
 import { ArrowUp } from 'lucide-react';
 import { readHistory } from '@/lib/history';
 import { useStrayKeys } from '@/hooks/useStrayKeys';
+import { setDraft, useDraft } from '@/hooks/useDraft';
 import type { AskController } from '@/hooks/useAsk';
 import type { KeyboardEvent, RefObject } from 'react';
 
@@ -13,18 +13,18 @@ interface AskInputProps {
 }
 
 function AskInput({ send, busy, asked, ref }: AskInputProps) {
-    const [query, setQuery] = useState('');
+    const query = useDraft();
     const blocked = busy || query.trim() === '';
 
     // A key typed outside text fields starts the question
-    useStrayKeys(ref, (key) => setQuery((was) => was + key));
+    useStrayKeys(ref, (key) => setDraft(query + key));
 
     function submit() {
         if (blocked) {
             return;
         }
         send(query);
-        setQuery('');
+        setDraft('');
     }
 
     // Browse past queries
@@ -42,7 +42,7 @@ function AskInput({ send, busy, asked, ref }: AskInputProps) {
         // Up shows older, and down shows newer
         const next = shown + (event.key === 'ArrowUp' ? 1 : -1);
         if (next < -1 || next === queries.length) return;
-        setQuery(next === -1 ? '' : queries[next]);
+        setDraft(next === -1 ? '' : queries[next]);
     }
 
     // Handle input box functions like submit, clear, and past queries
@@ -53,7 +53,7 @@ function AskInput({ send, busy, asked, ref }: AskInputProps) {
                 break;
             case 'Escape':
                 if (query === '') event.currentTarget.blur();
-                else setQuery('');
+                else setDraft('');
                 break;
             case 'ArrowUp':
             case 'ArrowDown':
@@ -66,7 +66,7 @@ function AskInput({ send, busy, asked, ref }: AskInputProps) {
             <input
                 ref={ref}
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) => setDraft(event.target.value)}
                 onKeyDown={handleKey}
                 enterKeyHint="send"
                 placeholder="Ask about trips, schedules, or alerts"

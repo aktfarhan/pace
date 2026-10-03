@@ -9,30 +9,36 @@ const PILL = 'block rounded-full border px-2 py-0.75 font-mono text-tag whitespa
 
 interface RowProps {
     entry: Entry;
+    ask: (query: string) => void;
 }
 
-function Row({ entry }: RowProps) {
+function Row({ entry, ask }: RowProps) {
     const look = lookOf(entryKind(entry));
     const said = entry.detail === '' ? look.label : `${look.label} · ${entry.detail}`;
     const chip =
         entry.chip === null ? null : <span className={clsx(PILL, look.pill)}>{entry.chip}</span>;
 
     return (
-        <div className="flex items-center gap-3.5 px-4 py-3.25">
+        <button
+            type="button"
+            onClick={() => ask(entry.query)}
+            className="group flex w-full cursor-pointer items-center gap-3.5 px-4 py-3.25 text-left transition-colors ease-out hover:bg-field/70 focus-visible:-outline-offset-2 active:bg-field"
+        >
+            <span className="sr-only">Ask again: </span>
             <Mark Icon={look.Icon} tile={look.tile} />
 
-            <div className="min-w-0 flex-1">
-                <div className="truncate text-branch text-bright">{entry.query}</div>
-                <div className="truncate text-xs text-faint">{said}</div>
-                {chip !== null && <div className="mt-1.5 w-fit sm:hidden">{chip}</div>}
-            </div>
+            <span className="min-w-0 flex-1">
+                <span className="block truncate text-branch text-bright">{entry.query}</span>
+                <span className="block truncate text-xs text-faint">{said}</span>
+                {chip !== null && <span className="mt-1.5 block w-fit sm:hidden">{chip}</span>}
+            </span>
 
-            {chip !== null && <div className="hidden sm:block">{chip}</div>}
+            {chip !== null && <span className="hidden sm:block">{chip}</span>}
 
             <span className="w-14 shrink-0 text-right font-mono text-tag whitespace-nowrap text-faint sm:w-18">
                 {fullClock(entry.at)}
             </span>
-        </div>
+        </button>
     );
 }
 
