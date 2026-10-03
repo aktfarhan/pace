@@ -1,8 +1,9 @@
 import { Ban, Bell, CircleParking, Clock, Info, TrainFront } from 'lucide-react';
+import type { Kind } from '@/lib/insights';
 import type { Intent } from '@/types/answer';
 
 // What a refusal draws
-export const REFUSAL = {
+const REFUSAL = {
     Icon: Ban,
     tile: 'bg-bubble text-ghost',
     pill: 'border-seam bg-bubble text-hush',
@@ -10,10 +11,7 @@ export const REFUSAL = {
 };
 
 // What a domain draws
-export const KINDS: Record<
-    Intent,
-    { Icon: typeof Clock; tile: string; pill?: string; label: string }
-> = {
+const KINDS: Record<Intent, { Icon: typeof Clock; tile: string; pill?: string; label: string }> = {
     route: {
         Icon: TrainFront,
         tile: 'bg-red-fill/12 text-red',
@@ -35,3 +33,7 @@ export const KINDS: Record<
     info: { Icon: Info, tile: 'bg-bubble text-muted', label: 'Info' },
     'off-topic': REFUSAL,
 };
+
+export function lookOf(kind: Kind) {
+    return kind === 'refused' ? REFUSAL : KINDS[kind];
+}

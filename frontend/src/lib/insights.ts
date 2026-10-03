@@ -1,4 +1,13 @@
 import type { Entry } from '@/types/history';
+import type { Intent } from '@/types/answer';
+
+// What a question counts as
+export type Kind = Intent | 'refused';
+
+// The intent one question counts as
+export function entryKind(entry: Entry): Kind {
+    return entry.refused ? 'refused' : entry.intent;
+}
 
 // A question folded for comparing
 export function foldOf(query: string) {
