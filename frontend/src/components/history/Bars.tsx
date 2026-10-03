@@ -1,5 +1,6 @@
 import clsx from 'clsx';
 import Bar from './Bar';
+import Guides from './Guides';
 import type { PointerEvent } from 'react';
 import type { Tally } from '@/lib/insights';
 
@@ -14,7 +15,7 @@ interface BarsProps {
 }
 
 function Bars({ bars, picked, pick, jump }: BarsProps) {
-    const most = Math.max(...bars.map((bar) => bar.total));
+    const most = Math.max(1, ...bars.map((bar) => bar.total));
 
     // A mouse leaving the chart lets go of its hour
     const leave = (event: PointerEvent) => {
@@ -31,7 +32,7 @@ function Bars({ bars, picked, pick, jump }: BarsProps) {
             onPointerLeave={leave}
             className="mt-4 select-none"
         >
-            <div className="flex h-24 items-end gap-0.5">
+            <div className="relative flex h-24 items-end gap-0.5 pr-7">
                 {bars.map((bar, index) => (
                     <Bar
                         key={bar.key}
@@ -44,8 +45,9 @@ function Bars({ bars, picked, pick, jump }: BarsProps) {
                         jump={jump}
                     />
                 ))}
+                <Guides most={most} />
             </div>
-            <div className="mt-1.5 flex gap-0.5" aria-hidden="true">
+            <div className="mt-1.5 flex gap-0.5 pr-7" aria-hidden="true">
                 {bars.map((bar, index) => (
                     <span
                         key={bar.key}
