@@ -19,6 +19,9 @@ const WRITE_MS = 15000;
 const EVENT_PREFIX = 'event: ';
 const DATA_PREFIX = 'data: ';
 
+// Trips saved in a visit
+const kept = new Set<string>();
+
 // One event and data pair from the stream
 interface Frame {
     event: string;
@@ -114,6 +117,14 @@ export async function removePlace(id: number) {
     await send(`/v1/places/${id}`, { method: 'DELETE', headers: codeHeader() });
 }
 
+// The key a trip is kept under this visit
+const tripKey = (origin: string, destination: string) => `${origin} to ${destination}`;
+
+// Whether a trip was saved this visit
+export function isKept(origin: string, destination: string) {
+    return kept.has(tripKey(origin, destination));
+}
+
 // Saves one trip, keeping the code it comes back with
 export async function saveTrip(origin: string, destination: string): Promise<SavedTrip> {
     const body = await send('/v1/trips', {
@@ -124,6 +135,7 @@ export async function saveTrip(origin: string, destination: string): Promise<Sav
     const saved = JSON.parse(body);
 
     if (typeof saved.code === 'string') writeCode(saved.code);
+    kept.add(tripKey(origin, destination));
     return saved.trip;
 }
 

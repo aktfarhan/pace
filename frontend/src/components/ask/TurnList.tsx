@@ -10,7 +10,7 @@ import type { SystemStatus } from '@/types/status';
 interface TurnListProps {
     turns: Turn[];
     stage: Stage | null;
-    refresh: (id: number, query: string, failed: boolean) => void;
+    refresh: (id: number, query: string, failed: boolean) => Promise<boolean>;
     refreshing: number | null;
     ask: (query: string) => void;
     status: SystemStatus | null;

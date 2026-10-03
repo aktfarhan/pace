@@ -9,7 +9,7 @@ const UNREACHABLE = "Couldn't get an answer";
 interface TurnBodyProps {
     turn: Turn;
     stage: Stage | null;
-    refresh: () => void;
+    refresh: () => Promise<boolean>;
     refreshing: boolean;
     fresh: boolean;
 }

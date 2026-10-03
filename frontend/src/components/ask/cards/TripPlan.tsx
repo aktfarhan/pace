@@ -1,15 +1,17 @@
 import Plan from './Plan';
 import Stamp from './Stamp';
 import { useState } from 'react';
-import { saveTrip } from '@/lib/pace';
-import { Bookmark, RotateCw } from 'lucide-react';
+import { Bookmark } from 'lucide-react';
+import Spin from '@/components/layout/Spin';
+import { isKept, saveTrip } from '@/lib/pace';
+import { FAILED_MS, useMoment } from '@/hooks/useMoment';
 import type { Level, TripCard } from '@/types/answer';
 
 interface TripPlanProps {
     card: TripCard;
     risk: Level | null;
     chance: number | null;
-    refresh: () => void;
+    refresh: () => Promise<boolean>;
     refreshing: boolean;
 }
 
@@ -17,21 +19,26 @@ const PILL =
     'flex shrink-0 cursor-pointer items-center rounded-full border border-edge bg-bubble py-1.75 text-hush transition-colors hover:border-ghost hover:bg-line hover:text-cream';
 
 function TripPlan({ card, risk, chance, refresh, refreshing }: TripPlanProps) {
-    const [saved, setSaved] = useState(false);
-    const [saving, setSaving] = useState(false);
+    const [saved, setSaved] = useState(() => isKept(card.origin, card.destination));
+    const [failed, setFailed] = useMoment<'save' | 'refresh' | null>(null, FAILED_MS);
 
     const keep = async () => {
-        if (saved || saving) return;
+        if (saved) return;
 
-        setSaving(true);
+        setSaved(true);
+        setFailed(null);
         try {
             await saveTrip(card.origin, card.destination);
-            setSaved(true);
         } catch (error) {
             console.error(error);
-        } finally {
-            setSaving(false);
+            setSaved(false);
+            setFailed('save');
         }
+    };
+
+    const tryAgain = async () => {
+        setFailed(null);
+        if (!(await refresh())) setFailed('refresh');
     };
 
     return (
@@ -45,35 +52,37 @@ function TripPlan({ card, risk, chance, refresh, refreshing }: TripPlanProps) {
                     <button
                         type="button"
                         onClick={keep}
-                        disabled={saved || saving}
+                        aria-disabled={saved}
                         title={saved ? 'Saved' : 'Save this trip'}
                         aria-label={saved ? 'Saved' : 'Save this trip'}
-                        className={`${PILL} px-2.75 disabled:cursor-default`}
+                        className={`${PILL} px-2.75 aria-disabled:pointer-events-none`}
                     >
                         <Bookmark
                             size={12}
                             strokeWidth={2.4}
                             fill={saved ? 'currentColor' : 'none'}
                             className={saved ? 'text-accent' : 'text-quiet'}
-                            aria-hidden="true"
                         />
                     </button>
                     <button
                         type="button"
-                        onClick={refresh}
+                        onClick={tryAgain}
                         title="Refresh this plan"
+                        aria-label="Refresh this plan"
                         className={`${PILL} gap-2 px-3.25`}
                     >
                         <Stamp card={card} />
-                        <RotateCw
-                            size={12}
-                            strokeWidth={2.4}
-                            className={refreshing ? 'animate-spin text-quiet' : 'text-quiet'}
-                            aria-hidden="true"
-                        />
+                        <Spin on={refreshing} />
                     </button>
                 </div>
             </div>
+            {failed !== null && (
+                <span role="alert" className="-mt-1.5 text-row text-red">
+                    {failed === 'save'
+                        ? "Couldn't save this trip. Try again."
+                        : "Couldn't refresh this plan. Showing the last one."}
+                </span>
+            )}
             <Plan card={card} risk={risk} chance={chance} />
         </div>
     );

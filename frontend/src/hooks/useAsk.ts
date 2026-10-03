@@ -69,7 +69,7 @@ export function useAsk() {
     const refresh = useCallback(
         async (id: number, query: string, failed: boolean) => {
             if (running.current) {
-                return;
+                return true;
             }
 
             running.current = true;
@@ -78,12 +78,15 @@ export function useAsk() {
 
             try {
                 const answer = await ask(query, () => {});
+                if (!failed && answer.card?.kind !== 'trip') return false;
                 amend(id, { answer, failed: false });
 
                 // Keep the question even tho it failed
                 if (failed) keep(query, answer);
+                return true;
             } catch (error) {
                 console.error(error);
+                return false;
             } finally {
                 running.current = false;
                 setBusy(false);

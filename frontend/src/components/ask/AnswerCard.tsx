@@ -8,7 +8,7 @@ const GROUNDED = 'Grounded';
 
 interface AnswerCardProps {
     answer: Answer;
-    refresh: () => void;
+    refresh: () => Promise<boolean>;
     refreshing: boolean;
     fresh: boolean;
 }
