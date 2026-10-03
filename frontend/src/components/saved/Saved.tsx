@@ -4,7 +4,7 @@ import TripCard from './TripCard';
 import PlaceCard from './PlaceCard';
 import { useTrips } from '@/hooks/useTrips';
 import { usePlaces } from '@/hooks/usePlaces';
-import SectionHeading from '@/components/layout/sidebar/SectionHeading';
+import SectionHeading from '@/components/layout/SectionHeading';
 
 function Saved() {
     const { places, keep, drop: dropPlace } = usePlaces();

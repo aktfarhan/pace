@@ -9,3 +9,7 @@ export const BEHIND = 'animate-beacon bg-amber shadow-pulse';
 // Changed text fades in from a slight blur
 export const TICK =
     'transition-[opacity,filter] duration-200 ease-out starting:opacity-0 starting:blur-xs';
+
+// A count's pill
+export const COUNT =
+    'rounded-full bg-field px-1.75 py-px font-mono text-heading tracking-normal text-hush tabular-nums';

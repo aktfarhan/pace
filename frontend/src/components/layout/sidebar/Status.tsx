@@ -1,8 +1,8 @@
 import clsx from 'clsx';
 import Subline from './Subline';
 import LineCard from './LineCard';
-import SectionHeading from './SectionHeading';
 import { BEHIND, LIVE } from '@/components/layout/tints';
+import SectionHeading from '@/components/layout/SectionHeading';
 import { headlineOf, runningCount, sectionsOf } from '@/lib/status';
 import type { SystemStatus } from '@/types/status';
 

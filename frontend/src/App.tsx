@@ -1,3 +1,4 @@
+import { flushSync } from 'react-dom';
 import { pointing } from '@/lib/device';
 import { useAsk } from '@/hooks/useAsk';
 import { setDraft } from '@/hooks/useDraft';
@@ -24,6 +25,12 @@ function App() {
 
     // The question box
     const inputRef = useRef<HTMLInputElement>(null);
+
+    // Go straight to the question box
+    const toAsk = () => {
+        flushSync(() => setPage('Ask'));
+        inputRef.current?.focus();
+    };
 
     // Choosing Ask while on it puts the cursor back
     const go = (next: Page) => {
@@ -81,7 +88,7 @@ function App() {
                         </>
                     )}
                     {page === 'Saved' && <Saved />}
-                    {page === 'History' && <History ask={askAgain} />}
+                    {page === 'History' && <History ask={askAgain} start={toAsk} />}
                     {page === 'Transit' && <Transit tab={tab} choose={setTab} />}
                 </main>
             </div>

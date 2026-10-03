@@ -2,7 +2,7 @@ import clsx from 'clsx';
 import Drift from './Drift';
 import { columnsFor, whenOf } from './standing';
 import { useLayoutEffect, useRef, useState } from 'react';
-import SectionHeading from '@/components/layout/sidebar/SectionHeading';
+import SectionHeading from '@/components/layout/SectionHeading';
 import type { Standing } from '@/types/transit';
 
 interface CardsProps {
