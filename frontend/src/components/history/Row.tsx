@@ -1,5 +1,6 @@
 import clsx from 'clsx';
 import Mark from './Mark';
+import { memo } from 'react';
 import { lookOf } from './tints';
 import { fullClock } from '@/lib/trip';
 import { entryKind } from '@/lib/insights';
@@ -42,4 +43,4 @@ function Row({ entry, ask }: RowProps) {
     );
 }
 
-export default Row;
+export default memo(Row);

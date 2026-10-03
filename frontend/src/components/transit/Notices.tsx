@@ -1,7 +1,7 @@
-import Find from './Find';
 import Alert from './Alert';
 import { wordsOf } from './feed';
 import { useMemo, useState } from 'react';
+import Find from '@/components/layout/Find';
 import type { Notice } from '@/types/transit';
 
 interface NoticesProps {
@@ -32,7 +32,9 @@ function Notices({ notices, bare }: NoticesProps) {
                     <span className="text-title text-ghost tabular-nums">{found.length}</span>
                 </span>
                 <span className="flex-1" />
-                {notices.length > 0 && <Find asked={asked} ask={setAsked} />}
+                {notices.length > 0 && (
+                    <Find asked={asked} search={setAsked} label="Search alerts" />
+                )}
             </div>
             {found.length === 0 ? (
                 <p className="text-branch text-ghost">{empty}</p>

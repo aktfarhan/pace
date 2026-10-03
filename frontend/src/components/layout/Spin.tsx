@@ -10,14 +10,16 @@ function Spin({ on }: SpinProps) {
     const [spinning, setSpinning] = useState(on);
     if (on && !spinning) setSpinning(true);
 
+    const settle = () => {
+        if (!on) setSpinning(false);
+    };
+
     return (
         <RotateCw
             size={12}
             strokeWidth={2.4}
             className={clsx('text-quiet', spinning && 'animate-spin')}
-            onAnimationIteration={() => {
-                if (!on) setSpinning(false);
-            }}
+            onAnimationIteration={settle}
         />
     );
 }

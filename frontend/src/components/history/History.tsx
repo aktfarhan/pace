@@ -1,12 +1,8 @@
 import Row from './Row';
+import Head from './Head';
 import { useState } from 'react';
 import { clearHistory, daysOf, readHistory } from '@/lib/history';
 import SectionHeading from '@/components/layout/sidebar/SectionHeading';
-
-const EMPTY = 'No questions asked yet.';
-
-const CLEAR =
-    'shrink-0 cursor-pointer font-mono text-tag text-faint uppercase transition-colors hover:text-cream';
 
 interface HistoryProps {
     ask: (query: string) => void;
@@ -14,16 +10,11 @@ interface HistoryProps {
 
 function History({ ask }: HistoryProps) {
     const [entries, setEntries] = useState(readHistory);
+    const [asked, setAsked] = useState('');
 
-    const empty = entries.length === 0;
-    const refused = entries.filter((entry) => entry.refused).length;
-    const answered = entries.length - refused;
-
-    const kept = empty
-        ? EMPTY
-        : `${answered} answered · ${refused} refused · stored on this device`;
-
-    const days = daysOf(entries);
+    // Filter by search
+    const words = asked.trim().toLowerCase();
+    const days = daysOf(entries.filter((entry) => entry.query.toLowerCase().includes(words)));
 
     const clear = () => {
         clearHistory();
@@ -32,17 +23,11 @@ function History({ ask }: HistoryProps) {
 
     return (
         <div className="flex min-w-0 flex-col gap-3.5">
-            <div className="flex items-center justify-between gap-4">
-                <div className="min-w-0">
-                    <div className="text-board text-bright">History</div>
-                    <div className="mt-0.5 text-row text-faint">{kept}</div>
-                </div>
-                {!empty && (
-                    <button type="button" onClick={clear} className={CLEAR}>
-                        Clear all
-                    </button>
-                )}
-            </div>
+            <Head entries={entries} asked={asked} search={setAsked} clear={clear} />
+
+            {entries.length > 0 && days.length === 0 && (
+                <p className="px-0.5 text-row text-faint">No questions match “{asked.trim()}”.</p>
+            )}
 
             {days.map((day) => (
                 <div key={day.heading} className="min-w-0">
