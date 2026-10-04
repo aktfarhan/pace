@@ -2,12 +2,20 @@ import Refresh from './Refresh';
 import AddPlace from './AddPlace';
 import TripCard from './TripCard';
 import PlaceCard from './PlaceCard';
+import { POLL_MS } from '@/lib/poll';
 import { useTrips } from '@/hooks/useTrips';
 import { usePlaces } from '@/hooks/usePlaces';
+import Empty from '@/components/layout/Empty';
+import Failed from '@/components/layout/Failed';
+import { MessageSquare, Route } from 'lucide-react';
 import SectionHeading from '@/components/layout/SectionHeading';
 
-function Saved() {
-    const { places, keep, drop: dropPlace } = usePlaces();
+interface SavedProps {
+    start: () => void;
+}
+
+function Saved({ start }: SavedProps) {
+    const { places, failed, retry, keep, drop: dropPlace } = usePlaces();
     const { trips, readAt, reading, refresh, drop: dropTrip } = useTrips();
 
     return (
@@ -19,19 +27,30 @@ function Saved() {
 
             <div>
                 <SectionHeading label="Places" />
-
-                {places !== null && (
-                    <div className="grid grid-cols-4 gap-3">
-                        {places.map((place) => (
-                            <PlaceCard key={place.id} place={place} drop={dropPlace} />
-                        ))}
-                        <AddPlace keep={keep} />
-                    </div>
+                {failed && (
+                    <Failed said="Couldn't reach your places" retry={retry} className="px-1 pb-3" />
                 )}
+
+                <div className="grid grid-cols-4 gap-3">
+                    {places?.map((place) => (
+                        <PlaceCard key={place.id} place={place} drop={dropPlace} />
+                    ))}
+                    <AddPlace keep={keep} />
+                </div>
             </div>
 
             <div>
                 <SectionHeading label="Trips" />
+                {trips !== null && trips.length === 0 && (
+                    <Empty
+                        Icon={Route}
+                        title="Trips you save show up here"
+                        note={`Bookmark any trip and its next departures stay here, re-planned every ${POLL_MS / 1000} seconds.`}
+                        action="Plan a trip"
+                        ActionIcon={MessageSquare}
+                        run={start}
+                    />
+                )}
 
                 {trips !== null && (
                     <div className="grid grid-cols-2 items-start gap-3">

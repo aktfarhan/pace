@@ -1,13 +1,15 @@
+import clsx from 'clsx';
 import { RotateCw } from 'lucide-react';
 
 interface FailedProps {
     said: string;
     retry: () => void;
+    className?: string;
 }
 
-function Failed({ said, retry }: FailedProps) {
+function Failed({ said, retry, className }: FailedProps) {
     return (
-        <div role="alert" className="flex items-center gap-2 text-sm">
+        <div role="alert" className={clsx('flex items-center gap-2 text-sm', className)}>
             <span className="text-red">{said}</span>
             <span className="text-ghost" aria-hidden="true">
                 ·

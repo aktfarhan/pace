@@ -1,5 +1,5 @@
 // How often a feed is read again
-const POLL_MS = 30000;
+export const POLL_MS = 30000;
 
 // Reads right away, then every 30 seconds while the tab is visible
 export function poll(read: () => void) {

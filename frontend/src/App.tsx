@@ -93,7 +93,7 @@ function App() {
                         </>
                     )}
                     <Activity mode={page === 'Saved' ? 'visible' : 'hidden'}>
-                        <Saved />
+                        <Saved start={toAsk} />
                     </Activity>
                     {page === 'History' && <History ask={askAgain} start={toAsk} />}
                     <Activity mode={page === 'Transit' ? 'visible' : 'hidden'}>
