@@ -4,7 +4,7 @@ import { useLayoutEffect, useRef } from 'react';
 export function useGlide<Row extends HTMLElement = HTMLDivElement>(
     picked: unknown,
     spread: number,
-    round: string,
+    round = '9999px',
 ) {
     const rowRef = useRef<Row>(null);
     const glideRef = useRef<HTMLDivElement>(null);

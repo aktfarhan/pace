@@ -1,4 +1,5 @@
 import { KEPT } from '@/lib/history';
+import type { Span } from '@/lib/prefs';
 import type { Entry } from '@/types/history';
 import type { Intent } from '@/types/answer';
 
@@ -10,7 +11,10 @@ export function entryKind(entry: Entry): Kind {
     return entry.refused ? 'refused' : entry.intent;
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR = new Intl.DateTimeFormat('en-US', { hour: 'numeric' });
+const WEEKDAY = new Intl.DateTimeFormat('en-US', { weekday: 'narrow' });
+const DAY_NAME = new Intl.DateTimeFormat('en-US', { weekday: 'long' });
 
 // The order kinds stack in
 const ORDER: Kind[] = [
@@ -34,7 +38,7 @@ export function dayKey(at: string | number) {
     return `day-${day.getFullYear()}-${day.getMonth() + 1}-${day.getDate()}`;
 }
 
-// One bar is an hour
+// One bar: an hour of today, or one day of the week
 export interface Tally {
     key: string;
     label: string;
@@ -111,14 +115,51 @@ function yesterdayOf(entries: Entry[]) {
     return countBetween(entries, start.getTime(), end.getTime());
 }
 
-// Today against yesterday at this time
-export function versusYesterday(entries: Entry[], asked: number) {
-    const before = yesterdayOf(entries);
-    if (before === 0) return 'Today so far';
+// The questions of each of the last seven days
+export function weekOf(entries: Entry[]): Tally[] {
+    const today = dayStart(Date.now());
+    const startOf = (back: number) => dayStart(today - back * DAY_MS + DAY_MS / 2);
+    const first = startOf(6);
+    const recent = entries.filter((entry) => Date.parse(entry.at) >= first);
 
+    const week: Tally[] = [];
+    for (let back = 6; back >= 0; back -= 1) {
+        const start = startOf(back);
+        const day = recent.filter((entry) => dayStart(Date.parse(entry.at)) === start);
+        week.push({
+            key: dayKey(start),
+            label: WEEKDAY.format(start),
+            name: DAY_NAME.format(start),
+            current: back === 0,
+            total: day.length,
+            parts: partsOf(day),
+            later: false,
+        });
+    }
+    return week;
+}
+
+// The seven days a week earlier
+function weekBeforeOf(entries: Entry[]) {
+    const end = new Date();
+    end.setDate(end.getDate() - 7);
+    const start = new Date(end);
+    start.setDate(start.getDate() - 6);
+    start.setHours(0, 0, 0, 0);
+
+    return countBetween(entries, start.getTime(), end.getTime());
+}
+
+// The span's count against the same stretch before it
+export function versusBefore(span: Span, entries: Entry[], asked: number) {
+    const daily = span === 'Day';
+    const before = daily ? yesterdayOf(entries) : weekBeforeOf(entries);
+    if (before === 0) return daily ? 'Today so far' : 'This week';
+
+    const than = daily ? 'this time yesterday' : 'the week before';
     const change = asked - before;
-    if (change === 0) return 'Same as this time yesterday';
-    return `${change > 0 ? '↑' : '↓'} ${Math.abs(change)} from this time yesterday`;
+    if (change === 0) return `Same as ${than}`;
+    return `${change > 0 ? '↑' : '↓'} ${Math.abs(change)} from ${than}`;
 }
 
 // A question folded for comparing

@@ -13,3 +13,11 @@ export const TICK =
 // A count's pill
 export const COUNT =
     'rounded-full bg-field px-1.75 py-px font-mono text-heading tracking-normal text-hush tabular-nums';
+
+// The picked look
+export const RAISED =
+    'bg-edge/80 shadow-xs shadow-black/40 inset-ring inset-ring-white/8 contrast-more:inset-ring-white/40';
+
+// The background of a switch
+export const TRACK =
+    'rounded-full bg-ink/45 inset-ring inset-ring-white/6 contrast-more:inset-ring-white/30';

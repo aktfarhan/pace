@@ -9,30 +9,32 @@ const LABEL =
 
 interface BarsProps {
     bars: Tally[];
+    dense: boolean;
     picked: number | null;
     pick: (index: number | null) => void;
-    jump: () => void;
+    jump: (key: string) => void;
 }
 
-function Bars({ bars, picked, pick, jump }: BarsProps) {
+function Bars({ bars, dense, picked, pick, jump }: BarsProps) {
     const most = Math.max(1, ...bars.map((bar) => bar.total));
+    const gap = dense ? 'gap-0.5' : 'gap-1.5';
 
-    // A mouse leaving the chart lets go of its hour
+    // A mouse leaving the chart lets go of its bar
     const leave = (event: PointerEvent) => {
         if (event.pointerType === 'mouse') pick(null);
     };
 
-    // The picked hour's label is highlighted
+    // The picked bar's label is highlighted
     const lit = (index: number) => picked === index || (picked === null && bars[index].current);
 
     return (
         <div
             role="group"
-            aria-label="Questions each hour"
+            aria-label={dense ? 'Questions each hour' : 'Questions each day'}
             onPointerLeave={leave}
             className="mt-4 select-none"
         >
-            <div className="relative flex h-24 items-end gap-0.5 pr-7">
+            <div className={clsx('relative flex h-24 items-end pr-7', gap)}>
                 {bars.map((bar, index) => (
                     <Bar
                         key={bar.key}
@@ -42,12 +44,12 @@ function Bars({ bars, picked, pick, jump }: BarsProps) {
                         faded={picked !== null && picked !== index}
                         pick={() => pick(index)}
                         unpick={() => pick(null)}
-                        jump={jump}
+                        jump={() => jump(bar.key)}
                     />
                 ))}
                 <Guides most={most} />
             </div>
-            <div className="mt-1.5 flex gap-0.5 pr-7" aria-hidden="true">
+            <div className={clsx('mt-1.5 flex pr-7', gap)} aria-hidden="true">
                 {bars.map((bar, index) => (
                     <span
                         key={bar.key}
