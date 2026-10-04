@@ -1,6 +1,7 @@
 import Row from './Row';
 import Head from './Head';
 import Week from './Week';
+import Hours from './Hours';
 import { useState } from 'react';
 import { still } from '@/lib/device';
 import { flushSync } from 'react-dom';
@@ -73,8 +74,9 @@ function History({ ask, start }: HistoryProps) {
                             </div>
                         ))}
                     </div>
-                    <aside className="@4xl:sticky @4xl:top-0 @4xl:mt-9 @4xl:w-76 @4xl:shrink-0">
+                    <aside className="flex flex-col gap-3 @4xl:sticky @4xl:top-0 @4xl:mt-9 @4xl:w-76 @4xl:shrink-0">
                         <Week entries={entries} jump={jump} />
+                        <Hours entries={entries} />
                     </aside>
                 </div>
             )}

@@ -38,7 +38,7 @@ const ORDER: Kind[] = [
 ];
 
 // An hour's name on the day
-function hourName(hour: number) {
+export function hourName(hour: number) {
     return HOUR.format(new Date(2000, 0, 1, hour));
 }
 
@@ -232,6 +232,13 @@ export function versusBefore(span: Span, entries: Entry[], asked: number) {
     const change = asked - before;
     if (change === 0) return `Same as ${than}`;
     return `${change > 0 ? '↑' : '↓'} ${Math.abs(change)} from ${than}`;
+}
+
+// Questions counted by the hour asked
+export function hoursOf(entries: Entry[]) {
+    const hours = new Array<number>(24).fill(0);
+    for (const entry of entries) hours[new Date(entry.at).getHours()] += 1;
+    return hours;
 }
 
 // A question folded for comparing

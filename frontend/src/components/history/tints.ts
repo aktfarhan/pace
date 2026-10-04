@@ -52,8 +52,13 @@ export const FILLS: Record<Kind, string> = {
 // A panel beside the list
 export const CARD = 'rounded-tile border border-seam bg-panel p-4';
 
+// A count with its noun
+export function questionsOf(count: number) {
+    return `${count} ${count === 1 ? 'question' : 'questions'}`;
+}
+
 // What a screen reader says for a bar
 export function ariaLabelOf(bar: Tally) {
     const parts = bar.parts.map(([kind, count]) => `${count} ${lookOf(kind).label}`).join(', ');
-    return `${bar.name}: ${bar.total} ${bar.total === 1 ? 'question' : 'questions'}, ${parts}`;
+    return `${bar.name}: ${questionsOf(bar.total)}, ${parts}`;
 }
