@@ -23,7 +23,7 @@ function Row({ entry, ask }: RowProps) {
         <button
             type="button"
             onClick={() => ask(entry.query)}
-            className="group flex w-full cursor-pointer items-center gap-3.5 px-4 py-3.25 text-left transition-colors ease-out hover:bg-field/70 focus-visible:-outline-offset-2 active:bg-field"
+            className="group relative flex w-full cursor-pointer items-center gap-3.5 px-4 py-3.25 text-left transition-colors ease-out hover:bg-field/70 focus-visible:-outline-offset-2 active:bg-field"
         >
             <span className="sr-only">Ask again: </span>
             <Mark Icon={look.Icon} tile={look.tile} />

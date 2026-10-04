@@ -241,6 +241,16 @@ export function hoursOf(entries: Entry[]) {
     return hours;
 }
 
+// How many questions each intent took
+export function kindsOf(entries: Entry[]) {
+    const counts = new Map<Kind, number>();
+    for (const entry of entries) {
+        const kind = entryKind(entry);
+        counts.set(kind, (counts.get(kind) ?? 0) + 1);
+    }
+    return [...counts].sort((a, b) => b[1] - a[1]);
+}
+
 // A question folded for comparing
 export function foldOf(query: string) {
     return query

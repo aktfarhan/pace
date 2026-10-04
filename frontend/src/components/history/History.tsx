@@ -1,15 +1,16 @@
 import Row from './Row';
 import Head from './Head';
-import Week from './Week';
-import Hours from './Hours';
-import { useState } from 'react';
+import Filtered from './Filtered';
+import Insights from './Insights';
 import { still } from '@/lib/device';
 import { flushSync } from 'react-dom';
-import { dayKey } from '@/lib/insights';
+import { useRef, useState } from 'react';
 import Empty from '@/components/layout/Empty';
+import { dayKey, entryKind } from '@/lib/insights';
 import { Clock, MessageSquare } from 'lucide-react';
 import SectionHeading from '@/components/layout/SectionHeading';
 import { clearHistory, daysOf, readHistory } from '@/lib/history';
+import type { Kind } from '@/lib/insights';
 
 interface HistoryProps {
     ask: (query: string) => void;
@@ -19,10 +20,18 @@ interface HistoryProps {
 function History({ ask, start }: HistoryProps) {
     const [entries, setEntries] = useState(readHistory);
     const [asked, setAsked] = useState('');
+    const [kind, setKind] = useState<Kind | null>(null);
+    const titleRef = useRef<HTMLHeadingElement>(null);
 
-    // Filter by search
+    // Filter by kind and search
     const words = asked.trim().toLowerCase();
-    const days = daysOf(entries.filter((entry) => entry.query.toLowerCase().includes(words)));
+    const days = daysOf(
+        entries.filter(
+            (entry) =>
+                (kind === null || entryKind(entry) === kind) &&
+                entry.query.toLowerCase().includes(words),
+        ),
+    );
 
     const clear = () => {
         clearHistory();
@@ -31,13 +40,36 @@ function History({ ask, start }: HistoryProps) {
 
     // A bar picked on the chart scrolls its day into view
     const jump = (key: string) => {
-        flushSync(() => setAsked(''));
+        flushSync(() => {
+            setKind(null);
+            setAsked('');
+        });
         document.getElementById(key)?.scrollIntoView({ behavior: still() ? 'auto' : 'smooth' });
+    };
+
+    // A picked kind filters the list
+    const filter = (next: Kind | null) => {
+        setKind(next);
+        titleRef.current?.scrollIntoView({
+            block: 'nearest',
+            behavior: still() ? 'auto' : 'smooth',
+        });
+    };
+
+    const unfilter = () => {
+        setKind(null);
+        titleRef.current?.focus({ preventScroll: true });
     };
 
     return (
         <div className="@container flex min-w-0 flex-col gap-3.5">
-            <Head entries={entries} asked={asked} search={setAsked} clear={clear} />
+            <Head
+                titleRef={titleRef}
+                entries={entries}
+                asked={asked}
+                search={setAsked}
+                clear={clear}
+            />
 
             {entries.length === 0 && (
                 <Empty
@@ -53,6 +85,7 @@ function History({ ask, start }: HistoryProps) {
             {entries.length > 0 && (
                 <div className="flex flex-col gap-6 @4xl:flex-row @4xl:items-start">
                     <div className="flex min-w-0 flex-1 flex-col gap-3.5">
+                        {kind !== null && <Filtered kind={kind} clear={unfilter} />}
                         {days.length === 0 && (
                             <p className="px-0.5 text-row text-faint">
                                 No questions match “{asked.trim()}”.
@@ -74,10 +107,7 @@ function History({ ask, start }: HistoryProps) {
                             </div>
                         ))}
                     </div>
-                    <aside className="flex flex-col gap-3 @4xl:sticky @4xl:top-0 @4xl:mt-9 @4xl:w-76 @4xl:shrink-0">
-                        <Week entries={entries} jump={jump} />
-                        <Hours entries={entries} />
-                    </aside>
+                    <Insights entries={entries} picked={kind} pick={filter} jump={jump} />
                 </div>
             )}
         </div>
