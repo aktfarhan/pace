@@ -1,9 +1,9 @@
 import clsx from 'clsx';
 import Bars from './Bars';
 import { useState } from 'react';
-import { SPANS } from '@/lib/prefs';
 import { CARD, FILLS, lookOf } from './tints';
 import Segmented from '@/components/layout/Segmented';
+import { SPANS, readSpan, writeSpan } from '@/lib/prefs';
 import { dayKey, todayOf, versusBefore, weekOf } from '@/lib/insights';
 import type { Span } from '@/lib/prefs';
 import type { Entry } from '@/types/history';
@@ -14,7 +14,7 @@ interface WeekProps {
 }
 
 function Week({ entries, jump }: WeekProps) {
-    const [span, setSpan] = useState<Span>('Week');
+    const [span, setSpan] = useState(readSpan);
     const [picked, setPicked] = useState<number | null>(null);
 
     const daily = span === 'Day';
@@ -25,6 +25,7 @@ function Week({ entries, jump }: WeekProps) {
 
     // A new span starts with nothing picked
     const choose = (next: Span) => {
+        writeSpan(next);
         setSpan(next);
         setPicked(null);
     };
