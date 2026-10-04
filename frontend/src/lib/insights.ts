@@ -1,4 +1,4 @@
-import { KEPT } from '@/lib/history';
+import { DAY, KEPT } from '@/lib/history';
 import type { Span } from '@/lib/prefs';
 import type { Entry } from '@/types/history';
 import type { Intent } from '@/types/answer';
@@ -15,6 +15,16 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR = new Intl.DateTimeFormat('en-US', { hour: 'numeric' });
 const WEEKDAY = new Intl.DateTimeFormat('en-US', { weekday: 'narrow' });
 const DAY_NAME = new Intl.DateTimeFormat('en-US', { weekday: 'long' });
+
+// What each span compares against
+const BEFORE: Record<
+    Span,
+    { count: (entries: Entry[]) => number; than: string; first: string | null }
+> = {
+    Day: { count: yesterdayOf, than: 'this time yesterday', first: 'Today so far' },
+    Week: { count: weekBeforeOf, than: 'the week before', first: 'This week' },
+    Month: { count: monthBeforeOf, than: 'this time last month', first: null },
+};
 
 // The order kinds stack in
 const ORDER: Kind[] = [
@@ -38,7 +48,7 @@ export function dayKey(at: string | number) {
     return `day-${day.getFullYear()}-${day.getMonth() + 1}-${day.getDate()}`;
 }
 
-// One bar: an hour of today, or one day of the week
+// One bar is an hour or a day
 export interface Tally {
     key: string;
     label: string;
@@ -47,6 +57,7 @@ export interface Tally {
     total: number;
     parts: [Kind, number][];
     later: boolean;
+    lost: boolean;
 }
 
 // The midnight of this day
@@ -65,7 +76,7 @@ function partsOf(some: Entry[]) {
 }
 
 // Today hour by hour
-export function todayOf(entries: Entry[]): Tally[] {
+function todayOf(entries: Entry[]): Tally[] {
     const now = new Date();
     const start = dayStart(now.getTime());
     const today = entries.filter((entry) => dayStart(Date.parse(entry.at)) === start);
@@ -82,6 +93,7 @@ export function todayOf(entries: Entry[]): Tally[] {
             total: some.length,
             parts: partsOf(some),
             later: hour > now.getHours(),
+            lost: false,
         });
     }
     return hours;
@@ -116,7 +128,7 @@ function yesterdayOf(entries: Entry[]) {
 }
 
 // The questions of each of the last seven days
-export function weekOf(entries: Entry[]): Tally[] {
+function weekOf(entries: Entry[]): Tally[] {
     const today = dayStart(Date.now());
     const startOf = (back: number) => dayStart(today - back * DAY_MS + DAY_MS / 2);
     const first = startOf(6);
@@ -134,6 +146,7 @@ export function weekOf(entries: Entry[]): Tally[] {
             total: day.length,
             parts: partsOf(day),
             later: false,
+            lost: false,
         });
     }
     return week;
@@ -150,13 +163,72 @@ function weekBeforeOf(entries: Entry[]) {
     return countBetween(entries, start.getTime(), end.getTime());
 }
 
+// Every day of this month
+function monthOf(entries: Entry[]): Tally[] {
+    const now = new Date();
+    const today = dayStart(now.getTime());
+    const [year, month] = [now.getFullYear(), now.getMonth()];
+    const last = new Date(year, month + 1, 0).getDate();
+
+    const first = new Date(year, month, 1).getTime();
+    const recent = entries.filter((entry) => Date.parse(entry.at) >= first);
+
+    // Days before this were dropped
+    const cut = droppedBefore(entries);
+
+    const days: Tally[] = [];
+    for (let day = 1; day <= last; day += 1) {
+        const start = new Date(year, month, day).getTime();
+        const some = recent.filter((entry) => dayStart(Date.parse(entry.at)) === start);
+        days.push({
+            key: dayKey(start),
+            label: String(day),
+            name: DAY.format(start),
+            current: start === today,
+            total: some.length,
+            parts: partsOf(some),
+            later: start > today,
+            lost: cut !== null && new Date(year, month, day + 1).getTime() <= cut,
+        });
+    }
+    return days;
+}
+
+// Last month's questions at this time
+function monthBeforeOf(entries: Entry[]) {
+    const now = new Date();
+    const [year, month] = [now.getFullYear(), now.getMonth()];
+    const start = new Date(year, month - 1, 1);
+    const length = new Date(year, month, 0).getDate();
+
+    const end =
+        now.getDate() > length
+            ? new Date(year, month, 1)
+            : new Date(
+                  year,
+                  month - 1,
+                  now.getDate(),
+                  now.getHours(),
+                  now.getMinutes(),
+                  now.getSeconds(),
+              );
+
+    return countBetween(entries, start.getTime(), end.getTime());
+}
+
+// The bars or days for a span
+export function tallyOf(span: Span, entries: Entry[]) {
+    if (span === 'Day') return todayOf(entries);
+    if (span === 'Month') return monthOf(entries);
+    return weekOf(entries);
+}
+
 // The span's count against the same stretch before it
 export function versusBefore(span: Span, entries: Entry[], asked: number) {
-    const daily = span === 'Day';
-    const before = daily ? yesterdayOf(entries) : weekBeforeOf(entries);
-    if (before === 0) return daily ? 'Today so far' : 'This week';
+    const { count, than, first } = BEFORE[span];
+    const before = count(entries);
+    if (before === 0) return first;
 
-    const than = daily ? 'this time yesterday' : 'the week before';
     const change = asked - before;
     if (change === 0) return `Same as ${than}`;
     return `${change > 0 ? '↑' : '↓'} ${Math.abs(change)} from ${than}`;

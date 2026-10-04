@@ -1,12 +1,15 @@
 import clsx from 'clsx';
 import Bars from './Bars';
+import Month from './Month';
 import { useState } from 'react';
 import { CARD, FILLS, lookOf } from './tints';
 import Segmented from '@/components/layout/Segmented';
 import { SPANS, readSpan, writeSpan } from '@/lib/prefs';
-import { dayKey, todayOf, versusBefore, weekOf } from '@/lib/insights';
+import { dayKey, tallyOf, versusBefore } from '@/lib/insights';
 import type { Span } from '@/lib/prefs';
 import type { Entry } from '@/types/history';
+
+const MONTH = new Intl.DateTimeFormat('en-US', { month: 'long' });
 
 interface WeekProps {
     entries: Entry[];
@@ -18,7 +21,9 @@ function Week({ entries, jump }: WeekProps) {
     const [picked, setPicked] = useState<number | null>(null);
 
     const daily = span === 'Day';
-    const bars = daily ? todayOf(entries) : weekOf(entries);
+    const monthly = span === 'Month';
+    const bars = tallyOf(span, entries);
+    const title = daily ? 'Today' : monthly ? MONTH.format(new Date()) : 'Last 7 days';
     const asked = bars.reduce((sum, one) => sum + one.total, 0);
     const bar = picked === null ? null : bars[picked];
     const shown = bar === null ? asked : bar.total;
@@ -36,7 +41,7 @@ function Week({ entries, jump }: WeekProps) {
     return (
         <section className={CARD}>
             <div className="flex items-center justify-between gap-3">
-                <h2 className="text-title text-bright">{daily ? 'Today' : 'Last 7 days'}</h2>
+                <h2 className="text-title text-bright">{title}</h2>
                 <Segmented label="Span of the chart" options={SPANS} value={span} pick={choose} />
             </div>
             <div className="mt-1.5 flex items-baseline gap-1.5">
@@ -61,14 +66,18 @@ function Week({ entries, jump }: WeekProps) {
                     </>
                 )}
             </div>
-            <Bars
-                key={span}
-                bars={bars}
-                dense={daily}
-                picked={picked}
-                pick={setPicked}
-                jump={open}
-            />
+            {monthly ? (
+                <Month days={bars} picked={picked} pick={setPicked} jump={open} />
+            ) : (
+                <Bars
+                    key={span}
+                    bars={bars}
+                    dense={daily}
+                    picked={picked}
+                    pick={setPicked}
+                    jump={open}
+                />
+            )}
         </section>
     );
 }

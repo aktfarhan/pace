@@ -21,7 +21,7 @@ function writeStored(key: string, value: string | null) {
 }
 
 // The views the History chart switches between
-export const SPANS = ['Day', 'Week'] as const;
+export const SPANS = ['Day', 'Week', 'Month'] as const;
 export type Span = (typeof SPANS)[number];
 
 // The view History opens on

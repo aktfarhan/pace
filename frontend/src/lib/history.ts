@@ -9,7 +9,7 @@ const HISTORY_KEY = 'pace.history';
 export const KEPT = 200;
 
 // Formatter for day title
-const DAY = new Intl.DateTimeFormat('en-US', {
+export const DAY = new Intl.DateTimeFormat('en-US', {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
