@@ -114,7 +114,7 @@ export async function savePlace(label: string, address: string): Promise<SavedPl
 
 // Removes one saved place
 export async function removePlace(id: number) {
-    await send(`/v1/places/${id}`, { method: 'DELETE', headers: codeHeader() });
+    await send(`/v1/places/${id}`, { method: 'DELETE', headers: codeHeader(), keepalive: true });
 }
 
 // The key a trip is kept under this visit
@@ -141,7 +141,7 @@ export async function saveTrip(origin: string, destination: string): Promise<Sav
 
 // Removes one saved trip
 export async function removeTrip(id: number) {
-    await send(`/v1/trips/${id}`, { method: 'DELETE', headers: codeHeader() });
+    await send(`/v1/trips/${id}`, { method: 'DELETE', headers: codeHeader(), keepalive: true });
 }
 
 // Reads the plan for every trip saved against a code
