@@ -1,6 +1,7 @@
 import { flushSync } from 'react-dom';
 import { pointing } from '@/lib/device';
 import { useAsk } from '@/hooks/useAsk';
+import { usePage } from '@/hooks/usePage';
 import { setDraft } from '@/hooks/useDraft';
 import Saved from '@/components/saved/Saved';
 import { useStatus } from '@/hooks/useStatus';
@@ -19,7 +20,7 @@ import type { Page } from '@/components/layout/sidebar/tints';
 function App() {
     const { turns, stage, busy, send, refresh, refreshing } = useAsk();
     const [sidebar, setSidebar] = useState(true);
-    const [page, setPage] = useState<Page>('Ask');
+    const { page, setPage, mainRef, remember } = usePage();
     const { tab, setTab, show } = useLineTab(setPage);
     const status = useStatus();
 
@@ -68,7 +69,11 @@ function App() {
                     page={page}
                     select={go}
                 />
-                <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-6 overflow-y-auto p-5 sm:p-8">
+                <main
+                    ref={mainRef}
+                    onScroll={(event) => remember(event.currentTarget.scrollTop)}
+                    className="flex min-h-0 min-w-0 flex-1 flex-col gap-6 overflow-y-auto p-5 sm:p-8"
+                >
                     {page === 'Ask' && (
                         <>
                             <TurnList
