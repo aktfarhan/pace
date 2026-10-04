@@ -46,7 +46,7 @@ function Saved({ start }: SavedProps) {
                             titleRef={titleRef}
                         />
                     ))}
-                    <AddPlace keep={keep} />
+                    <AddPlace keep={keep} first={places !== null && places.length === 0} />
                 </div>
             </div>
 

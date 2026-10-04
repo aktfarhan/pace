@@ -1,13 +1,15 @@
-import { Plus } from 'lucide-react';
 import PlaceForm from './PlaceForm';
 import { flushSync } from 'react-dom';
 import { useRef, useState } from 'react';
+import { MapPin, Plus } from 'lucide-react';
+import Empty from '@/components/layout/Empty';
 
 interface AddPlaceProps {
     keep: (label: string, address: string) => Promise<void>;
+    first: boolean;
 }
 
-function AddPlace({ keep }: AddPlaceProps) {
+function AddPlace({ keep, first }: AddPlaceProps) {
     const [open, setOpen] = useState(false);
     const tileRef = useRef<HTMLButtonElement>(null);
 
@@ -19,6 +21,23 @@ function AddPlace({ keep }: AddPlaceProps) {
 
     // The form takes its own row
     if (open) return <PlaceForm keep={keep} close={close} />;
+
+    // Empty state for no places
+    if (first) {
+        return (
+            <div className="col-span-full">
+                <Empty
+                    Icon={MapPin}
+                    title="Places you save show up here"
+                    note="Save home, work and more."
+                    action="Add a place"
+                    ActionIcon={Plus}
+                    run={() => setOpen(true)}
+                    ref={tileRef}
+                />
+            </div>
+        );
+    }
 
     return (
         <button

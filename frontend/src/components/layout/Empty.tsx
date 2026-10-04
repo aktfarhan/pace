@@ -1,3 +1,4 @@
+import type { Ref } from 'react';
 import type { LucideIcon } from 'lucide-react';
 
 interface EmptyProps {
@@ -7,9 +8,10 @@ interface EmptyProps {
     action: string;
     ActionIcon: LucideIcon;
     run: () => void;
+    ref?: Ref<HTMLButtonElement>;
 }
 
-function Empty({ Icon, title, note, action, ActionIcon, run }: EmptyProps) {
+function Empty({ Icon, title, note, action, ActionIcon, run, ref }: EmptyProps) {
     return (
         <div className="flex flex-col items-center gap-3 rounded-tile border border-dashed border-line px-6 py-12 text-center">
             <span className="grid size-10 place-items-center rounded-full bg-field text-hush">
@@ -20,6 +22,7 @@ function Empty({ Icon, title, note, action, ActionIcon, run }: EmptyProps) {
                 <span className="text-row text-faint">{note}</span>
             </div>
             <button
+                ref={ref}
                 type="button"
                 onClick={run}
                 className="mt-1 flex cursor-pointer items-center gap-2 rounded-full border border-edge bg-bubble px-3.5 py-1.75 text-row text-soft transition ease-out hover:border-ghost hover:text-cream active:scale-97"
