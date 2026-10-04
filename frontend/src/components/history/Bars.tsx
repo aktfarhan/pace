@@ -16,7 +16,9 @@ interface BarsProps {
 }
 
 function Bars({ bars, dense, picked, pick, jump }: BarsProps) {
-    const most = Math.max(1, ...bars.map((bar) => bar.total));
+    const totals = bars.map((bar) => bar.total);
+    const most = Math.max(1, ...totals);
+    const average = dense ? null : totals.reduce((sum, total) => sum + total, 0) / bars.length;
     const gap = dense ? 'gap-0.5' : 'gap-1.5';
 
     // A mouse leaving the chart lets go of its bar
@@ -47,7 +49,7 @@ function Bars({ bars, dense, picked, pick, jump }: BarsProps) {
                         jump={() => jump(bar.key)}
                     />
                 ))}
-                <Guides most={most} />
+                <Guides most={most} average={average} />
             </div>
             <div className={clsx('mt-1.5 flex pr-7', gap)} aria-hidden="true">
                 {bars.map((bar, index) => (
