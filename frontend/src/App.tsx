@@ -10,10 +10,10 @@ import TurnList from '@/components/ask/TurnList';
 import AskInput from '@/components/ask/AskInput';
 import Transit from '@/components/transit/Transit';
 import History from '@/components/history/History';
-import { useEffect, useRef, useState } from 'react';
 import { useShortcuts } from '@/hooks/useShortcuts';
 import Drawer from '@/components/layout/sidebar/Drawer';
 import Sidebar from '@/components/layout/sidebar/Sidebar';
+import { Activity, useEffect, useRef, useState } from 'react';
 import type { Page } from '@/components/layout/sidebar/tints';
 
 function App() {
@@ -87,9 +87,13 @@ function App() {
                             />
                         </>
                     )}
-                    {page === 'Saved' && <Saved />}
+                    <Activity mode={page === 'Saved' ? 'visible' : 'hidden'}>
+                        <Saved />
+                    </Activity>
                     {page === 'History' && <History ask={askAgain} start={toAsk} />}
-                    {page === 'Transit' && <Transit tab={tab} choose={setTab} />}
+                    <Activity mode={page === 'Transit' ? 'visible' : 'hidden'}>
+                        <Transit tab={tab} choose={setTab} />
+                    </Activity>
                 </main>
             </div>
         </ShowLine>
