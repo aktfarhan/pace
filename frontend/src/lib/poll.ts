@@ -1,6 +1,9 @@
 // How often a feed is read again
 export const POLL_MS = 30000;
 
+// Two and a half missed reads means stale feed
+export const STALE_MS = POLL_MS * 2.5;
+
 // Reads right away, then every 30 seconds while the tab is visible
 export function poll(read: () => void) {
     // Skips the read while the tab is hidden

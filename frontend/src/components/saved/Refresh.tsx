@@ -1,9 +1,9 @@
+import clsx from 'clsx';
 import { ageOf } from '@/lib/status';
+import { STALE_MS } from '@/lib/poll';
 import { useNow } from '@/hooks/useNow';
-import { RotateCw } from 'lucide-react';
-
-const PILL =
-    'flex shrink-0 cursor-pointer items-center gap-2 rounded-full border border-edge bg-bubble px-3.25 py-1.75 text-hush transition-colors hover:border-ghost hover:bg-line hover:text-cream';
+import Spin from '@/components/layout/Spin';
+import { BEHIND, LIVE, STAMP } from '@/components/layout/tints';
 
 interface RefreshProps {
     readAt: string;
@@ -13,25 +13,21 @@ interface RefreshProps {
 
 function Refresh({ readAt, reading, refresh }: RefreshProps) {
     const now = useNow();
+    const stale = now - Date.parse(readAt) > STALE_MS;
 
     return (
         <button
             type="button"
             onClick={refresh}
             title="Re-plan every trip"
-            aria-label="Re-plan every trip"
-            className={PILL}
+            aria-label={stale ? 'Trips are behind; re-plan every trip' : 'Re-plan every trip'}
+            className={STAMP}
         >
-            <span className="size-1.25 shrink-0 animate-beacon rounded-full bg-good shadow-glow" />
+            <span className={clsx('size-1.25 shrink-0 rounded-full', stale ? BEHIND : LIVE)} />
             <span className="font-mono text-stamp uppercase">
-                {readAt === '' ? '—' : ageOf(readAt, now)}
+                {stale ? 'Last read' : 'Live'} · {ageOf(readAt, now)}
             </span>
-            <RotateCw
-                size={12}
-                strokeWidth={2.4}
-                className={reading ? 'animate-spin text-quiet' : 'text-quiet'}
-                aria-hidden="true"
-            />
+            <Spin on={reading} />
         </button>
     );
 }

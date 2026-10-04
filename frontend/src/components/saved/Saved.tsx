@@ -15,19 +15,21 @@ interface SavedProps {
 }
 
 function Saved({ start }: SavedProps) {
-    const { places, failed, retry, keep, drop: dropPlace } = usePlaces();
-    const { trips, readAt, reading, refresh, drop: dropTrip } = useTrips();
+    const { places, failed: placesFailed, retry, keep, drop: dropPlace } = usePlaces();
+    const { trips, readAt, reading, failed: tripsFailed, refresh, drop: dropTrip } = useTrips();
 
     return (
         <div className="flex flex-col gap-3.5">
             <div className="flex items-center justify-between gap-4">
                 <span className="text-board text-bright">Saved</span>
-                <Refresh readAt={readAt} reading={reading} refresh={refresh} />
+                {trips !== null && trips.length > 0 && (
+                    <Refresh readAt={readAt} reading={reading} refresh={refresh} />
+                )}
             </div>
 
             <div>
                 <SectionHeading label="Places" />
-                {failed && (
+                {placesFailed && (
                     <Failed said="Couldn't reach your places" retry={retry} className="px-1 pb-3" />
                 )}
 
@@ -41,6 +43,16 @@ function Saved({ start }: SavedProps) {
 
             <div>
                 <SectionHeading label="Trips" />
+                {trips === null && !tripsFailed && (
+                    <p className="px-1 text-row text-faint">Reading your trips…</p>
+                )}
+                {trips === null && tripsFailed && (
+                    <Failed
+                        said="Couldn't reach your trips"
+                        retry={refresh}
+                        className="px-1 pb-3"
+                    />
+                )}
                 {trips !== null && trips.length === 0 && (
                     <Empty
                         Icon={Route}
