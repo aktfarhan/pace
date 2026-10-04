@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import Refresh from './Refresh';
 import AddPlace from './AddPlace';
 import TripCard from './TripCard';
@@ -15,13 +16,16 @@ interface SavedProps {
 }
 
 function Saved({ start }: SavedProps) {
+    const titleRef = useRef<HTMLHeadingElement>(null);
     const { places, failed: placesFailed, retry, keep, drop: dropPlace } = usePlaces();
     const { trips, readAt, reading, failed: tripsFailed, refresh, drop: dropTrip } = useTrips();
 
     return (
         <div className="flex flex-col gap-3.5">
             <div className="flex items-center justify-between gap-4">
-                <span className="text-board text-bright">Saved</span>
+                <h1 ref={titleRef} tabIndex={-1} className="text-board text-bright">
+                    Saved
+                </h1>
                 {trips !== null && trips.length > 0 && (
                     <Refresh readAt={readAt} reading={reading} refresh={refresh} />
                 )}
@@ -35,7 +39,12 @@ function Saved({ start }: SavedProps) {
 
                 <div className="grid grid-cols-4 gap-3">
                     {places?.map((place) => (
-                        <PlaceCard key={place.id} place={place} drop={dropPlace} />
+                        <PlaceCard
+                            key={place.id}
+                            place={place}
+                            drop={dropPlace}
+                            titleRef={titleRef}
+                        />
                     ))}
                     <AddPlace keep={keep} />
                 </div>
@@ -67,7 +76,12 @@ function Saved({ start }: SavedProps) {
                 {trips !== null && (
                     <div className="grid grid-cols-2 items-start gap-3">
                         {trips.map((trip) => (
-                            <TripCard key={trip.id} trip={trip} drop={dropTrip} />
+                            <TripCard
+                                key={trip.id}
+                                trip={trip}
+                                drop={dropTrip}
+                                titleRef={titleRef}
+                            />
                         ))}
                     </div>
                 )}
