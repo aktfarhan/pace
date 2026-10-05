@@ -72,10 +72,10 @@ function App() {
                 <main
                     ref={mainRef}
                     onScroll={(event) => remember(event.currentTarget.scrollTop)}
-                    className="flex min-h-0 min-w-0 flex-1 flex-col gap-6 overflow-y-auto p-5 sm:p-8"
+                    className="flex min-h-0 min-w-0 flex-1 flex-col gap-6 overflow-y-auto overscroll-contain p-5 sm:p-8"
                 >
                     {page === 'Ask' && (
-                        <>
+                        <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col gap-6">
                             <TurnList
                                 turns={turns}
                                 stage={stage}
@@ -90,7 +90,7 @@ function App() {
                                 busy={busy}
                                 asked={turns.map((turn) => turn.query)}
                             />
-                        </>
+                        </div>
                     )}
                     <Activity mode={page === 'Saved' ? 'visible' : 'hidden'}>
                         <Saved start={toAsk} />
