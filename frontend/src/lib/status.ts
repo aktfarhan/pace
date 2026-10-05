@@ -176,7 +176,12 @@ export function ageOf(retrievedAt: string, now: number) {
     if (seconds < 60) {
         return `${seconds}s ago`;
     }
-    return `${Math.floor(seconds / 60)}m ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) {
+        return `${minutes}m ago`;
+    }
+    const rest = minutes % 60;
+    return `${Math.floor(minutes / 60)}h${rest > 0 ? ` ${rest}m` : ''} ago`;
 }
 
 // The caption under the headline
