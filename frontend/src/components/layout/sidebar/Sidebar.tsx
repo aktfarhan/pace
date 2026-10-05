@@ -8,7 +8,7 @@ import type { PaneProps } from './tints';
 import type { TransitionEvent } from 'react';
 
 // One layer per state, stacked
-const LAYER = 'absolute inset-y-0 left-0 transition-opacity duration-150';
+const LAYER = 'absolute inset-y-0 left-0 transition-opacity duration-150 ease-out';
 
 // The outgoing layer clears before the incoming one arrives
 const SHOWN = 'opacity-100 delay-150 starting:opacity-0';
@@ -45,7 +45,7 @@ function Sidebar({ status, open: wanted, toggle, page, select }: SidebarProps) {
             onTransitionEnd={settle}
             className={clsx(
                 'relative hidden shrink-0 overflow-hidden border-r border-line bg-rail sm:block',
-                !snap && 'transition-[width] duration-300',
+                !snap && 'transition-[width] duration-300 ease-drawer motion-reduce:duration-1',
                 open ? 'w-expanded' : 'w-collapsed',
             )}
         >

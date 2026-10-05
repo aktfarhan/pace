@@ -12,7 +12,7 @@ function Toggle({ toggle, expanded }: ToggleProps) {
             onClick={toggle}
             aria-label="Toggle sidebar"
             aria-expanded={expanded}
-            className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-row text-faint transition-colors hover:bg-accent/11"
+            className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-row text-faint transition ease-out hover:bg-accent/6 hover:text-cream active:scale-96"
         >
             <PanelLeft size={22} strokeWidth={1.8} />
         </button>

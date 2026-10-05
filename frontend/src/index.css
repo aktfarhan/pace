@@ -224,6 +224,16 @@
     }
 }
 
+@utility material {
+    background-color: color-mix(in oklab, var(--color-rail) 80%, transparent);
+    backdrop-filter: blur(24px);
+
+    @media (prefers-reduced-transparency: reduce) {
+        background-color: var(--color-rail);
+        backdrop-filter: none;
+    }
+}
+
 @keyframes shimmer {
     from {
         background-position: 100% 0;

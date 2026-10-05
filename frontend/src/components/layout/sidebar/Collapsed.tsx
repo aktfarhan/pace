@@ -17,8 +17,8 @@ function Collapsed({ status, toggle, page, select }: PaneProps) {
     const show = useShowLine();
 
     return (
-        <div className="flex h-full w-collapsed flex-col overflow-y-auto">
-            <div className="sticky top-0 z-10 flex flex-col items-center bg-rail pt-5">
+        <div className="relative flex h-full w-collapsed flex-col overflow-y-auto overscroll-contain">
+            <div className="sticky top-0 z-10 flex flex-col items-center material pt-5">
                 <Toggle toggle={toggle} expanded={false} />
             </div>
 
@@ -90,7 +90,7 @@ function Collapsed({ status, toggle, page, select }: PaneProps) {
                 </div>
             )}
 
-            <div className="sticky bottom-0 mt-auto flex flex-col items-center bg-rail pb-3">
+            <div className="sticky bottom-0 mt-auto flex flex-col items-center material pb-3">
                 <div className="grid size-11 place-items-center rounded-row">
                     <Settings
                         size={20}
