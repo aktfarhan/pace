@@ -2,7 +2,7 @@ import Find from '@/components/layout/Find';
 import type { RefObject } from 'react';
 import type { Entry } from '@/types/history';
 
-const EMPTY = 'No questions asked yet.';
+const EMPTY = 'No questions asked yet';
 
 const CLEAR =
     'shrink-0 cursor-pointer font-mono text-tag text-faint uppercase transition-colors hover:text-cream';
@@ -22,7 +22,7 @@ function Head({ titleRef, entries, asked, search, clear }: HeadProps) {
 
     const kept = empty
         ? EMPTY
-        : `${answered} answered · ${refused} refused · stored on this device`;
+        : `${answered} answered${refused > 0 ? ` · ${refused} refused` : ''}`;
 
     return (
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">

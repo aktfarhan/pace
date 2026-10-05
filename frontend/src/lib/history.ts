@@ -35,7 +35,7 @@ export function readHistory(): Entry[] {
         if (!Array.isArray(parsed)) {
             return [];
         }
-        
+
         // Skip rows the page can't draw
         return (parsed as Entry[]).filter(
             (one) =>
