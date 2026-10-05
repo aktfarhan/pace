@@ -1,3 +1,6 @@
+import clsx from 'clsx';
+import { LoaderCircle } from 'lucide-react';
+
 const FAILED = "Couldn't save this place. Check the address and try again.";
 
 interface PlaceActionsProps {
@@ -26,9 +29,15 @@ function PlaceActions({ failed, saving, ready, close }: PlaceActionsProps) {
             <button
                 type="submit"
                 disabled={!ready || saving}
-                className="h-10 cursor-pointer rounded-xl bg-accent px-4.5 text-sm font-semibold text-onaccent transition ease-out enabled:hover:bg-bright enabled:active:scale-97 disabled:cursor-default disabled:opacity-30"
+                className={clsx(
+                    'flex h-10 items-center gap-2 rounded-xl bg-accent px-4.5 text-sm font-semibold text-onaccent transition ease-out enabled:hover:bg-bright enabled:active:scale-97',
+                    saving
+                        ? 'cursor-progress'
+                        : 'cursor-pointer disabled:cursor-default disabled:opacity-30',
+                )}
             >
-                Save place
+                {saving && <LoaderCircle size={14} strokeWidth={2.4} className="animate-spin" />}
+                {saving ? 'Saving' : 'Save place'}
             </button>
         </div>
     );
