@@ -6,6 +6,7 @@ import Spin from '@/components/layout/Spin';
 import { isKept, saveTrip } from '@/lib/pace';
 import { SURFACE } from '@/components/ask/tints';
 import { FAILED_MS, useMoment } from '@/hooks/useMoment';
+import { BUBBLE, STAMP } from '@/components/layout/tints';
 import type { Level, TripCard } from '@/types/answer';
 
 interface TripPlanProps {
@@ -15,9 +16,6 @@ interface TripPlanProps {
     refresh: () => Promise<boolean>;
     refreshing: boolean;
 }
-
-const PILL =
-    'flex shrink-0 cursor-pointer items-center rounded-full border border-edge bg-bubble py-1.75 text-hush transition-colors hover:border-ghost hover:bg-line hover:text-cream';
 
 function TripPlan({ card, risk, chance, refresh, refreshing }: TripPlanProps) {
     const [saved, setSaved] = useState(() => isKept(card.origin, card.destination));
@@ -44,8 +42,8 @@ function TripPlan({ card, risk, chance, refresh, refreshing }: TripPlanProps) {
 
     return (
         <div className={`${SURFACE} flex flex-col gap-3.5 pt-6.5 pb-5`}>
-            <div className="flex items-center justify-between gap-4">
-                <div className="truncate text-title text-bright">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5">
+                <div className="flex-auto truncate text-title text-bright">
                     {card.origin} <span className="font-medium text-hush">to</span>{' '}
                     {card.destination}
                 </div>
@@ -56,7 +54,7 @@ function TripPlan({ card, risk, chance, refresh, refreshing }: TripPlanProps) {
                         aria-disabled={saved}
                         title={saved ? 'Saved' : 'Save this trip'}
                         aria-label={saved ? 'Saved' : 'Save this trip'}
-                        className={`${PILL} px-2.75 aria-disabled:pointer-events-none`}
+                        className={`${BUBBLE} self-stretch px-2.75 aria-disabled:pointer-events-none`}
                     >
                         <Bookmark
                             size={12}
@@ -70,7 +68,7 @@ function TripPlan({ card, risk, chance, refresh, refreshing }: TripPlanProps) {
                         onClick={tryAgain}
                         title="Refresh this plan"
                         aria-label="Refresh this plan"
-                        className={`${PILL} gap-2 px-3.25`}
+                        className={STAMP}
                     >
                         <Stamp card={card} />
                         <Spin on={refreshing} />
