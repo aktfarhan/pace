@@ -13,7 +13,7 @@ function Leave({ card }: LeaveProps) {
     const now = useNow();
     const leave = leaveOf(card, now);
 
-    const ticking = useTicks([
+    const { ticking, settle } = useTicks([
         ['label', leave.label],
         ['time', leave.time],
     ]);
@@ -22,15 +22,17 @@ function Leave({ card }: LeaveProps) {
         <>
             <div
                 key={leave.label}
-                className={clsx('text-eyebrow text-dim', ticking('label') && TICK)}
+                onTransitionEnd={() => settle('label', leave.label)}
+                className={clsx('text-eyebrow text-dim', ticking('label', leave.label) && TICK)}
             >
                 {leave.label}
             </div>
             <div
                 key={leave.time}
+                onTransitionEnd={() => settle('time', leave.time)}
                 className={clsx(
                     'mt-1 text-depart text-accent tabular-nums text-shadow-halo',
-                    ticking('time') && TICK,
+                    ticking('time', leave.time) && TICK,
                 )}
             >
                 {leave.time}

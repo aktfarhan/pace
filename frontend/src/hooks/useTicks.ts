@@ -1,14 +1,13 @@
 import { useState } from 'react';
 
-// Whether each value has changed since it was first drawn
+// Whether each value still sharpens in after a change
 export function useTicks(pairs: [string, string][]) {
-    // The value each id was first drawn with
-    const [firsts] = useState(() => new Map(pairs));
+    // The value each id last sharpened in with
+    const [settled, setSettled] = useState(() => new Map(pairs));
 
-    // Ids that have changed once always get changed status
-    const [moved, setMoved] = useState(() => new Set<string>());
-    const shifted = pairs.filter(([id, value]) => !moved.has(id) && firsts.get(id) !== value);
-    if (shifted.length > 0) setMoved(new Set([...moved, ...shifted.map(([id]) => id)]));
-
-    return (id: string) => moved.has(id);
+    return {
+        ticking: (id: string, value: string) => settled.get(id) !== value,
+        settle: (id: string, value: string) =>
+            setSettled((all) => (all.get(id) === value ? all : new Map(all).set(id, value))),
+    };
 }
