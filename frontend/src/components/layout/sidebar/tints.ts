@@ -38,6 +38,9 @@ export const CARDS: Record<State, string> = {
     severe: 'border-red-fill/26 bg-red-fill/7',
 };
 
+// The effect pill's shape
+export const PILL = 'rounded-chip border px-2 py-hair font-mono text-pill uppercase';
+
 // The pill in place of a delay figure
 export const PILLS: Record<Exclude<State, 'clear'>, string> = {
     notice: 'border-seam bg-field text-hush',

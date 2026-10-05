@@ -18,7 +18,7 @@ function Status({ status }: StatusProps) {
     const calm = status.ok && runningCount(status.lines) === status.lines.length;
 
     return (
-        <div className="mt-4.5">
+        <div className="mt-4.5 pb-4">
             <div className="flex flex-col gap-1.25 px-1.5">
                 <div className="flex items-center gap-2.5">
                     <span
@@ -35,7 +35,7 @@ function Status({ status }: StatusProps) {
             {status.ok &&
                 sectionsOf(status.lines).map((section) => (
                     <div key={section.heading} className="px-1">
-                        <SectionHeading label={section.heading} />
+                        <SectionHeading label={section.heading} count={section.lines.length} />
                         <div className="flex flex-col gap-2">
                             {section.lines.map((line) => (
                                 <LineCard key={line.line_id} line={line} />

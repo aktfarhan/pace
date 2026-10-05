@@ -1,9 +1,9 @@
 import clsx from 'clsx';
 import BranchMarks from './BranchMarks';
 import { LINE_BY_ID } from '@/lib/lines';
-import { CARDS, CHIPS, PILLS } from './tints';
 import { LIVE } from '@/components/layout/tints';
 import { useShowLine } from '@/hooks/useShowLine';
+import { CARDS, CHIPS, PILL, PILLS } from './tints';
 import { chipsOf, effectWord, running } from '@/lib/status';
 import type { LineStatus } from '@/types/status';
 
@@ -53,12 +53,7 @@ function LineCard({ line }: LineCardProps) {
                     </span>
                 )}
                 {!ok && line.state !== 'clear' && line.alert_delay_minutes === null && (
-                    <span
-                        className={clsx(
-                            'shrink-0 rounded-chip border px-2 py-hair font-mono text-pill uppercase',
-                            PILLS[line.state],
-                        )}
-                    >
+                    <span className={clsx('shrink-0', PILL, PILLS[line.state])}>
                         {effectWord(line.effect)}
                     </span>
                 )}
