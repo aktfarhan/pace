@@ -1,6 +1,7 @@
 import clsx from 'clsx';
 import { tintOf } from '@/lib/lines';
 import { clock, minutesBetween } from '@/lib/trip';
+import { UNTINTED } from '@/components/layout/tints';
 import { Bus, Clock, SportShoe, TrainFront } from 'lucide-react';
 import type { Wait, WalkLeg, RideLeg } from '@/types/answer';
 
@@ -53,10 +54,10 @@ function LegRow({ leg, bright }: LegRowProps) {
             <span
                 className={clsx(
                     'grid size-7 shrink-0 place-items-center rounded-mark border',
-                    tint === null ? 'border-line bg-bubble text-muted' : tint.tile,
+                    tint === null ? UNTINTED : tint.tile,
                 )}
             >
-                <Icon size={14} strokeWidth={1.9} aria-hidden="true" />
+                <Icon size={14} strokeWidth={1.9} />
             </span>
             <span className="min-w-0 flex-1 truncate text-row font-medium text-cream">{label}</span>
             <span className="w-19 shrink-0 text-right font-mono text-clock font-semibold text-cream tabular-nums">

@@ -2,9 +2,10 @@ import clsx from 'clsx';
 import Undo from './Undo';
 import { kindOf } from './kinds';
 import { REMOVE } from './tints';
-import { X } from 'lucide-react';
 import { tintOf } from '@/lib/lines';
+import { MapPinOff, X } from 'lucide-react';
 import { useRemoval } from '@/hooks/useRemoval';
+import { UNTINTED } from '@/components/layout/tints';
 import type { RefObject } from 'react';
 import type { SavedPlace } from '@/types/place';
 
@@ -38,10 +39,15 @@ function PlaceCard({ place, drop, titleRef }: PlaceCardProps) {
                     <Undo said={`${place.label} removed`} undo={undo} />
                 ) : (
                     <>
-                        <span className="grid size-7 shrink-0 place-items-center rounded-mark border border-line bg-bubble">
-                            <kind.Icon size={14} strokeWidth={1.9} className="text-muted" />
+                        <span
+                            className={clsx(
+                                'grid size-7 shrink-0 place-items-center rounded-mark border',
+                                tint === null ? UNTINTED : tint.tile,
+                            )}
+                        >
+                            <kind.Icon size={14} strokeWidth={1.9} />
                         </span>
-                        <span className="min-w-0 flex-1 truncate text-base font-strong text-bright">
+                        <span className="min-w-0 flex-1 truncate text-title text-bright">
                             {place.label}
                         </span>
                         <button
@@ -70,23 +76,24 @@ function PlaceCard({ place, drop, titleRef }: PlaceCardProps) {
                 )}
 
                 {place.station === null ? (
-                    <span className={`${CHIP} w-fit border-dashed border-line bg-ink text-ghost`}>
-                        Station —
+                    <span className="flex items-center gap-1.5 text-row text-faint">
+                        <MapPinOff size={13} strokeWidth={2} />
+                        No nearby station
                     </span>
                 ) : (
-                    <div className="flex items-center gap-1.75">
+                    <div className="flex items-center gap-3">
                         <span
                             className={clsx(
                                 CHIP,
                                 'min-w-0 truncate',
-                                tint === null ? 'border-line bg-bubble text-muted' : tint.chip,
+                                tint === null ? UNTINTED : tint.chip,
                             )}
                         >
                             {place.station}
                         </span>
                         {walk > 0 && (
-                            <span className="shrink-0 font-mono text-toward whitespace-nowrap text-faint uppercase">
-                                {walk} min walk
+                            <span className="ml-auto shrink-0 text-row text-hush tabular-nums">
+                                <span className="font-medium text-soft">{walk}</span> min walk
                             </span>
                         )}
                     </div>

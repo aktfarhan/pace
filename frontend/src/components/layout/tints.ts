@@ -6,6 +6,9 @@ export const GLIDE =
 export const LIVE = 'bg-good shadow-glow';
 export const BEHIND = 'animate-beacon bg-amber shadow-pulse';
 
+// A tile or chip no line tints
+export const UNTINTED = 'border-line bg-bubble text-muted';
+
 // Changed text fades in from a slight blur
 export const TICK =
     'transition-[opacity,filter] duration-200 ease-out starting:opacity-0 starting:blur-xs';
