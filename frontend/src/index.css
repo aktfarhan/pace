@@ -252,6 +252,50 @@
     }
 }
 
+@property --edge {
+    syntax: '<length>';
+    inherits: false;
+    initial-value: 0px;
+}
+
+@keyframes edge {
+    to {
+        --edge: 1.5rem;
+    }
+}
+
+@property --edge-end {
+    syntax: '<length>';
+    inherits: false;
+    initial-value: 0px;
+}
+
+@keyframes edge-end {
+    from {
+        --edge-end: 1.5rem;
+    }
+}
+
+@utility scroll-edges {
+    mask-image: linear-gradient(
+        to bottom,
+        rgb(0 0 0 / 0.35),
+        black var(--edge),
+        black calc(100% - var(--edge-end)),
+        rgb(0 0 0 / 0.35)
+    );
+
+    @supports (animation-timeline: scroll()) {
+        animation:
+            edge linear both,
+            edge-end linear both;
+        animation-timeline: scroll(self);
+        animation-range:
+            0 1.5rem,
+            calc(100% - 1.5rem) 100%;
+    }
+}
+
 /* Hover only with a real pointer */
 @custom-variant hover {
     @media (hover: hover) and (pointer: fine) {

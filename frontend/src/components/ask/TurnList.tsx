@@ -41,7 +41,11 @@ function TurnList({ turns, stage, refresh, refreshing, ask, status }: TurnListPr
     if (turns.length === 0) return <Starters ask={ask} status={status} />;
 
     return (
-        <div ref={list} className="flex flex-1 flex-col gap-6 overflow-y-auto">
+        <div
+            ref={list}
+            className="relative flex flex-1 scroll-edges flex-col gap-6 overflow-y-auto overscroll-contain"
+        >
+            <h1 className="sr-only">Ask</h1>
             {turns.map((turn) => (
                 <div key={turn.id} className="flex flex-col gap-2">
                     <p
