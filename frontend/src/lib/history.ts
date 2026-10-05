@@ -1,9 +1,12 @@
 import { fullClock } from '@/lib/trip';
 import type { Entry } from '@/types/history';
-import type { Answer, Card } from '@/types/answer';
+import type { Answer, Card, Intent } from '@/types/answer';
 
 // Where the questions are kept
 const HISTORY_KEY = 'pace.history';
+
+// Every kind a stored row can be
+const INTENTS: Intent[] = ['route', 'alert', 'parking-rules', 'schedule', 'info', 'off-topic'];
 
 // How many questions the device holds
 export const KEPT = 200;
@@ -29,7 +32,18 @@ export function readHistory(): Entry[] {
             return [];
         }
         const parsed = JSON.parse(stored);
-        return Array.isArray(parsed) ? (parsed as Entry[]) : [];
+        if (!Array.isArray(parsed)) {
+            return [];
+        }
+        
+        // Skip rows the page can't draw
+        return (parsed as Entry[]).filter(
+            (one) =>
+                typeof one?.query === 'string' &&
+                INTENTS.includes(one.intent) &&
+                typeof one.at === 'string' &&
+                !Number.isNaN(Date.parse(one.at)),
+        );
     } catch (error) {
         console.error(error);
         return [];
