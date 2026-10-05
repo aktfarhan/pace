@@ -1,9 +1,10 @@
 import clsx from 'clsx';
 import Undo from './Undo';
+import { kindOf } from './kinds';
 import { REMOVE } from './tints';
+import { X } from 'lucide-react';
 import { tintOf } from '@/lib/lines';
 import { useRemoval } from '@/hooks/useRemoval';
-import { Briefcase, House, MapPin, X } from 'lucide-react';
 import type { RefObject } from 'react';
 import type { SavedPlace } from '@/types/place';
 
@@ -22,11 +23,7 @@ function PlaceCard({ place, drop, titleRef }: PlaceCardProps) {
         titleRef,
     );
 
-    const named = place.label.trim().toLowerCase();
-
-    let Icon = MapPin;
-    if (named === 'home') Icon = House;
-    if (named === 'work') Icon = Briefcase;
+    const kind = kindOf(place.label);
 
     const tint = place.route_id === null ? null : tintOf(place.route_id);
     const walk = place.walk_seconds === null ? 0 : Math.ceil(place.walk_seconds / 60);
@@ -42,12 +39,7 @@ function PlaceCard({ place, drop, titleRef }: PlaceCardProps) {
                 ) : (
                     <>
                         <span className="grid size-7 shrink-0 place-items-center rounded-mark border border-line bg-bubble">
-                            <Icon
-                                size={14}
-                                strokeWidth={1.9}
-                                className="text-muted"
-                                aria-hidden="true"
-                            />
+                            <kind.Icon size={14} strokeWidth={1.9} className="text-muted" />
                         </span>
                         <span className="min-w-0 flex-1 truncate text-base font-strong text-bright">
                             {place.label}

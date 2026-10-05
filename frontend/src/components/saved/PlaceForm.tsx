@@ -1,4 +1,5 @@
 import clsx from 'clsx';
+import Presets from './Presets';
 import { MapPin, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 import PlaceActions from './PlaceActions';
@@ -47,6 +48,12 @@ function PlaceForm({ keep, close }: PlaceFormProps) {
         if (event.key === 'Escape' && !saving) close();
     };
 
+    // A preset fills the name and moves on to the address
+    const choose = (name: string) => {
+        setLabel(name);
+        addressRef.current?.focus();
+    };
+
     // Return key in the name moves on to the address
     const next = (event: KeyboardEvent<HTMLInputElement>) => {
         if (event.key !== 'Enter') return;
@@ -73,6 +80,8 @@ function PlaceForm({ keep, close }: PlaceFormProps) {
                 </button>
             </div>
 
+            <Presets label={label} pick={choose} />
+
             <div className="grid gap-3 sm:grid-cols-3">
                 <label className="flex flex-col gap-1.5">
                     <span className={LABEL}>Name</span>
@@ -85,7 +94,7 @@ function PlaceForm({ keep, close }: PlaceFormProps) {
                         enterKeyHint="next"
                         autoComplete="off"
                         autoCapitalize="words"
-                        placeholder="Home, Work, School"
+                        placeholder="Or type any name"
                         className={FIELD}
                     />
                 </label>
