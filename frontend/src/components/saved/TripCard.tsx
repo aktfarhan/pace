@@ -2,17 +2,11 @@ import clsx from 'clsx';
 import Undo from './Undo';
 import { X } from 'lucide-react';
 import { REMOVE } from './tints';
-import { fullClock } from '@/lib/trip';
 import Risk from '@/components/ask/cards/Risk';
+import Plan from '@/components/ask/cards/Plan';
 import { useRemoval } from '@/hooks/useRemoval';
-import Leave from '@/components/ask/cards/Leave';
-import LegBar from '@/components/ask/cards/LegBar';
-import Chance from '@/components/ask/cards/Chance';
-import Timeline from '@/components/ask/cards/Timeline';
 import type { RefObject } from 'react';
 import type { Planned } from '@/types/trip';
-
-const META = 'font-mono text-meta text-dim uppercase tabular-nums';
 
 interface TripCardProps {
     trip: Planned;
@@ -62,37 +56,12 @@ function TripCard({ trip, drop, titleRef }: TripCardProps) {
                 )}
             >
                 {trip.card === null ? (
-                    <div className="flex items-center gap-2 pb-1">
+                    <div className="flex items-center gap-2.5 pb-1">
                         <Risk risk={trip.risk} />
+                        <span className="text-row text-faint">No route right now.</span>
                     </div>
                 ) : (
-                    <>
-                        <div>
-                            <Leave card={trip.card} />
-                            <div className="mt-3 flex flex-col gap-1.75">
-                                <LegBar card={trip.card} />
-                                <div className="flex items-center gap-2 pt-0.75">
-                                    <Risk risk={trip.risk} />
-                                    <Chance chance={trip.chance} />
-                                    <span className="flex-1" />
-                                    <span className={META}>
-                                        Arrive{' '}
-                                        <span className="text-meta-value text-cream">
-                                            {fullClock(trip.card.arrive)}
-                                        </span>
-                                    </span>
-                                    <span className="text-edge">·</span>
-                                    <span className={META}>
-                                        Transfers{' '}
-                                        <span className="text-meta-value text-cream">
-                                            {trip.card.transfers}
-                                        </span>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        <Timeline card={trip.card} />
-                    </>
+                    <Plan card={trip.card} risk={trip.risk} chance={trip.chance} />
                 )}
             </div>
         </div>
