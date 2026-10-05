@@ -21,7 +21,7 @@ function Saved({ start }: SavedProps) {
     const { trips, readAt, reading, failed: tripsFailed, refresh, drop: dropTrip } = useTrips();
 
     return (
-        <div className="flex flex-col gap-3.5">
+        <div className="@container flex flex-col gap-3.5">
             <div className="flex items-center justify-between gap-4">
                 <h1 ref={titleRef} tabIndex={-1} className="text-board text-bright">
                     Saved
@@ -32,12 +32,12 @@ function Saved({ start }: SavedProps) {
             </div>
 
             <div>
-                <SectionHeading label="Places" />
+                <SectionHeading label="Places" count={places?.length} />
                 {placesFailed && (
                     <Failed said="Couldn't reach your places" retry={retry} className="px-1 pb-3" />
                 )}
 
-                <div className="grid grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 gap-3 @md:grid-cols-2 @2xl:grid-cols-3 @4xl:grid-cols-4">
                     {places?.map((place) => (
                         <PlaceCard
                             key={place.id}
@@ -51,7 +51,7 @@ function Saved({ start }: SavedProps) {
             </div>
 
             <div>
-                <SectionHeading label="Trips" />
+                <SectionHeading label="Trips" count={trips?.length} />
                 {trips === null && !tripsFailed && (
                     <p className="px-1 text-row text-faint">Reading your trips…</p>
                 )}
@@ -74,7 +74,7 @@ function Saved({ start }: SavedProps) {
                 )}
 
                 {trips !== null && (
-                    <div className="grid grid-cols-2 items-start gap-3">
+                    <div className="grid grid-cols-1 items-start gap-3 @3xl:grid-cols-2">
                         {trips.map((trip) => (
                             <TripCard
                                 key={trip.id}

@@ -11,7 +11,7 @@ function SectionHeading({ label, count }: SectionHeadingProps) {
             <span className="font-mono text-heading whitespace-nowrap text-dim uppercase">
                 {label}
             </span>
-            {count !== undefined && <span className={`-my-px ${COUNT}`}>{count}</span>}
+            {count !== undefined && count > 0 && <span className={`-my-px ${COUNT}`}>{count}</span>}
         </h2>
     );
 }
