@@ -1,5 +1,5 @@
 import { POLL_MS } from '@/lib/poll';
-import { readBoard, removeTrip } from '@/lib/pace';
+import { forget, readBoard, removeTrip } from '@/lib/pace';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Planned } from '@/types/trip';
 
@@ -11,10 +11,14 @@ export function useTrips() {
     const [failed, setFailed] = useState(false);
     const runningRef = useRef(false);
 
+    // Removed trips
+    const dropped = useRef(new Set<number>());
+
     // Re-plans every saved trip
     const read = useCallback(async (signal: AbortSignal) => {
         try {
-            setTrips(await readBoard(signal));
+            const board = await readBoard(signal);
+            setTrips(board.filter((trip) => !dropped.current.has(trip.id)));
             setReadAt(new Date().toISOString());
             setFailed(false);
         } catch (error) {
@@ -77,6 +81,9 @@ export function useTrips() {
 
     async function drop(id: number) {
         await removeTrip(id);
+        dropped.current.add(id);
+        const gone = trips?.find((trip) => trip.id === id);
+        if (gone !== undefined) forget(gone.origin, gone.destination);
         setTrips((saved) => saved && saved.filter((trip) => trip.id !== id));
     }
 

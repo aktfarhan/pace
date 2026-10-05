@@ -125,6 +125,11 @@ export function isKept(origin: string, destination: string) {
     return kept.has(tripKey(origin, destination));
 }
 
+// A removed trip stops counting as saved
+export function forget(origin: string, destination: string) {
+    kept.delete(tripKey(origin, destination));
+}
+
 // Saves one trip, keeping the code it comes back with
 export async function saveTrip(origin: string, destination: string): Promise<SavedTrip> {
     const body = await send('/v1/trips', {
