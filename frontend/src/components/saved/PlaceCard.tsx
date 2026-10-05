@@ -32,7 +32,7 @@ function PlaceCard({ place, drop, titleRef }: PlaceCardProps) {
     return (
         <div
             ref={cardRef}
-            className="group flex flex-col gap-2.75 rounded-tile border border-seam bg-panel px-4.25 py-4"
+            className="group flex flex-col gap-2.75 rounded-tile border border-seam bg-panel px-4.25 py-4 shadow-card transition-colors ease-out hover:border-edge"
         >
             <div className="flex h-7 items-center gap-2.5">
                 {going ? (

@@ -99,7 +99,7 @@ function History({ ask, start }: HistoryProps) {
                                 className="min-w-0 scroll-mt-2"
                             >
                                 <SectionHeading label={day.heading} count={day.entries.length} />
-                                <div className="divide-y divide-seam overflow-hidden rounded-tile border border-seam bg-panel">
+                                <div className="divide-y divide-seam overflow-hidden rounded-tile border border-seam bg-panel shadow-card">
                                     {day.entries.map((entry) => (
                                         <Row key={entry.at} entry={entry} ask={ask} />
                                     ))}

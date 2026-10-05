@@ -19,7 +19,7 @@ function LineCard({ line }: LineCardProps) {
     return (
         <div
             className={clsx(
-                'relative flex flex-col gap-2.25 rounded-tile border px-3.5 py-3.25 transition-[scale] duration-150 ease-out active:scale-98',
+                'relative flex flex-col gap-2.25 rounded-tile border px-3.5 py-3.25 shadow-card transition-[scale] duration-150 ease-out active:scale-98',
                 ok ? CARDS.clear : CARDS[line.state],
             )}
         >

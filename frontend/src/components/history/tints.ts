@@ -50,7 +50,7 @@ export const FILLS: Record<Kind, string> = {
 };
 
 // A panel beside the list
-export const CARD = 'rounded-tile border border-seam bg-panel p-4';
+export const CARD = 'rounded-tile border border-seam bg-panel p-4 shadow-card';
 
 // A count with its noun
 export function questionsOf(count: number) {
