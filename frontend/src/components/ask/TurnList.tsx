@@ -50,7 +50,7 @@ function TurnList({ turns, stage, refresh, refreshing, ask, status }: TurnListPr
                 <div key={turn.id} className="flex flex-col gap-2">
                     <p
                         className={clsx(
-                            'max-w-md self-end rounded-2xl rounded-br-sm border border-edge bg-bubble px-4 py-2.5 text-sm text-cream',
+                            'max-w-md self-end rounded-tile bg-field px-4.5 py-3 text-sm/snug wrap-break-word text-cream',
                             turn.id > known && RISE,
                         )}
                     >
