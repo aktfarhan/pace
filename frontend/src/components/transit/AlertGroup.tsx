@@ -1,0 +1,25 @@
+import clsx from 'clsx';
+import Alert from './Alert';
+import SectionHeading from '@/components/layout/SectionHeading';
+import type { Notice } from '@/types/transit';
+
+interface AlertGroupProps {
+    name: string;
+    notices: Notice[];
+    panel: string;
+}
+
+function AlertGroup({ name, notices, panel }: AlertGroupProps) {
+    return (
+        <div>
+            <SectionHeading label={name} count={notices.length} level={3} />
+            <div className={clsx('divide-y divide-seam rounded-tile border shadow-card', panel)}>
+                {notices.map(({ lines, alert }) => (
+                    <Alert key={alert.alert_id} lines={lines} alert={alert} />
+                ))}
+            </div>
+        </div>
+    );
+}
+
+export default AlertGroup;

@@ -1,17 +1,12 @@
 import clsx from 'clsx';
 import { sinceOf } from './feed';
 import { effectWord } from '@/lib/status';
-import { CARDS, PILLS } from '@/components/layout/sidebar/tints';
+import { PILLS } from '@/components/layout/sidebar/tints';
 import type { Notice } from '@/types/transit';
 
 function Alert({ lines, alert }: Notice) {
     return (
-        <article
-            className={clsx(
-                'flex flex-col gap-2.25 rounded-tile border px-3.5 py-3.25',
-                alert.slowing ? CARDS.disrupted : CARDS.notice,
-            )}
-        >
+        <article className="flex flex-col gap-2.25 px-4 py-3.25">
             <div className="flex flex-wrap items-center gap-x-2.75 gap-y-2">
                 <span className="flex shrink-0 items-center gap-1">
                     {lines.map((one) => (
