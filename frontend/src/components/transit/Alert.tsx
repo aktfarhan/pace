@@ -1,4 +1,5 @@
 import clsx from 'clsx';
+import Stretch from './Stretch';
 import { sinceOf } from './feed';
 import { useId, useState } from 'react';
 import AlertDetail from './AlertDetail';
@@ -62,6 +63,7 @@ function Alert({ lines, alert, searching }: AlertProps) {
                     </span>
                 </span>
                 {effect !== null && <span className="hidden sm:block">{effect}</span>}
+                <Stretch since={alert.since} until={alert.until} slowing={alert.slowing} />
                 <ChevronDown
                     size={15}
                     strokeWidth={2}

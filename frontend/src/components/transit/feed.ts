@@ -30,17 +30,46 @@ export function datesOf(since: string | null, until: string | null) {
     return `${day} → ${MONTH_DAY.format(end)}`;
 }
 
+// How far along an alert is
+export function stretchOf(since: string | null, until: string | null) {
+    const now = Date.now();
+    const end = momentOf(until);
+    // If there is no end, or already over
+    if (!Number.isFinite(end) || end < now) return null;
+
+    const begin = momentOf(since);
+
+    // There is no start, or not started yet
+    if (!Number.isFinite(begin) || begin > now) {
+        return { label: `until ${MONTH_DAY.format(end)}`, progress: null };
+    }
+
+    // Progress through the run
+    const progress = (now - begin) / Math.max(end - begin, 1);
+    const days = Math.ceil((end - begin) / DAY_MS);
+
+    // A one-day alert shows its end time
+    if (days <= 1) return { label: `ends ${clockOf(end)}`, progress };
+
+    // Which day of the run today is
+    const day = Math.min(Math.floor((now - begin) / DAY_MS) + 1, days);
+    return { label: `day ${day} of ${days}`, progress };
+}
+
 // When an alert came into effect
 export function sinceOf(at: string | null) {
     const when = momentOf(at);
     if (!Number.isFinite(when)) return 'in effect';
 
-    const days = Math.floor((Date.now() - when) / DAY_MS);
-    if (days < 0) return 'not yet in effect';
-    if (days >= STALE_DAYS) return `since ${MONTH.format(when)}`;
-    if (days >= 1) return `since ${days} ${days === 1 ? 'day' : 'days'} ago`;
+    // Only a moment today reads as a clock time
+    const today = new Date(when).toDateString() === new Date().toDateString();
+    const date = today ? clockOf(when) : MONTH_DAY.format(when);
 
-    return `since ${clockOf(when)}`;
+    const days = Math.floor((Date.now() - when) / DAY_MS);
+    if (days < 0) return `starts ${date}`;
+    if (days >= STALE_DAYS) return `since ${MONTH.format(when)}`;
+
+    return `since ${date}`;
 }
 
 // Everything the feed is reporting
