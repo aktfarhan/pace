@@ -9,10 +9,30 @@ const DAY_MS = 24 * HOUR_MS;
 const STALE_DAYS = 30;
 
 const MONTH = new Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric' });
+const MONTH_DAY = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
+
+// An alert's time, or NaN when it has none
+function momentOf(at: string | null) {
+    return at === null ? NaN : Date.parse(at);
+}
+
+// When an alert runs
+export function datesOf(since: string | null, until: string | null) {
+    const begin = momentOf(since);
+    const end = momentOf(until);
+    if (!Number.isFinite(begin) || !Number.isFinite(end)) return null;
+
+    // A one-day alert shows its times
+    const day = MONTH_DAY.format(begin);
+    if (new Date(begin).toDateString() === new Date(end).toDateString()) {
+        return `${day}, ${clockOf(begin)} → ${clockOf(end)}`;
+    }
+    return `${day} → ${MONTH_DAY.format(end)}`;
+}
 
 // When an alert came into effect
 export function sinceOf(at: string | null) {
-    const when = at === null ? NaN : Date.parse(at);
+    const when = momentOf(at);
     if (!Number.isFinite(when)) return 'in effect';
 
     const days = Math.floor((Date.now() - when) / DAY_MS);

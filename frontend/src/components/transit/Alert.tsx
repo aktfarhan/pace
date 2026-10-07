@@ -1,55 +1,77 @@
 import clsx from 'clsx';
 import { sinceOf } from './feed';
+import { useId, useState } from 'react';
+import AlertDetail from './AlertDetail';
 import { effectWord } from '@/lib/status';
-import { PILLS } from '@/components/layout/sidebar/tints';
+import { ChevronDown } from 'lucide-react';
+import { PILL, PILLS } from '@/components/layout/sidebar/tints';
 import type { Notice } from '@/types/transit';
 
-function Alert({ lines, alert }: Notice) {
+const CHIP = 'rounded-chip border px-1.75 py-hair font-mono text-badge uppercase';
+
+interface AlertProps extends Notice {
+    searching: boolean;
+}
+
+function Alert({ lines, alert, searching }: AlertProps) {
+    const detailId = useId();
+    const [picked, setPicked] = useState<boolean | null>(null);
+    const [was, setWas] = useState(searching);
+
+    // Starting or clearing a search resets the row
+    if (was !== searching) {
+        setWas(searching);
+        setPicked(null);
+    }
+
+    // A search opens every match
+    const open = picked ?? searching;
+    const since = sinceOf(alert.since);
+    const said = alert.where === null ? since : `${since} · ${alert.where}`;
+
+    // The effect beside the row
+    const effect = alert.slowing ? (
+        <span className={clsx('block', PILL, PILLS.disrupted)}>{effectWord(alert.effect)}</span>
+    ) : null;
+
     return (
-        <article className="flex flex-col gap-2.25 px-4 py-3.25">
-            <div className="flex flex-wrap items-center gap-x-2.75 gap-y-2">
-                <span className="flex shrink-0 items-center gap-1">
-                    {lines.map((one) => (
-                        <span
-                            key={one.id}
-                            className={clsx(
-                                'rounded-chip border px-2 py-hair font-mono text-badge uppercase',
-                                one.chip,
-                            )}
-                        >
-                            {one.code}
+        <article>
+            <button
+                type="button"
+                aria-expanded={open}
+                aria-controls={detailId}
+                onClick={() => setPicked(!open)}
+                className="flex w-full cursor-pointer items-center gap-3.5 px-4 py-3.25 text-left transition-colors ease-out hover:bg-field/70 focus-visible:-outline-offset-2 active:bg-field"
+            >
+                <span className="flex min-w-0 flex-1 flex-col gap-1.25">
+                    <span className="text-branch leading-snug font-strong text-pretty text-bright">
+                        {alert.headline}
+                    </span>
+                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        {effect !== null && <span className="sm:hidden">{effect}</span>}
+                        <span className="flex gap-1">
+                            {lines.map((one) => (
+                                <span key={one.id} className={clsx(CHIP, one.chip)}>
+                                    {one.code}
+                                </span>
+                            ))}
                         </span>
-                    ))}
-                </span>
-                <span className="min-w-48 flex-1 text-base leading-snug font-strong text-bright">
-                    {alert.headline}
-                </span>
-                {alert.slowing && (
-                    <span
-                        className={clsx(
-                            'shrink-0 rounded-chip border px-2 py-hair font-mono text-pill uppercase',
-                            PILLS.disrupted,
-                        )}
-                    >
-                        {effectWord(alert.effect)}
+                        <span className="truncate font-mono text-chip text-faint uppercase">
+                            {said}
+                        </span>
                     </span>
-                )}
-            </div>
-
-            <div className="flex items-center gap-1.75">
-                <span className="rounded-chip border border-seam bg-ink px-2 py-0.75 font-mono text-chip whitespace-nowrap text-dim uppercase">
-                    {sinceOf(alert.since)}
                 </span>
-                {alert.where !== null && (
-                    <span className="truncate rounded-chip border border-seam bg-ink px-2 py-0.75 font-mono text-chip whitespace-nowrap text-faint uppercase">
-                        {alert.where}
-                    </span>
-                )}
-            </div>
-
-            {alert.detail !== '' && (
-                <p className="text-branch leading-relaxed text-hush">{alert.detail}</p>
-            )}
+                {effect !== null && <span className="hidden sm:block">{effect}</span>}
+                <ChevronDown
+                    size={15}
+                    strokeWidth={2}
+                    className={clsx(
+                        'text-ghost transition-transform duration-200 ease-out',
+                        open && 'rotate-180',
+                    )}
+                />
+            </button>
+            <AlertDetail id={detailId} open={open} alert={alert} />
         </article>
     );
 }

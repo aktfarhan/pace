@@ -61,7 +61,13 @@ function Notices({ notices, bare }: NoticesProps) {
             {found.length > 0 && (
                 <div className="flex flex-col gap-2">
                     {groups.map(({ name, panel, alerts }) => (
-                        <AlertGroup key={name} name={name} notices={alerts} panel={panel} />
+                        <AlertGroup
+                            key={name}
+                            name={name}
+                            notices={alerts}
+                            panel={panel}
+                            searching={typed !== ''}
+                        />
                     ))}
                 </div>
             )}

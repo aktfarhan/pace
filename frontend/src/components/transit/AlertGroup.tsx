@@ -7,15 +7,21 @@ interface AlertGroupProps {
     name: string;
     notices: Notice[];
     panel: string;
+    searching: boolean;
 }
 
-function AlertGroup({ name, notices, panel }: AlertGroupProps) {
+function AlertGroup({ name, notices, panel, searching }: AlertGroupProps) {
     return (
         <div>
             <SectionHeading label={name} count={notices.length} level={3} />
-            <div className={clsx('divide-y divide-seam rounded-tile border shadow-card', panel)}>
+            <div
+                className={clsx(
+                    'divide-y divide-seam overflow-hidden rounded-tile border shadow-card',
+                    panel,
+                )}
+            >
                 {notices.map(({ lines, alert }) => (
-                    <Alert key={alert.alert_id} lines={lines} alert={alert} />
+                    <Alert key={alert.alert_id} lines={lines} alert={alert} searching={searching} />
                 ))}
             </div>
         </div>
