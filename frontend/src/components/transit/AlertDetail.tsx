@@ -20,7 +20,7 @@ function AlertDetail({ id, open, alert }: AlertDetailProps) {
                 open ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
             )}
         >
-            <div className="overflow-hidden px-4">
+            <div className="overflow-hidden pr-4 pl-16">
                 <div className="pb-4">
                     {dates !== null && (
                         <span className="block pb-1.5 font-mono text-chip text-faint uppercase">

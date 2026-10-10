@@ -1,5 +1,6 @@
-import { wordsOf } from './feed';
+import KindFilter from './KindFilter';
 import AlertGroup from './AlertGroup';
+import { kindOf, wordsOf } from './feed';
 import { useMemo, useState } from 'react';
 import { CircleCheck } from 'lucide-react';
 import Find from '@/components/layout/Find';
@@ -18,6 +19,7 @@ interface NoticesProps {
 
 function Notices({ notices, bare }: NoticesProps) {
     const [asked, setAsked] = useState('');
+    const [kind, setKind] = useState<string | null>(null);
     const typed = asked.trim();
 
     // Every word a notice carries
@@ -28,10 +30,16 @@ function Notices({ notices, bare }: NoticesProps) {
         return notices.filter((one) => wordsOf(one).includes(words));
     }, [notices, typed]);
 
+    // A picked kind narrows the list
+    const live = found.some((one) => kindOf(one.alert.effect).name === kind) ? kind : null;
+    if (kind !== null && live === null) setKind(null);
+    const shown =
+        live === null ? found : found.filter((one) => kindOf(one.alert.effect).name === live);
+
     // Each group with its alerts
     const groups = GROUPS.map((group) => ({
         ...group,
-        alerts: found.filter((one) => one.alert.slowing === group.slowing),
+        alerts: shown.filter((one) => one.alert.slowing === group.slowing),
     })).filter((group) => group.alerts.length > 0);
 
     if (notices.length === 0 && bare) return null;
@@ -41,13 +49,14 @@ function Notices({ notices, bare }: NoticesProps) {
             <div className="flex flex-wrap items-baseline gap-2.5 px-1 pt-5 pb-3">
                 <div aria-live="polite" className="flex items-baseline gap-2.5">
                     <h2 className="text-title text-bright">Alerts</h2>
-                    <span className="text-title text-ghost tabular-nums">{found.length}</span>
+                    <span className="text-title text-ghost tabular-nums">{shown.length}</span>
                 </div>
                 <span className="flex-1" />
                 {notices.length > 0 && (
                     <Find asked={asked} search={setAsked} label="Search alerts" />
                 )}
             </div>
+            <KindFilter notices={found} kind={live} pick={setKind} />
 
             {notices.length === 0 && (
                 <p className="flex items-center gap-2.5 rounded-tile border border-seam bg-panel px-4 py-3.5 text-row text-soft shadow-card">
@@ -55,10 +64,10 @@ function Notices({ notices, bare }: NoticesProps) {
                     Nothing reported on this line.
                 </p>
             )}
-            {notices.length > 0 && found.length === 0 && (
+            {notices.length > 0 && shown.length === 0 && (
                 <p className="px-1 text-row text-faint">No alerts match “{typed}”.</p>
             )}
-            {found.length > 0 && (
+            {shown.length > 0 && (
                 <div className="flex flex-col gap-2">
                     {groups.map(({ name, panel, alerts }) => (
                         <AlertGroup

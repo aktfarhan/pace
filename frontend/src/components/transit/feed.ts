@@ -1,6 +1,16 @@
 import { HOUR_MS } from './plot';
 import { clockOf } from './frame';
 import { LINES } from '@/lib/lines';
+import {
+    Ban,
+    Bus,
+    Info,
+    Clock,
+    Signpost,
+    Construction,
+    Accessibility,
+    TriangleAlert,
+} from 'lucide-react';
 import type { Line } from '@/lib/lines';
 import type { Notice, Transit } from '@/types/transit';
 
@@ -10,6 +20,22 @@ const STALE_DAYS = 30;
 
 const MONTH = new Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric' });
 const MONTH_DAY = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
+
+// The icon with each kind of effect
+const KINDS = [
+    { match: /ELEVATOR|ESCALATOR|ACCESS/, Icon: Accessibility, name: 'Access' },
+    { match: /SUSPENSION|NO_SERVICE|CANCEL/, Icon: Ban, name: 'Suspended' },
+    { match: /SHUTTLE/, Icon: Bus, name: 'Shuttle' },
+    { match: /DELAY/, Icon: Clock, name: 'Delay' },
+    { match: /TRACK|MAINTENANCE|CONSTRUCTION/, Icon: Construction, name: 'Track work' },
+    { match: /DETOUR|STOP|STATION_CLOSURE/, Icon: Signpost, name: 'Detour' },
+    { match: /ISSUE|SAFETY|POLICE|WEATHER/, Icon: TriangleAlert, name: 'Station issue' },
+];
+const OTHER = { Icon: Info, name: 'Notice' };
+
+export function kindOf(effect: string) {
+    return KINDS.find((kind) => kind.match.test(effect)) ?? OTHER;
+}
 
 // An alert's time, or NaN when it has none
 function momentOf(at: string | null) {
