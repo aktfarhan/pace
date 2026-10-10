@@ -14,6 +14,12 @@ import {
 import type { Line } from '@/lib/lines';
 import type { Notice, Transit } from '@/types/transit';
 
+// One alert and its repeats
+export interface Thread {
+    lead: Notice;
+    more: Notice[];
+}
+
 // A day, and how far back the data is stale
 const DAY_MS = 24 * HOUR_MS;
 const STALE_DAYS = 30;
@@ -142,4 +148,19 @@ export function wordsOf({ lines, alert }: Notice) {
     ];
 
     return said.join(' ').toLowerCase();
+}
+
+// Alerts with the same headline on the same lines
+export function threadsOf(notices: Notice[]) {
+    const threads = new Map<string, Thread>();
+    for (const one of notices) {
+        // The headline and the lines it touches
+        const key = `${one.alert.headline}|${one.lines.map((line) => line.id).join()}`;
+
+        const thread = threads.get(key);
+        if (thread === undefined) threads.set(key, { lead: one, more: [] });
+        else thread.more.push(one);
+    }
+
+    return [...threads.values()];
 }
