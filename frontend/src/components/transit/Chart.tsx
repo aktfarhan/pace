@@ -13,9 +13,8 @@ import { CARD } from './tints';
 import Callout from './Callout';
 import Heading from './Heading';
 import Typical from './Typical';
-import { stretchedOf } from './plot';
+import { useState } from 'react';
 import { usePlot } from '@/hooks/usePlot';
-import { useMemo, useState } from 'react';
 import { useChartBox } from '@/hooks/useChartBox';
 import type { Drawn } from '@/lib/lines';
 import type { Branching, Transit } from '@/types/transit';
@@ -41,15 +40,13 @@ function Chart({ lines, series, typical, read, late, rolling, branching, resumes
     const { picked, lead, strengthOf, toggle, light } = plot.emphasis;
     const { drawn, shown, marks, labels, guide, figures, typically, usual, readout, wash } = plot;
 
-    const stretched = useMemo(() => stretchedOf(drawn, rolling), [drawn, rolling]);
     const quiet = width > 0 && drawn.every((one) => one.path === '');
 
     return (
         <div ref={cardRef} className={CARD}>
             <Heading
                 late={late}
-                stretched={stretched}
-                tight={tight}
+                rolling={rolling}
                 span={span}
                 select={setSpan}
                 branching={branching}

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { FocusEvent, KeyboardEvent, PointerEvent } from 'react';
 
 // The first tip takes time to load
-const WAIT_MS = 400;
+export const WAIT_MS = 400;
 const WARM_MS = 300;
 
 // The tip's gap from the sidebar

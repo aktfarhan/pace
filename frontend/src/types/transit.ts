@@ -7,14 +7,18 @@ export interface Reading {
     share: number;
     seen: number;
     reach: number;
-    days?: number;
+}
+
+// Today versus earlier days
+export interface TypicalReading extends Reading {
+    days: number;
 }
 
 // What /v1/transit returns
 export interface Transit {
     status: SystemStatus;
     series: Record<string, Reading[]>;
-    typical: Record<string, Reading[]>;
+    typical: Record<string, TypicalReading[]>;
     headways: Record<string, number>;
     resumes: Partial<Record<string, string>>;
     branches: Record<string, Branch[]>;

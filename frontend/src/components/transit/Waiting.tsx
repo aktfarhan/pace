@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 import { DROP } from './plot';
+import { CARD } from './tints';
 import { rulesOf } from './frame';
-import { CARD, CHIP } from './tints';
 import { TICK } from '@/components/layout/tints';
 import { useChartBox } from '@/hooks/useChartBox';
 import TryAgain from '@/components/layout/TryAgain';
@@ -23,7 +23,9 @@ function Waiting({ note, retry }: WaitingProps) {
 
     return (
         <div ref={cardRef} className={CARD}>
-            <span className={`${CHIP} w-fit text-hush`}>Arrivals behind schedule</span>
+            <div className="flex min-h-6.75 items-center">
+                <h2 className="text-title text-bright">Late arrivals</h2>
+            </div>
             <div className="h-6" />
             <div className="relative" style={{ height }}>
                 {rules.map(({ share, floor, top }) => (

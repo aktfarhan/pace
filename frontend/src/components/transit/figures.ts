@@ -2,7 +2,7 @@ import { HOUR_MS } from './plot';
 import { clockOf } from './frame';
 import type { Mark } from './plot';
 import type { Drawn } from '@/lib/lines';
-import type { Reading, Transit } from '@/types/transit';
+import type { Reading, Transit, TypicalReading } from '@/types/transit';
 
 // Minimum required points
 const DRIFT = 2;
@@ -15,10 +15,7 @@ export interface Figure {
 }
 
 // What a line typically runs at
-export interface Typically {
-    share: number;
-    days: number;
-}
+export type Typically = Pick<TypicalReading, 'share' | 'days'>;
 
 // How far one line has moved in the last hour
 function driftOf(readings: Reading[]) {
@@ -74,7 +71,7 @@ export function typicalOf(typical: Transit['typical'], lines: readonly Drawn[]):
     if (readings.length === 0) return null;
 
     const last = readings[readings.length - 1];
-    return { share: last.share, days: last.days ?? 0 };
+    return { share: last.share, days: last.days };
 }
 
 // How far back a reading reached
