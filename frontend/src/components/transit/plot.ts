@@ -5,6 +5,9 @@ import type { Reading } from '@/types/transit';
 // The share the axis tops out at
 export const TOP = 100;
 
+// How far the axis line sits under 0%
+export const DROP = 2;
+
 // How much of the day one reading covers
 export const BUCKET_MS = 15 * 60000;
 

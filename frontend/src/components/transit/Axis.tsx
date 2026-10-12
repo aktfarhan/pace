@@ -1,9 +1,7 @@
-import { useMemo } from 'react';
+import { DROP } from './plot';
+import { memo, useMemo } from 'react';
 import { rulesOf, ticksOf } from './frame';
 import type { Box } from './plot';
-
-// How far the hour marks drop below the floor
-const TICK = 6;
 
 // How far the hour labels sit below the floor
 const LABEL = 22;
@@ -53,35 +51,26 @@ function Axis({ box, start, end }: AxisProps) {
 
             <line
                 x1={box.left}
-                y1={box.floor}
+                y1={box.floor + DROP}
                 x2={box.right}
-                y2={box.floor}
+                y2={box.floor + DROP}
                 className="stroke-edge"
                 strokeWidth={1}
             />
 
             {ticks.map((tick) => (
-                <g key={tick.at}>
-                    <line
-                        x1={tick.x}
-                        y1={box.floor}
-                        x2={tick.x}
-                        y2={box.floor + TICK}
-                        className="stroke-edge"
-                        strokeWidth={1}
-                    />
-                    <text
-                        x={tick.x}
-                        y={box.floor + LABEL}
-                        textAnchor="middle"
-                        className="fill-faint font-mono text-axis"
-                    >
-                        {tick.label}
-                    </text>
-                </g>
+                <text
+                    key={tick.at}
+                    x={tick.x}
+                    y={box.floor + LABEL}
+                    textAnchor="middle"
+                    className="fill-faint font-mono text-axis"
+                >
+                    {tick.label}
+                </text>
             ))}
         </g>
     );
 }
 
-export default Axis;
+export default memo(Axis);

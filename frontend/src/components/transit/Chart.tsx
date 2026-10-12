@@ -1,6 +1,7 @@
 import Axis from './Axis';
 import Ends from './Ends';
 import Wash from './Wash';
+import Paths from './Paths';
 import Focus from './Focus';
 import Guide from './Guide';
 import Sweep from './Sweep';
@@ -36,18 +37,6 @@ function Chart({ lines, series, typical, read, late, rolling, branching }: Chart
     const { drawn, shown, labels, guide, figures, typically, usual, readout, wash } = plot;
 
     const stretched = useMemo(() => stretchedOf(drawn, rolling), [drawn, rolling]);
-
-    // Where each line has reached
-    const ends = useMemo(
-        () =>
-            drawn
-                .map((one) => {
-                    const spot = one.spots.findLast((seen) => seen !== null);
-                    return spot == null ? null : { id: one.line.id, stroke: one.line.stroke, spot };
-                })
-                .filter((one) => one !== null),
-        [drawn],
-    );
 
     return (
         <div
@@ -90,21 +79,10 @@ function Chart({ lines, series, typical, read, late, rolling, branching }: Chart
                             {wash !== null && <Wash path={wash.under} text={wash.line.text} />}
                             {guide !== null && <Guide spot={guide} box={box} />}
                             {usual !== null && <Typical path={usual.path} stroke={usual.stroke} />}
-                            {drawn.map((one) => (
-                                <path
-                                    key={one.line.id}
-                                    d={one.path}
-                                    fill="none"
-                                    strokeWidth={lead === one.line.id ? 2.75 : 1.75}
-                                    strokeOpacity={strengthOf(one.line.id)}
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    className={one.line.stroke}
-                                />
-                            ))}
-                            <Ends ends={ends} strengthOf={strengthOf} />
+                            <Paths drawn={drawn} lead={lead} strengthOf={strengthOf} />
+                            <Ends drawn={drawn} end={end} strengthOf={strengthOf} />
                         </Sweep>
-                        <Labels labels={labels} box={box} tight={tight} />
+                        <Labels labels={labels} box={box} tight={tight} strengthOf={strengthOf} />
                     </svg>
                 )}
             </div>
