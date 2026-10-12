@@ -155,6 +155,11 @@ export function slotAt(x: number, start: number, end: number, box: Box) {
     return Math.min(Math.max(slot, 0), slots);
 }
 
+// A reading counts from its quarter's end
+export function landOf(reading: Reading) {
+    return Date.parse(reading.at) + BUCKET_MS;
+}
+
 // One line's readings
 export function seriesOf(readings: Reading[], start: number, end: number, box: Box) {
     // The window measured in buckets
@@ -163,7 +168,7 @@ export function seriesOf(readings: Reading[], start: number, end: number, box: B
     // Each reading under the slot it covers
     const taken = new Map<number, Reading>();
     for (const reading of readings) {
-        const slot = Math.round((Date.parse(reading.at) - start) / BUCKET_MS);
+        const slot = Math.round((landOf(reading) - start) / BUCKET_MS);
         if (slot < 0 || slot > slots) continue;
 
         taken.set(slot, reading);

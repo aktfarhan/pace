@@ -8,6 +8,7 @@ import Sweep from './Sweep';
 import Labels from './Labels';
 import Legend from './Legend';
 import Washes from './Washes';
+import Callout from './Callout';
 import Heading from './Heading';
 import Typical from './Typical';
 import { stretchedOf } from './plot';
@@ -35,7 +36,7 @@ function Chart({ lines, series, typical, read, late, rolling, branching }: Chart
     const { start, end } = plot.frame;
     const { follow, lift, clear } = plot.hover;
     const { picked, lead, strengthOf, toggle, light } = plot.emphasis;
-    const { drawn, shown, labels, guide, figures, typically, usual, readout, wash } = plot;
+    const { drawn, shown, marks, labels, guide, figures, typically, usual, readout, wash } = plot;
 
     const stretched = useMemo(() => stretchedOf(drawn, rolling), [drawn, rolling]);
 
@@ -49,7 +50,6 @@ function Chart({ lines, series, typical, read, late, rolling, branching }: Chart
                 stretched={stretched}
                 tight={tight}
                 span={span}
-                readout={readout}
                 select={setSpan}
                 branching={branching}
             />
@@ -64,12 +64,13 @@ function Chart({ lines, series, typical, read, late, rolling, branching }: Chart
                     toggle={toggle}
                 />
             )}
-            <div style={{ height }}>
+            <div className="relative" style={{ height }}>
                 {width > 0 && (
                     <svg
                         role="img"
                         viewBox={`0 0 ${width} ${height}`}
-                        className="block w-full touch-pan-y overflow-visible"
+                        className="block w-full touch-pan-y overflow-visible select-none"
+                        onPointerDown={(event) => event.pointerType !== 'touch' && follow(event)}
                         onPointerMove={follow}
                         onPointerUp={lift}
                         onPointerLeave={clear}
@@ -95,6 +96,9 @@ function Chart({ lines, series, typical, read, late, rolling, branching }: Chart
                         </Sweep>
                         <Labels labels={labels} box={box} tight={tight} strengthOf={strengthOf} />
                     </svg>
+                )}
+                {readout !== null && guide !== null && (
+                    <Callout said={readout} x={guide.x} box={box} marks={marks} />
                 )}
             </div>
         </div>

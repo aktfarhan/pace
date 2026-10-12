@@ -97,5 +97,5 @@ export function readoutOf(marks: Mark[], usual: number | null, rolling: number, 
     }
     if (usual !== null) said.push(`usually ${usual}%`);
 
-    return said.join(' · ');
+    return said;
 }

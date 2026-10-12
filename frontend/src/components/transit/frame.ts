@@ -1,4 +1,4 @@
-import { BUCKET_MS, HOUR_MS, TOP, spanOf, xOf, yOf } from './plot';
+import { BUCKET_MS, HOUR_MS, TOP, landOf, spanOf, xOf, yOf } from './plot';
 import type { Box } from './plot';
 import type { Reading } from '@/types/transit';
 
@@ -34,7 +34,7 @@ export function clockOf(at: number) {
 export function windowOf(now: number, shown: Reading[][], hours: number | null) {
     let first = Infinity;
     for (const readings of shown) {
-        const at = readings.length === 0 ? NaN : Date.parse(readings[0].at);
+        const at = readings.length === 0 ? NaN : landOf(readings[0]);
         if (at < first) first = at;
     }
 
@@ -54,8 +54,9 @@ export function windowOf(now: number, shown: Reading[][], hours: number | null) 
         first = Math.max(back, first);
     }
 
-    // Hold it a bucket wide, so now reaches the edge
-    return { start: Math.min(first, now - BUCKET_MS), end: now };
+    // At least a bucket wide
+    const quarter = Math.floor((now - BUCKET_MS) / BUCKET_MS) * BUCKET_MS;
+    return { start: Math.min(first, quarter), end: now };
 }
 
 // The gridlines across the plot

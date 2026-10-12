@@ -61,6 +61,7 @@ export function usePlot({ lines, series, typical, read, rolling, span, box }: Pl
         emphasis,
         drawn,
         shown,
+        marks,
         labels: stackOf(marks, box.floor),
         guide: marks.length === 0 ? null : marks[0].spot,
         figures,
