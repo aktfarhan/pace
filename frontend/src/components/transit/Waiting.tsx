@@ -1,9 +1,10 @@
-import { TOP } from './plot';
-import { CHIP } from './tints';
-import { CEIL, FLOOR, HEIGHT } from '@/hooks/useChartBox';
-
-// The heights the axis rules its gridlines at
-const RULES = [25, 50, 75, 100].map((share) => FLOOR - (share / TOP) * (FLOOR - CEIL));
+import clsx from 'clsx';
+import { DROP } from './plot';
+import { rulesOf } from './frame';
+import { CARD, CHIP } from './tints';
+import { TICK } from '@/components/layout/tints';
+import { useChartBox } from '@/hooks/useChartBox';
+import TryAgain from '@/components/layout/TryAgain';
 
 interface WaitingProps {
     note: string;
@@ -11,28 +12,46 @@ interface WaitingProps {
 }
 
 function Waiting({ note, retry }: WaitingProps) {
+    const { cardRef, box, height } = useChartBox();
+
+    // The gridlines
+    const rules = rulesOf(box).map(({ share, y }) => ({
+        share,
+        floor: share === 0,
+        top: share === 0 ? y + DROP : y,
+    }));
+
     return (
-        <div className="flex flex-col gap-3 rounded-tile border border-seam bg-panel px-6 pt-5 pb-4">
+        <div ref={cardRef} className={CARD}>
             <span className={`${CHIP} w-fit text-hush`}>Arrivals behind schedule</span>
-            <div className="relative" style={{ height: HEIGHT }}>
-                {RULES.map((top) => (
+            <div className="h-6" />
+            <div className="relative" style={{ height }}>
+                {rules.map(({ share, floor, top }) => (
                     <span
-                        key={top}
-                        className="absolute right-0 left-0 border-t border-rule"
-                        style={{ top }}
+                        key={share}
+                        className={clsx('absolute border-t', floor ? 'border-edge' : 'border-rule')}
+                        style={{ top, left: box.left, width: box.right - box.left }}
                     />
                 ))}
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-                    <span className="font-mono text-chip text-ghost uppercase">{note}</span>
-                    {retry !== null && (
-                        <button
-                            type="button"
-                            onClick={retry}
-                            className="cursor-pointer rounded-chip border border-edge bg-bubble px-2.5 py-1 font-mono text-chip text-soft uppercase"
-                        >
-                            Try again
-                        </button>
-                    )}
+                <div
+                    role="status"
+                    className="absolute inset-0 flex flex-col items-center justify-center gap-3"
+                >
+                    <span
+                        key={note}
+                        className={clsx(
+                            'flex items-center gap-2 font-mono text-chip text-hush uppercase',
+                            TICK,
+                        )}
+                    >
+                        {retry === null ? (
+                            <span className="size-1.25 shrink-0 animate-blink rounded-full bg-accent" />
+                        ) : (
+                            <span className="size-1.25 shrink-0 rounded-full bg-red" />
+                        )}
+                        {note}
+                    </span>
+                    {retry !== null && <TryAgain retry={retry} />}
                 </div>
             </div>
         </div>

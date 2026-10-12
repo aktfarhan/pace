@@ -9,6 +9,7 @@ import Sweep from './Sweep';
 import Labels from './Labels';
 import Legend from './Legend';
 import Washes from './Washes';
+import { CARD } from './tints';
 import Callout from './Callout';
 import Heading from './Heading';
 import Typical from './Typical';
@@ -44,10 +45,7 @@ function Chart({ lines, series, typical, read, late, rolling, branching, resumes
     const quiet = width > 0 && drawn.every((one) => one.path === '');
 
     return (
-        <div
-            ref={cardRef}
-            className="flex flex-col gap-3 rounded-tile border border-seam bg-panel px-6 pt-5 pb-4"
-        >
+        <div ref={cardRef} className={CARD}>
             <Heading
                 late={late}
                 stretched={stretched}
@@ -71,8 +69,9 @@ function Chart({ lines, series, typical, read, late, rolling, branching, resumes
                 {width > 0 && (
                     <svg
                         role="img"
-                        viewBox={`0 0 ${width} ${height}`}
-                        className="block w-full touch-pan-y overflow-visible select-none"
+                        width="100%"
+                        height={height}
+                        className="block touch-pan-y overflow-visible select-none"
                         onPointerDown={(event) => event.pointerType !== 'touch' && follow(event)}
                         onPointerMove={follow}
                         onPointerUp={lift}

@@ -1,45 +1,41 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
+import { useWidth } from './useWidth';
 import type { Box } from '@/components/transit/plot';
 
 // How tall the drawing is
-export const HEIGHT = 278;
+const HEIGHT = 278;
 
 // The edges the plot draws between
-export const FLOOR = 246;
-export const CEIL = 16;
+const FLOOR = 246;
+const CEIL = 16;
 
 // Below this width the margins tighten
 const TIGHT = 380;
 
-// Room on the left for the share labels, and a gutter on the right
+// Extra height for wide charts
+const WIDE = 560;
+const TALLER = 40;
+
+// Room left for the share labels, and a right gutter
 const LEFT = 48;
 const TIGHT_LEFT = 34;
 const GUTTER = 16;
 const TIGHT_GUTTER = 12;
 
 export function useChartBox() {
-    const cardRef = useRef<HTMLDivElement>(null);
-    const [width, setWidth] = useState(0);
+    const [cardRef, width] = useWidth<HTMLDivElement>();
+    const tight = width < TIGHT;
+    const taller = width >= WIDE ? TALLER : 0;
 
-    // Follow the card so one unit stays one pixel
-    useEffect(() => {
-        const card = cardRef.current;
-        if (card === null) return;
-
-        const watch = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
-        watch.observe(card);
-        return () => watch.disconnect();
-    }, []);
-
-    const box: Box = useMemo(() => {
-        const tight = width < TIGHT;
-        return {
+    const box: Box = useMemo(
+        () => ({
             left: tight ? TIGHT_LEFT : LEFT,
             right: width - (tight ? TIGHT_GUTTER : GUTTER),
-            floor: FLOOR,
+            floor: FLOOR + taller,
             ceil: CEIL,
-        };
-    }, [width]);
+        }),
+        [width, tight, taller],
+    );
 
-    return { cardRef, width, box, height: HEIGHT, tight: width < TIGHT };
+    return { cardRef, width, box, height: HEIGHT + taller, tight };
 }

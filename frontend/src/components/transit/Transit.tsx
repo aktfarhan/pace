@@ -91,7 +91,7 @@ function Transit({ tab, choose }: TransitProps) {
             <div className="flex min-h-0 flex-1 flex-col gap-4.5 overflow-y-auto">
                 {transit === null && (
                     <Waiting
-                        note={failed ? 'Readings could not be reached' : 'Reading the day'}
+                        note={failed ? "Couldn't reach today's readings" : 'Reading the day'}
                         retry={failed ? retry : null}
                     />
                 )}
