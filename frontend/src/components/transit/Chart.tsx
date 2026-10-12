@@ -7,6 +7,7 @@ import Guide from './Guide';
 import Sweep from './Sweep';
 import Labels from './Labels';
 import Legend from './Legend';
+import Washes from './Washes';
 import Heading from './Heading';
 import Typical from './Typical';
 import { stretchedOf } from './plot';
@@ -76,7 +77,17 @@ function Chart({ lines, series, typical, read, late, rolling, branching }: Chart
                     >
                         <Axis box={box} start={start} end={end} />
                         <Sweep shown={shown} left={box.left} width={width} height={height}>
-                            {wash !== null && <Wash path={wash.under} text={wash.line.text} />}
+                            {drawn.length > 1 && (
+                                <Washes drawn={drawn} box={box} strengthOf={strengthOf} />
+                            )}
+                            {wash !== null && (
+                                <Wash
+                                    path={wash.under}
+                                    text={wash.line.text}
+                                    box={box}
+                                    upTo={guide?.x ?? null}
+                                />
+                            )}
                             {guide !== null && <Guide spot={guide} box={box} />}
                             {usual !== null && <Typical path={usual.path} stroke={usual.stroke} />}
                             <Paths drawn={drawn} lead={lead} strengthOf={strengthOf} />
