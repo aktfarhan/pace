@@ -8,20 +8,17 @@ import Labels from './Labels';
 import Legend from './Legend';
 import Heading from './Heading';
 import Typical from './Typical';
-import { windowOf } from './frame';
+import { stretchedOf } from './plot';
+import { usePlot } from '@/hooks/usePlot';
 import { useMemo, useState } from 'react';
-import { useHover } from '@/hooks/useHover';
 import { useChartBox } from '@/hooks/useChartBox';
-import { useEmphasis } from '@/hooks/useEmphasis';
-import { figuresOf, readoutOf, typicalOf } from './figures';
-import { marksOf, nearestOf, seriesOf, stackOf, stretchedOf } from './plot';
 import type { Drawn } from '@/lib/lines';
-import type { Branching, Reading } from '@/types/transit';
+import type { Branching, Transit } from '@/types/transit';
 
 interface ChartProps {
     lines: readonly Drawn[];
-    series: Record<string, Reading[]>;
-    typical: Record<string, Reading[]>;
+    series: Transit['series'];
+    typical: Transit['typical'];
     read: number;
     late: number;
     rolling: number;
@@ -32,52 +29,13 @@ function Chart({ lines, series, typical, read, late, rolling, branching }: Chart
     const { cardRef, width, box, height, tight } = useChartBox();
     const [span, setSpan] = useState<number | null>(null);
 
-    const { start, end } = useMemo(() => {
-        const days = lines.map((line) => series[line.id]);
-        return windowOf(read, days, span);
-    }, [lines, read, series, span]);
+    const plot = usePlot({ lines, series, typical, read, rolling, span, box });
+    const { start, end } = plot.frame;
+    const { follow, lift, clear } = plot.hover;
+    const { picked, lead, strengthOf, toggle, light } = plot.emphasis;
+    const { drawn, shown, labels, guide, figures, typically, usual, readout, wash } = plot;
 
-    // Place the readings only when they or the box move
-    const drawn = useMemo(
-        () =>
-            lines.map((line) => ({
-                line,
-                ...seriesOf(series[line.id], start, end, box),
-            })),
-        [lines, series, start, end, box],
-    );
-
-    // The lines the hover reads from
-    const shown = drawn.map((one) => one.line.id).join();
-    const sheets = useMemo(() => drawn.map((one) => one.spots), [drawn]);
-    const { held, reading, follow, lift, clear } = useHover(sheets, shown, start, end, box);
-
-    const marks = marksOf(drawn, reading);
-
-    const near = held === null ? null : nearestOf(marks, held.y);
-    const { picked, lead, strengthOf, toggle, light } = useEmphasis(shown, near);
-
-    const labels = stackOf(marks, box.floor);
-    const guide = marks.length === 0 ? null : marks[0].spot;
-
-    const figures = useMemo(() => figuresOf(lines, series), [lines, series]);
-    const typically = useMemo(() => typicalOf(typical, lines), [typical, lines]);
-
-    // The typical line
-    const usual = useMemo(() => {
-        if (lines.length !== 1) return null;
-
-        const { path, spots } = seriesOf(typical[lines[0].id], start, end, box);
-        return path === '' ? null : { path, stroke: lines[0].stroke, spots };
-    }, [lines, typical, start, end, box]);
-
-    // What the chart is saying when hovered
-    const weighed = reading === null ? null : (usual?.spots[reading]?.share ?? null);
-    const readout = readoutOf(marks, weighed, rolling, lines.length === 1);
     const stretched = useMemo(() => stretchedOf(drawn, rolling), [drawn, rolling]);
-
-    // Color for individual lines
-    const wash = drawn.length === 1 && drawn[0].under !== '' ? drawn[0] : null;
 
     // Where each line has reached
     const ends = useMemo(
@@ -120,7 +78,6 @@ function Chart({ lines, series, typical, read, late, rolling, branching }: Chart
                 {width > 0 && (
                     <svg
                         role="img"
-                        aria-label="How late each line has been running today"
                         viewBox={`0 0 ${width} ${height}`}
                         className="block w-full touch-pan-y overflow-visible"
                         onPointerMove={follow}

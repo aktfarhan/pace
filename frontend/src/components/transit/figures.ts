@@ -2,7 +2,7 @@ import { HOUR_MS } from './plot';
 import { clockOf } from './frame';
 import type { Mark } from './plot';
 import type { Drawn } from '@/lib/lines';
-import type { Reading } from '@/types/transit';
+import type { Reading, Transit } from '@/types/transit';
 
 // Minimum required points
 const DRIFT = 2;
@@ -58,7 +58,7 @@ export function standingOf(readings: Reading[]) {
 }
 
 // What every line is running at now, and which way its moving
-export function figuresOf(lines: readonly Drawn[], series: Record<string, Reading[]>) {
+export function figuresOf(lines: readonly Drawn[], series: Transit['series']) {
     const figures: Figure[] = [];
     for (const line of lines) {
         figures.push({ line, ...standingOf(series[line.id]) });
@@ -67,10 +67,7 @@ export function figuresOf(lines: readonly Drawn[], series: Record<string, Readin
 }
 
 // Where a line typically is by now
-export function typicalOf(
-    typical: Record<string, Reading[]>,
-    lines: readonly Drawn[],
-): Typically | null {
+export function typicalOf(typical: Transit['typical'], lines: readonly Drawn[]): Typically | null {
     if (lines.length !== 1) return null;
 
     const readings = typical[lines[0].id];
