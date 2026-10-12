@@ -104,6 +104,7 @@ function Transit({ tab, choose }: TransitProps) {
                         late={transit.late_minutes}
                         rolling={transit.rolling_minutes}
                         branching={branching}
+                        resumes={transit.resumes}
                     />
                 )}
                 <Cards name="Right now" standing={standing} />

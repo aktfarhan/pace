@@ -1,6 +1,7 @@
 import Axis from './Axis';
 import Ends from './Ends';
 import Wash from './Wash';
+import Quiet from './Quiet';
 import Paths from './Paths';
 import Focus from './Focus';
 import Guide from './Guide';
@@ -26,9 +27,10 @@ interface ChartProps {
     late: number;
     rolling: number;
     branching: Branching | null;
+    resumes: Transit['resumes'];
 }
 
-function Chart({ lines, series, typical, read, late, rolling, branching }: ChartProps) {
+function Chart({ lines, series, typical, read, late, rolling, branching, resumes }: ChartProps) {
     const { cardRef, width, box, height, tight } = useChartBox();
     const [span, setSpan] = useState<number | null>(null);
 
@@ -39,6 +41,7 @@ function Chart({ lines, series, typical, read, late, rolling, branching }: Chart
     const { drawn, shown, marks, labels, guide, figures, typically, usual, readout, wash } = plot;
 
     const stretched = useMemo(() => stretchedOf(drawn, rolling), [drawn, rolling]);
+    const quiet = width > 0 && drawn.every((one) => one.path === '');
 
     return (
         <div
@@ -97,6 +100,7 @@ function Chart({ lines, series, typical, read, late, rolling, branching }: Chart
                         <Labels labels={labels} box={box} tight={tight} strengthOf={strengthOf} />
                     </svg>
                 )}
+                {quiet && <Quiet box={box} lines={lines} resumes={resumes} read={read} />}
                 {readout !== null && guide !== null && (
                     <Callout said={readout} x={guide.x} box={box} marks={marks} />
                 )}

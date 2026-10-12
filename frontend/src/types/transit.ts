@@ -16,7 +16,7 @@ export interface Transit {
     series: Record<string, Reading[]>;
     typical: Record<string, Reading[]>;
     headways: Record<string, number>;
-    resumes: Record<string, string>;
+    resumes: Partial<Record<string, string>>;
     branches: Record<string, Branch[]>;
     late_minutes: number;
     rolling_minutes: number;
