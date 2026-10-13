@@ -1,6 +1,8 @@
 import { EVERY } from './tints';
 import { clockOf } from './frame';
+import { running } from '@/lib/status';
 import { standingOf } from './figures';
+import { LINE_BY_ID } from '@/lib/lines';
 import type { Line } from '@/lib/lines';
 import type { Branching, Standing, Transit } from '@/types/transit';
 
@@ -52,6 +54,14 @@ export function nameOf(transit: Transit, line: Line) {
 // The code and colours a line's cards wear
 export function lookOf({ code, chip, text }: Line) {
     return { code, chip, text };
+}
+
+// The tabs whose line isn't running normally
+export function troubleOf(transit: Transit | null) {
+    const lines = transit?.status.lines ?? [];
+    return new Set(
+        lines.filter((line) => !running(line)).map((line) => LINE_BY_ID[line.line_id].label),
+    );
 }
 
 // A line's branch choices

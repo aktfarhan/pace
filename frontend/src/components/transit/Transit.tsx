@@ -5,6 +5,7 @@ import Stamp from './Stamp';
 import Notices from './Notices';
 import Waiting from './Waiting';
 import { noticesOf } from './feed';
+import { troubleOf } from './standing';
 import { useMemo, useState } from 'react';
 import { useTransit } from '@/hooks/useTransit';
 import { LINES, branchLook } from '@/lib/lines';
@@ -66,8 +67,8 @@ function Transit({ tab, choose }: TransitProps) {
                     <Stamp retrievedAt={transit.status.retrieved_at} />
                 )}
             </div>
-            <Tabs tab={tab} select={choose} />
-            <div className="flex min-h-0 flex-1 flex-col gap-4.5 overflow-y-auto">
+            <Tabs tab={tab} select={choose} troubled={troubleOf(transit)} />
+            <div className="-mx-2 flex min-h-0 flex-1 scroll-edges flex-col gap-4.5 overflow-y-auto overscroll-contain px-2 pb-3">
                 {transit === null && (
                     <Waiting
                         note={failed ? "Couldn't reach today's readings" : 'Reading the day'}

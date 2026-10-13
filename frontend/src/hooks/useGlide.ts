@@ -3,7 +3,7 @@ import { useLayoutEffect, useRef } from 'react';
 // Clips a picked-look copy to the picked item for a glide effect
 export function useGlide<Row extends HTMLElement = HTMLDivElement>(
     picked: unknown,
-    spread: number,
+    spread = 0,
     round = '9999px',
 ) {
     const rowRef = useRef<Row>(null);
@@ -16,14 +16,19 @@ export function useGlide<Row extends HTMLElement = HTMLDivElement>(
 
         // The copy shows only the picked item and its ring
         const place = () => {
-            const on = box.querySelector<HTMLElement>('[data-picked="true"]');
-            if (on === null) return;
+            const items = [...box.querySelectorAll<HTMLElement>('[data-picked]')];
+            const clone = copy.children[items.findIndex((item) => item.dataset.picked === 'true')];
+            if (clone === undefined) return;
+
+            // The picked item's clone
+            const frame = copy.getBoundingClientRect();
+            const edge = clone.getBoundingClientRect();
 
             // Each side's crop leaves just the picked item + the spread
-            const top = on.offsetTop - spread;
-            const left = on.offsetLeft - spread;
-            const right = box.clientWidth - on.offsetLeft - on.offsetWidth - spread;
-            const bottom = box.clientHeight - on.offsetTop - on.offsetHeight - spread;
+            const top = edge.top - frame.top - spread;
+            const left = edge.left - frame.left - spread;
+            const right = frame.right - edge.right - spread;
+            const bottom = frame.bottom - edge.bottom - spread;
             copy.style.clipPath = `inset(${top}px ${right}px ${bottom}px ${left}px round ${round})`;
         };
 
