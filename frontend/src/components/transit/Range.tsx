@@ -1,12 +1,13 @@
-import clsx from 'clsx';
-import { SEGMENT, SHELL } from './tints';
+import Segmented from '@/components/layout/Segmented';
 
 // The stretches of the day for the main chart
-const SPANS: { label: string; hours: number | null }[] = [
+const SPANS = [
     { label: 'Day', hours: null },
     { label: '6h', hours: 6 },
     { label: '3h', hours: 3 },
-];
+] as const;
+
+const LABELS = SPANS.map((one) => one.label);
 
 interface RangeProps {
     span: number | null;
@@ -14,19 +15,15 @@ interface RangeProps {
 }
 
 function Range({ span, select }: RangeProps) {
+    const value = SPANS.find((one) => one.hours === span)?.label ?? 'Day';
+
     return (
-        <div className={clsx(SHELL, 'flex shrink-0 gap-0.5 p-0.5')}>
-            {SPANS.map(({ label, hours }) => (
-                <button
-                    key={label}
-                    type="button"
-                    onClick={() => select(hours)}
-                    className={clsx(SEGMENT, span === hours ? 'bg-field text-soft' : 'text-dim')}
-                >
-                    {label}
-                </button>
-            ))}
-        </div>
+        <Segmented
+            label="How much of the day to show"
+            options={LABELS}
+            value={value}
+            pick={(label) => select(SPANS.find((one) => one.label === label)?.hours ?? null)}
+        />
     );
 }
 

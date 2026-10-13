@@ -21,9 +21,6 @@ export const OPENER = `${CHIP} flex cursor-pointer items-center gap-1.5`;
 export const OPTION =
     'flex cursor-pointer items-center rounded-chip px-2 py-1.25 font-mono text-chip uppercase transition-colors hover:bg-field';
 
-// One pick inside a raised control
-export const SEGMENT = 'cursor-pointer rounded-chip px-1.75 py-0.5 font-mono text-chip uppercase';
-
 // When no branch is picked
 export const EVERY = 'All';
 

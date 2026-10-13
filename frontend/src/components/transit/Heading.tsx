@@ -14,7 +14,7 @@ interface HeadingProps {
 
 function Heading({ late, rolling, span, branching, select }: HeadingProps) {
     return (
-        <div className="relative flex min-h-6.75 flex-wrap items-center gap-x-3 gap-y-2">
+        <div className="@container relative flex min-h-6.75 flex-wrap items-center gap-x-3 gap-y-2">
             <div className="flex items-center gap-1">
                 <h2 className="text-title text-bright">Late arrivals</h2>
                 <Explain late={late} rolling={rolling} />

@@ -1,6 +1,6 @@
-import clsx from 'clsx';
 import Picker from './Picker';
-import { EVERY, SEGMENT, SHELL } from './tints';
+import { rowsOf } from './standing';
+import Segmented from '@/components/layout/Segmented';
 import type { Branching } from '@/types/transit';
 
 const ROOM = 5;
@@ -10,31 +10,26 @@ interface BranchesProps {
 }
 
 function Branches({ branching }: BranchesProps) {
-    const { line, branches, branch, pick } = branching;
+    const { line, branches, pick } = branching;
     if (branches.length > ROOM) return <Picker branching={branching} />;
 
+    const { rows, shown } = rowsOf(branching);
+
     return (
-        <div className={clsx(SHELL, 'flex shrink-0 gap-0.5 p-0.5')}>
-            <button
-                type="button"
-                aria-pressed={branch === null}
-                onClick={() => pick(null)}
-                className={clsx(SEGMENT, branch === null ? line.chip : 'text-dim')}
-            >
-                {EVERY}
-            </button>
-            {branches.map(({ id, name }) => (
-                <button
-                    key={id}
-                    type="button"
-                    aria-pressed={branch === id}
-                    onClick={() => pick(id)}
-                    className={clsx(SEGMENT, branch === id ? line.chip : 'text-dim')}
-                >
-                    {name}
-                </button>
-            ))}
-        </div>
+        <>
+            <div className="@max-lg:hidden">
+                <Segmented
+                    label={`${line.label} branch`}
+                    options={rows.map((row) => row.name)}
+                    value={shown.name}
+                    tint={line.text}
+                    pick={(name) => pick(rows.find((row) => row.name === name)?.id ?? null)}
+                />
+            </div>
+            <div className="hidden @max-lg:block">
+                <Picker branching={branching} />
+            </div>
+        </>
     );
 }
 

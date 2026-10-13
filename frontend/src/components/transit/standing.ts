@@ -1,7 +1,8 @@
+import { EVERY } from './tints';
 import { clockOf } from './frame';
 import { standingOf } from './figures';
 import type { Line } from '@/lib/lines';
-import type { Standing, Transit } from '@/types/transit';
+import type { Branching, Standing, Transit } from '@/types/transit';
 
 const NARROW = 132;
 const GAP = 12;
@@ -51,4 +52,10 @@ export function nameOf(transit: Transit, line: Line) {
 // The code and colours a line's cards wear
 export function lookOf({ code, chip, text }: Line) {
     return { code, chip, text };
+}
+
+// A line's branch choices
+export function rowsOf({ branches, branch }: Branching) {
+    const rows = [{ id: null, name: EVERY }, ...branches];
+    return { rows, shown: rows.find((row) => row.id === branch) ?? rows[0] };
 }

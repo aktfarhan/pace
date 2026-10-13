@@ -10,9 +10,16 @@ interface SegmentedProps<Option extends string> {
     options: readonly Option[];
     value: Option;
     pick: (option: Option) => void;
+    tint?: string;
 }
 
-function Segmented<Option extends string>({ label, options, value, pick }: SegmentedProps<Option>) {
+function Segmented<Option extends string>({
+    label,
+    options,
+    value,
+    pick,
+    tint = 'text-cream',
+}: SegmentedProps<Option>) {
     const { rowRef, glideRef } = useGlide(value, 2);
 
     return (
@@ -39,7 +46,7 @@ function Segmented<Option extends string>({ label, options, value, pick }: Segme
             ))}
             <div ref={glideRef} aria-hidden="true" className={`${GLIDE} flex gap-0.5 p-0.5`}>
                 {options.map((one) => (
-                    <span key={one} className={clsx(SEGMENT, RAISED, 'text-cream')}>
+                    <span key={one} className={clsx(SEGMENT, RAISED, tint)}>
                         {one}
                     </span>
                 ))}
