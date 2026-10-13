@@ -25,6 +25,17 @@ export const RAISED =
 export const TRACK =
     'rounded-full bg-ink/45 inset-ring inset-ring-white/6 contrast-more:inset-ring-white/30';
 
+// A pop-up list's glass
+export const MENU =
+    'rounded-row border border-edge glass shadow-float transition ease-out starting:scale-96 starting:opacity-0 motion-reduce:starting:scale-100';
+
+// A row in a pop-up list
+export const OPTION =
+    'flex cursor-pointer rounded-chip px-2.5 py-1.75 font-mono text-tag uppercase transition ease-out active:scale-98 pointer-coarse:py-2.75';
+
+// A row not picked washes under the pointer
+export const UNPICKED = 'text-soft hover:bg-accent/8 focus-visible:bg-accent/8';
+
 // A round pill button
 export const BUBBLE =
     'relative flex cursor-pointer items-center rounded-full border border-edge bg-bubble transition ease-out hover:border-ghost hover:bg-line hover:text-cream active:scale-96 pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-2';

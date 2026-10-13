@@ -225,6 +225,16 @@
     }
 }
 
+@utility glass {
+    background-color: color-mix(in oklab, var(--color-bubble) 82%, transparent);
+    backdrop-filter: blur(20px) saturate(1.2);
+
+    @media (prefers-reduced-transparency: reduce) {
+        background-color: var(--color-bubble);
+        backdrop-filter: none;
+    }
+}
+
 @keyframes shimmer {
     from {
         background-position: 100% 0;

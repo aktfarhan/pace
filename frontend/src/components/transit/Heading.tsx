@@ -19,7 +19,7 @@ function Heading({ late, rolling, span, branching, select }: HeadingProps) {
                 <h2 className="text-title text-bright">Late arrivals</h2>
                 <Explain late={late} rolling={rolling} />
             </div>
-            <div className="ml-auto flex gap-1.5">
+            <div className="ml-auto flex min-w-0 gap-1.5">
                 <Range span={span} select={select} />
                 {branching !== null && <Branches branching={branching} />}
             </div>
