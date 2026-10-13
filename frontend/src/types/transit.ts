@@ -21,7 +21,7 @@ export interface Transit {
     typical: Record<string, TypicalReading[]>;
     headways: Record<string, number>;
     resumes: Partial<Record<string, string>>;
-    branches: Record<string, Branch[]>;
+    branches: Partial<Record<string, Branch[]>>;
     late_minutes: number;
     rolling_minutes: number;
 }
@@ -38,6 +38,7 @@ export interface Branching {
     branches: Branch[];
     branch: string | null;
     pick: (branch: string | null) => void;
+    shares: Record<string, number | null>;
 }
 
 // One line or branch, and how it is running

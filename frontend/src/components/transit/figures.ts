@@ -17,6 +17,11 @@ export interface Figure {
 // What a line typically runs at
 export type Typically = Pick<TypicalReading, 'share' | 'days'>;
 
+// A share as a percent
+export function percentOf(share: number | null) {
+    return share === null ? '—' : `${share}%`;
+}
+
 // How far one line has moved in the last hour
 function driftOf(readings: Reading[]) {
     if (readings.length === 0) return null;

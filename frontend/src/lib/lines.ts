@@ -119,5 +119,19 @@ export function tintOf(routeId: string) {
     return LINE_BY_ID[routeId] ?? null;
 }
 
+// Where each Green branch ends
+const TERMINI: Partial<Record<string, string>> = {
+    B: 'Boston College',
+    C: 'Cleveland Circle',
+    D: 'Riverside',
+    E: 'Heath Street',
+};
+
 // The Green Line branches' letters
 export const GREEN_LETTERS = ['B', 'C', 'D', 'E'];
+
+// A Green Line branch card leads with its letter
+export function branchLook(name: string) {
+    const terminus = TERMINI[name];
+    return terminus === undefined ? { name } : { code: name, name: terminus };
+}

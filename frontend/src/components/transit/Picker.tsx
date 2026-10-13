@@ -1,5 +1,6 @@
 import clsx from 'clsx';
 import { rowsOf } from './standing';
+import { percentOf } from './figures';
 import { useMenu } from '@/hooks/useMenu';
 import { ChevronDown } from 'lucide-react';
 import { MENU, OPTION, RAISED, TRACK, UNPICKED } from '@/components/layout/tints';
@@ -10,7 +11,7 @@ interface PickerProps {
 }
 
 function Picker({ branching }: PickerProps) {
-    const { line, pick } = branching;
+    const { line, pick, shares } = branching;
     const { open, setOpen, openerRef, listRef, close } = useMenu();
     const { rows, shown } = rowsOf(branching);
 
@@ -61,7 +62,10 @@ function Picker({ branching }: PickerProps) {
                                     row.id === shown.id ? [RAISED, line.text] : UNPICKED,
                                 )}
                             >
-                                {row.name}
+                                <span className="flex-1 text-left">{row.name}</span>
+                                <span className="text-hush tabular-nums">
+                                    {percentOf(shares[row.id ?? line.id])}
+                                </span>
                             </button>
                         ))}
                     </div>

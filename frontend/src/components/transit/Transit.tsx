@@ -5,11 +5,10 @@ import Stamp from './Stamp';
 import Notices from './Notices';
 import Waiting from './Waiting';
 import { noticesOf } from './feed';
-import { LINES } from '@/lib/lines';
-import { SHORT_CODE } from './tints';
 import { useMemo, useState } from 'react';
 import { useTransit } from '@/hooks/useTransit';
-import { feedOf, lookOf, nameOf } from './standing';
+import { LINES, branchLook } from '@/lib/lines';
+import { useStandings } from '@/hooks/useStandings';
 import type { Tab } from './tints';
 import type { Branching } from '@/types/transit';
 
@@ -32,11 +31,14 @@ function Transit({ tab, choose }: TransitProps) {
     const branch = picked.branch;
     const setBranch = (next: string | null) => setPicked({ tab, branch: next });
 
+    const { standing, running, shares } = useStandings(transit, focused);
+
     // No picker unless the line has branches
+    const branches = focused === undefined ? undefined : transit?.branches[focused.id];
     const branching: Branching | null =
-        focused === undefined || transit === null || transit.branches[focused.id] === undefined
+        focused === undefined || branches === undefined
             ? null
-            : { line: focused, branches: transit.branches[focused.id], branch, pick: setBranch };
+            : { line: focused, branches, branch, pick: setBranch, shares };
 
     // Which lines the chart draws
     const lines = useMemo(() => {
@@ -44,36 +46,13 @@ function Transit({ tab, choose }: TransitProps) {
         if (branch === null) return [focused];
 
         // The branch under its line's colours
-        const name = transit?.branches[focused.id]?.find((one) => one.id === branch)?.name;
+        const name = branches?.find((one) => one.id === branch)?.name;
         if (name === undefined) return [focused];
 
-        const code = name.length > SHORT_CODE ? focused.code : name;
+        const code = branchLook(name).code ?? focused.code;
         return [{ ...focused, id: branch, label: `${focused.label} ${name}`, code }];
-    }, [focused, branch, transit]);
+    }, [focused, branch, branches]);
 
-    // Where every line stands right now
-    const standing = useMemo(() => {
-        if (transit === null || focused !== undefined) return [];
-
-        return LINES.map((line) => ({
-            ...feedOf(transit, line.id),
-            ...lookOf(line),
-            name: nameOf(transit, line),
-        }));
-    }, [transit, focused]);
-
-    // Where each branch of a selected line stands
-    const running = useMemo(() => {
-        if (transit === null || focused === undefined) return [];
-
-        return (transit.branches[focused.id] ?? []).map(({ id, name }) => ({
-            ...feedOf(transit, id),
-            ...lookOf(focused),
-            name,
-        }));
-    }, [transit, focused]);
-
-    // Everything the feed is saying about notices
     const notices = useMemo(
         () => (transit === null ? [] : noticesOf(transit, focused)),
         [transit, focused],
