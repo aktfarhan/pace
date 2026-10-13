@@ -29,19 +29,22 @@ export function columnsFor(count: number, width: number) {
 }
 
 // How often a line runs, or when service starts
-export function whenOf({ every, next }: Standing) {
+export function whenOf({ every, next, started }: Standing) {
     if (every !== null) return `every ${every} min`;
-    if (next !== null) return `next at ${clockOf(Date.parse(next))}`;
+    if (next !== null) return `${started ? 'left at' : 'next at'} ${clockOf(Date.parse(next))}`;
 
     return 'not running today';
 }
 
 // What the feed says about one line or branch
 export function feedOf(transit: Transit, id: string) {
+    const next = transit.resumes[id] ?? null;
     return {
         id,
         every: transit.headways[id] ?? null,
-        next: transit.resumes[id] ?? null,
+        next,
+        started: next !== null && Date.parse(next) <= Date.parse(transit.status.retrieved_at),
+        trend: transit.series[id].map(({ at, share }) => ({ at: Date.parse(at), share })),
         ...standingOf(transit.series[id]),
     };
 }

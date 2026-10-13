@@ -19,7 +19,7 @@ export interface Transit {
     status: SystemStatus;
     series: Record<string, Reading[]>;
     typical: Record<string, TypicalReading[]>;
-    headways: Record<string, number>;
+    headways: Partial<Record<string, number>>;
     resumes: Partial<Record<string, string>>;
     branches: Partial<Record<string, Branch[]>>;
     late_minutes: number;
@@ -27,7 +27,7 @@ export interface Transit {
 }
 
 // One route a line runs under its main
-export interface Branch {
+interface Branch {
     id: string;
     name: string;
 }
@@ -52,6 +52,8 @@ export interface Standing {
     drift: number | null;
     every: number | null;
     next: string | null;
+    started: boolean;
+    trend: { at: number; share: number }[];
 }
 
 // One alert with every line it names

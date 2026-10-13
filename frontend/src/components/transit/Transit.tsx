@@ -8,8 +8,8 @@ import { noticesOf } from './feed';
 import { troubleOf } from './standing';
 import { useMemo, useState } from 'react';
 import { useTransit } from '@/hooks/useTransit';
-import { LINES, branchLook } from '@/lib/lines';
 import { useStandings } from '@/hooks/useStandings';
+import { LINES, LINE_BY_ID, branchLook } from '@/lib/lines';
 import type { Tab } from './tints';
 import type { Branching } from '@/types/transit';
 
@@ -87,8 +87,17 @@ function Transit({ tab, choose }: TransitProps) {
                         resumes={transit.resumes}
                     />
                 )}
-                <Cards name="Right now" standing={standing} />
-                <Cards name="Branches" standing={running} />
+                <Cards
+                    name="Right now"
+                    standing={standing}
+                    pick={(id) => choose(LINE_BY_ID[id].label)}
+                />
+                <Cards
+                    name="Branches"
+                    standing={running}
+                    pick={(id) => setBranch(id === branch ? null : id)}
+                    picked={branch}
+                />
                 <Notices key={tab} notices={notices} bare={focused === undefined} />
             </div>
         </div>
