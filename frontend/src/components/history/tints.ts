@@ -11,7 +11,10 @@ const REFUSAL = {
 };
 
 // What a domain draws
-const KINDS: Record<Intent, { Icon: typeof Clock; tile: string; pill?: string; label: string }> = {
+export const KINDS: Record<
+    Intent,
+    { Icon: typeof Clock; tile: string; pill?: string; label: string }
+> = {
     route: {
         Icon: TrainFront,
         tile: 'bg-red-fill/12 text-red',

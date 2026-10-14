@@ -2,6 +2,7 @@ import Keys from './Keys';
 import Group from './Group';
 import General from './General';
 import Keeping from './Keeping';
+import Sources from './Sources';
 
 function Settings() {
     return (
@@ -16,10 +17,15 @@ function Settings() {
                         <Keeping />
                     </Group>
                 </div>
-                <div className="pointer-coarse:hidden">
-                    <Group label="Keyboard">
-                        <Keys />
+                <div className="flex flex-col gap-3.5">
+                    <Group label="Sources">
+                        <Sources />
                     </Group>
+                    <div className="pointer-coarse:hidden">
+                        <Group label="Keyboard">
+                            <Keys />
+                        </Group>
+                    </div>
                 </div>
             </div>
         </div>
