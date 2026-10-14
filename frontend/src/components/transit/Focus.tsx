@@ -1,5 +1,8 @@
 import Drift from './Drift';
+import { memo } from 'react';
+import Picker from './Picker';
 import Typical from './Typical';
+import type { Branching } from '@/types/transit';
 import type { Figure, Typically } from './figures';
 
 const BOX =
@@ -8,19 +11,30 @@ const BOX =
 interface FocusProps {
     figure: Figure;
     typically: Typically | null;
+    branching: Branching | null;
 }
 
-function Focus({ figure, typically }: FocusProps) {
+function Focus({ figure, typically, branching }: FocusProps) {
     const { line, share, drift } = figure;
 
     return (
         <div className="flex flex-wrap items-center gap-1.5">
+            {branching !== null && (
+                <div className="hidden @max-md/card:block">
+                    <Picker branching={branching} align="left" />
+                </div>
+            )}
             <span className={BOX}>
                 <span className={`${line.fill} h-0.5 w-3.5 shrink-0 rounded-full`} />
                 <span className="text-ghost">today</span>
-                <span className="text-soft tabular-nums">
-                    {share === null ? 'no readings' : `${share}%`}
-                </span>
+                {share === null ? (
+                    <span className="text-ghost">
+                        <span aria-hidden="true">—</span>
+                        <span className="sr-only">no readings</span>
+                    </span>
+                ) : (
+                    <span className="text-soft tabular-nums">{share}%</span>
+                )}
                 <Drift points={drift} />
             </span>
 
@@ -38,4 +52,4 @@ function Focus({ figure, typically }: FocusProps) {
     );
 }
 
-export default Focus;
+export default memo(Focus);

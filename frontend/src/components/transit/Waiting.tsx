@@ -1,18 +1,29 @@
 import clsx from 'clsx';
+import Legend from './Legend';
 import { DROP } from './plot';
 import { CARD } from './tints';
 import { rulesOf } from './frame';
 import { TICK } from '@/components/layout/tints';
 import { useChartBox } from '@/hooks/useChartBox';
+import { useEmphasis } from '@/hooks/useEmphasis';
 import TryAgain from '@/components/layout/TryAgain';
+import type { Drawn } from '@/lib/lines';
 
 interface WaitingProps {
+    lines: readonly Drawn[];
     note: string;
     retry: (() => void) | null;
 }
 
-function Waiting({ note, retry }: WaitingProps) {
+function Waiting({ lines, note, retry }: WaitingProps) {
     const { cardRef, box, height } = useChartBox();
+    const { picked, strengthOf, light, toggle } = useEmphasis(
+        lines.map((line) => line.id).join(),
+        null,
+    );
+
+    // The legend's own chips
+    const figures = lines.map((line) => ({ line, share: null, drift: null }));
 
     // The gridlines
     const rules = rulesOf(box).map(({ share, y }) => ({
@@ -26,7 +37,13 @@ function Waiting({ note, retry }: WaitingProps) {
             <div className="flex min-h-6.75 items-center">
                 <h2 className="text-title text-bright">Late arrivals</h2>
             </div>
-            <div className="h-6" />
+            <Legend
+                figures={figures}
+                picked={picked}
+                strengthOf={strengthOf}
+                light={light}
+                toggle={toggle}
+            />
             <div className="relative" style={{ height }}>
                 {rules.map(({ share, floor, top }) => (
                     <span

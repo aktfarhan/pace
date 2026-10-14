@@ -43,7 +43,7 @@ function Chart({ lines, series, typical, read, late, rolling, branching, resumes
     const quiet = width > 0 && drawn.every((one) => one.path === '');
 
     return (
-        <div ref={cardRef} className={CARD}>
+        <div ref={cardRef} className={`@container/card ${CARD}`}>
             <Heading
                 late={late}
                 rolling={rolling}
@@ -52,7 +52,7 @@ function Chart({ lines, series, typical, read, late, rolling, branching, resumes
                 branching={branching}
             />
             {figures.length === 1 ? (
-                <Focus figure={figures[0]} typically={typically} />
+                <Focus figure={figures[0]} typically={typically} branching={branching} />
             ) : (
                 <Legend
                     figures={figures}

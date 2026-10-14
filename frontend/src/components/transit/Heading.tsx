@@ -21,7 +21,11 @@ function Heading({ late, rolling, span, branching, select }: HeadingProps) {
             </div>
             <div className="ml-auto flex min-w-0 gap-1.5">
                 <Range span={span} select={select} />
-                {branching !== null && <Branches branching={branching} />}
+                {branching !== null && (
+                    <div className="@max-md/card:hidden">
+                        <Branches branching={branching} />
+                    </div>
+                )}
             </div>
         </div>
     );

@@ -8,9 +8,10 @@ import type { Branching } from '@/types/transit';
 
 interface PickerProps {
     branching: Branching;
+    align?: 'left' | 'right';
 }
 
-function Picker({ branching }: PickerProps) {
+function Picker({ branching, align = 'right' }: PickerProps) {
     const { line, pick, shares } = branching;
     const { open, setOpen, openerRef, listRef, close } = useMenu();
     const { rows, shown } = rowsOf(branching);
@@ -48,7 +49,10 @@ function Picker({ branching }: PickerProps) {
             {open && (
                 <div
                     ref={listRef}
-                    className={`${MENU} absolute top-full right-0 z-10 mt-1.5 w-52 origin-top-right`}
+                    className={clsx(
+                        `${MENU} absolute top-full z-10 mt-1.5 w-52`,
+                        align === 'left' ? 'left-0 origin-top-left' : 'right-0 origin-top-right',
+                    )}
                 >
                     <div className="flex max-h-108 flex-col overflow-y-auto overscroll-contain p-1">
                         {rows.map((row) => (
