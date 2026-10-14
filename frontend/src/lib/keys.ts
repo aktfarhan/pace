@@ -3,7 +3,7 @@ import { NAV } from '@/components/layout/sidebar/tints';
 import type { Page } from '@/components/layout/sidebar/tints';
 
 // The pages the number keys switch to
-const KEYED: Page[] = [...NAV.map(({ label }) => label), 'Settings'];
+export const KEYED: Page[] = [...NAV.map(({ label }) => label), 'Settings'];
 
 // The page a number key switches to
 export function keyedPage(key: string): Page | undefined {
