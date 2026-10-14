@@ -2,7 +2,7 @@ import { Bookmark, Clock, MessageSquare, TrainFront } from 'lucide-react';
 import type { Chip, State, SystemStatus } from '@/types/status';
 
 // The pages the sidebar switches between
-export type Page = 'Ask' | 'Transit' | 'History' | 'Saved';
+export type Page = 'Ask' | 'Transit' | 'History' | 'Saved' | 'Settings';
 
 // What both sidebar states are given
 export interface PaneProps {

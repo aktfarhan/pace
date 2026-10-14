@@ -16,6 +16,7 @@ interface ExpandedProps extends Omit<PaneProps, 'toggle'> {
 
 function Expanded({ status, toggle, page, select }: ExpandedProps) {
     const { rowRef, glideRef } = useGlide<HTMLElement>(page, 1, GLIDE_ROUND);
+    const settings = page === 'Settings';
 
     return (
         <div className="relative flex h-full w-full touch-pan-y touch-pinch-zoom flex-col overflow-y-auto overscroll-contain px-3">
@@ -69,18 +70,16 @@ function Expanded({ status, toggle, page, select }: ExpandedProps) {
 
             <div className="sticky bottom-0 mt-auto flex flex-col gap-3 material px-1.5 pt-3 pb-3">
                 <div className="-mx-1.5 h-px bg-seam" />
-                <div className={clsx(ROW, 'font-medium text-quiet')}>
-                    <Settings
-                        size={20}
-                        strokeWidth={1.8}
-                        className="text-hush"
-                        aria-hidden="true"
-                    />
-                    <div className="flex flex-col">
-                        <span>Settings</span>
-                        <Code />
-                    </div>
-                </div>
+                <button
+                    type="button"
+                    aria-current={settings ? 'page' : undefined}
+                    onClick={() => select('Settings')}
+                    className={clsx(ROW, settings ? [HERE, 'font-strong'] : [AWAY, 'font-medium'])}
+                >
+                    <Settings {...OUTLINED} />
+                    Settings
+                </button>
+                <Code />
             </div>
         </div>
     );

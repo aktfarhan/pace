@@ -18,6 +18,9 @@ export function useGlide<Row extends HTMLElement = HTMLDivElement>(
         const place = () => {
             const items = [...box.querySelectorAll<HTMLElement>('[data-picked]')];
             const clone = copy.children[items.findIndex((item) => item.dataset.picked === 'true')];
+
+            // A page outside the list leaves nothing picked 
+            copy.style.opacity = clone === undefined ? '0' : '';
             if (clone === undefined) return;
 
             // The picked item's clone
@@ -40,7 +43,9 @@ export function useGlide<Row extends HTMLElement = HTMLDivElement>(
             copy.style.transition = '';
         };
 
-        place();
+        // Coming back from nothing picked appears in place
+        if (copy.style.opacity === '0') snap();
+        else place();
 
         // A hidden box sends no first report
         let noted = box.getClientRects().length === 0;

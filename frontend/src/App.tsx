@@ -12,6 +12,7 @@ import AskInput from '@/components/ask/AskInput';
 import Transit from '@/components/transit/Transit';
 import History from '@/components/history/History';
 import { useShortcuts } from '@/hooks/useShortcuts';
+import Settings from '@/components/settings/Settings';
 import Drawer from '@/components/layout/sidebar/Drawer';
 import Sidebar from '@/components/layout/sidebar/Sidebar';
 import { Activity, useEffect, useRef, useState } from 'react';
@@ -99,6 +100,7 @@ function App() {
                     <Activity mode={page === 'Transit' ? 'visible' : 'hidden'}>
                         <Transit tab={tab} choose={setTab} />
                     </Activity>
+                    {page === 'Settings' && <Settings />}
                 </main>
             </div>
         </ShowLine>

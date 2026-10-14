@@ -15,6 +15,7 @@ const CELL = 'grid size-11 shrink-0 place-items-center rounded-row';
 function Collapsed({ status, toggle, page, select }: PaneProps) {
     const { rowRef, glideRef } = useGlide<HTMLElement>(page, 1, GLIDE_ROUND);
     const show = useShowLine();
+    const settings = page === 'Settings';
 
     return (
         <div className="relative flex h-full w-collapsed flex-col overflow-y-auto overscroll-contain">
@@ -90,15 +91,19 @@ function Collapsed({ status, toggle, page, select }: PaneProps) {
                 </div>
             )}
 
-            <div className="sticky bottom-0 mt-auto flex flex-col items-center material pb-3">
-                <div className="grid size-11 place-items-center rounded-row">
-                    <Settings
-                        size={20}
-                        strokeWidth={1.8}
-                        className="text-hush"
-                        aria-hidden="true"
-                    />
-                </div>
+            <div className="sticky bottom-0 mt-auto flex flex-col items-center pb-3">
+                <div className="absolute inset-0 -z-10 material" />
+                <Tip label="Settings" keycap={String(NAV.length + 1)}>
+                    <button
+                        type="button"
+                        aria-label="Settings"
+                        aria-current={settings ? 'page' : undefined}
+                        onClick={() => select('Settings')}
+                        className={clsx(CELL, settings ? HERE : AWAY)}
+                    >
+                        <Settings {...OUTLINED} />
+                    </button>
+                </Tip>
             </div>
         </div>
     );

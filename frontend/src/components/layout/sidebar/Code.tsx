@@ -24,7 +24,7 @@ function Code() {
         <button
             type="button"
             onClick={copy}
-            className="w-fit cursor-pointer font-mono text-row text-hush"
+            className="w-fit cursor-pointer px-3 font-mono text-row text-hush"
         >
             {copied ? 'Copied' : code}
         </button>
