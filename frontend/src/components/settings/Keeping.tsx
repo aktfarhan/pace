@@ -1,10 +1,11 @@
+import Hold from './Hold';
 import Switch from './Switch';
 import Setting from './Setting';
 import { useKeeps } from '@/hooks/useKeeps';
 import { writeKeepsHistory } from '@/lib/prefs';
 import { useId, useSyncExternalStore } from 'react';
 import { Archive, Clock, Pause } from 'lucide-react';
-import { countHistory, onHistory } from '@/lib/history';
+import { clearHistory, countHistory, onHistory } from '@/lib/history';
 
 function Keeping() {
     const keeps = useKeeps();
@@ -27,9 +28,12 @@ function Keeping() {
                 />
             </Setting>
             <Setting Icon={Archive} title="Questions on this device" note="Never synced">
-                <span className="font-mono text-tag text-soft tabular-nums">
-                    {kept === 0 ? 'None' : kept}
-                </span>
+                <div className="flex items-center gap-2.5">
+                    <span className="font-mono text-tag text-soft tabular-nums">
+                        {kept === 0 ? 'None' : kept}
+                    </span>
+                    {kept > 0 && <Hold label="Hold to clear" done={clearHistory} />}
+                </div>
             </Setting>
         </>
     );

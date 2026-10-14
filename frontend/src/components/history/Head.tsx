@@ -4,18 +4,14 @@ import type { Entry } from '@/types/history';
 
 const EMPTY = 'No questions asked yet';
 
-const CLEAR =
-    'shrink-0 cursor-pointer font-mono text-tag text-faint uppercase transition-colors hover:text-cream';
-
 interface HeadProps {
     titleRef: RefObject<HTMLHeadingElement | null>;
     entries: Entry[];
     asked: string;
     search: (asked: string) => void;
-    clear: () => void;
 }
 
-function Head({ titleRef, entries, asked, search, clear }: HeadProps) {
+function Head({ titleRef, entries, asked, search }: HeadProps) {
     const empty = entries.length === 0;
     const refused = entries.filter((entry) => entry.refused).length;
     const answered = entries.length - refused;
@@ -32,14 +28,7 @@ function Head({ titleRef, entries, asked, search, clear }: HeadProps) {
                 </h1>
                 <div className="mt-0.5 text-row text-faint">{kept}</div>
             </div>
-            {!empty && (
-                <div className="flex items-center gap-4">
-                    <Find asked={asked} search={search} label="Search questions" />
-                    <button type="button" onClick={clear} className={CLEAR}>
-                        Clear all
-                    </button>
-                </div>
-            )}
+            {!empty && <Find asked={asked} search={search} label="Search questions" />}
         </div>
     );
 }

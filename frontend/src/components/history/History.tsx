@@ -8,8 +8,8 @@ import Empty from '@/components/layout/Empty';
 import { dayKey, entryKind } from '@/lib/insights';
 import { useEffect, useRef, useState } from 'react';
 import { Clock, MessageSquare } from 'lucide-react';
+import { daysOf, onHistory, readHistory } from '@/lib/history';
 import SectionHeading from '@/components/layout/SectionHeading';
-import { clearHistory, daysOf, onHistory, readHistory } from '@/lib/history';
 import type { Kind } from '@/lib/insights';
 
 interface HistoryProps {
@@ -62,13 +62,7 @@ function History({ ask, start }: HistoryProps) {
 
     return (
         <div className="@container flex min-w-0 flex-col gap-3.5">
-            <Head
-                titleRef={titleRef}
-                entries={entries}
-                asked={asked}
-                search={setAsked}
-                clear={clearHistory}
-            />
+            <Head titleRef={titleRef} entries={entries} asked={asked} search={setAsked} />
 
             {entries.length === 0 && (
                 <Empty
