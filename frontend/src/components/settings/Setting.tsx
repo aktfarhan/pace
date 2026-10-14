@@ -5,10 +5,11 @@ interface SettingProps {
     Icon: LucideIcon;
     title: string;
     note: string;
+    noteId?: string;
     children: ReactNode;
 }
 
-function Setting({ Icon, title, note, children }: SettingProps) {
+function Setting({ Icon, title, note, noteId, children }: SettingProps) {
     return (
         <div className="flex flex-wrap items-center gap-x-3.5 gap-y-3 px-4 py-3.25">
             <span className="grid size-8.5 place-items-center rounded-mark bg-field text-hush">
@@ -16,7 +17,9 @@ function Setting({ Icon, title, note, children }: SettingProps) {
             </span>
             <div className="flex-1 basis-40">
                 <div className="text-row text-cream">{title}</div>
-                <div className="mt-0.5 text-xs text-hush">{note}</div>
+                <div id={noteId} className="mt-0.5 text-xs text-hush">
+                    {note}
+                </div>
             </div>
             {children}
         </div>

@@ -1,4 +1,5 @@
 import { fullClock } from '@/lib/trip';
+import { keepsHistory } from '@/lib/prefs';
 import type { Entry } from '@/types/history';
 import type { Answer, Card, Intent } from '@/types/answer';
 
@@ -10,6 +11,9 @@ const INTENTS: Intent[] = ['route', 'alert', 'parking-rules', 'schedule', 'info'
 
 // How many questions the device holds
 export const KEPT = 200;
+
+// The event a change to the list sends
+const CHANGED = 'pace:history';
 
 // Formatter for day title
 export const DAY = new Intl.DateTimeFormat('en-US', {
@@ -86,6 +90,7 @@ function chipOf(card: Card | null, refused: boolean): string | null {
 function write(entries: Entry[]) {
     try {
         localStorage.setItem(HISTORY_KEY, JSON.stringify(entries));
+        window.dispatchEvent(new Event(CHANGED));
     } catch (error) {
         console.error(error);
     }
@@ -93,6 +98,8 @@ function write(entries: Entry[]) {
 
 // Adds one answered question
 export function keep(query: string, answer: Answer) {
+    if (!keepsHistory()) return;
+
     const row: Entry = {
         at: new Date().toISOString(),
         query,
@@ -107,6 +114,17 @@ export function keep(query: string, answer: Answer) {
 // Clears history
 export function clearHistory() {
     write([]);
+}
+
+// How many questions are kept
+export function countHistory() {
+    return readHistory().length;
+}
+
+// Listens for changes to the list
+export function onHistory(heard: () => void) {
+    window.addEventListener(CHANGED, heard);
+    return () => window.removeEventListener(CHANGED, heard);
 }
 
 // Heading for today, yesterday, or the date

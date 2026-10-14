@@ -63,7 +63,7 @@ function LineMenu({ value, pick }: LineMenuProps) {
                 <div
                     ref={listRef}
                     className={clsx(
-                        `${MENU} absolute top-full mt-1.5 flex w-48 flex-col p-1`,
+                        `${MENU} absolute top-full z-10 mt-1.5 flex w-48 flex-col p-1`,
                         left ? 'left-0 origin-top-left' : 'right-0 origin-top-right',
                     )}
                 >

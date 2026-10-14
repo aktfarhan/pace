@@ -10,6 +10,12 @@ const START_KEY = 'pace.start';
 // Storage key for the Transit tab
 const LINE_KEY = 'pace.line';
 
+// Storage key for the keeping choice
+const KEEP_KEY = 'pace.keep';
+
+// The event a keeping switch sends
+const KEEPING = 'pace:keep';
+
 // The options for the landing page
 export const STARTS = ['Ask', 'Transit', 'Saved'] as const;
 export type Start = (typeof STARTS)[number];
@@ -42,6 +48,23 @@ export function readStart(): Start {
 // Saves the picked start page
 export function writeStart(start: Start) {
     writeStored(START_KEY, start === 'Ask' ? null : start);
+}
+
+// Whether questions are kept on this device
+export function keepsHistory() {
+    return readStored(KEEP_KEY) !== 'off';
+}
+
+// Saves the keeping choice
+export function writeKeepsHistory(on: boolean) {
+    writeStored(KEEP_KEY, on ? null : 'off');
+    window.dispatchEvent(new Event(KEEPING));
+}
+
+// Listens for keeping switches
+export function onKeeping(listener: () => void) {
+    window.addEventListener(KEEPING, listener);
+    return () => window.removeEventListener(KEEPING, listener);
 }
 
 // The Transit tab

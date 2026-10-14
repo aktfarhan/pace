@@ -4,12 +4,12 @@ import Filtered from './Filtered';
 import Insights from './Insights';
 import { still } from '@/lib/device';
 import { flushSync } from 'react-dom';
-import { useRef, useState } from 'react';
 import Empty from '@/components/layout/Empty';
 import { dayKey, entryKind } from '@/lib/insights';
+import { useEffect, useRef, useState } from 'react';
 import { Clock, MessageSquare } from 'lucide-react';
 import SectionHeading from '@/components/layout/SectionHeading';
-import { clearHistory, daysOf, readHistory } from '@/lib/history';
+import { clearHistory, daysOf, onHistory, readHistory } from '@/lib/history';
 import type { Kind } from '@/lib/insights';
 
 interface HistoryProps {
@@ -19,6 +19,10 @@ interface HistoryProps {
 
 function History({ ask, start }: HistoryProps) {
     const [entries, setEntries] = useState(readHistory);
+
+    // Re-reads the list whenever it changes
+    useEffect(() => onHistory(() => setEntries(readHistory())), []);
+
     const [asked, setAsked] = useState('');
     const [kind, setKind] = useState<Kind | null>(null);
     const titleRef = useRef<HTMLHeadingElement>(null);
@@ -32,11 +36,6 @@ function History({ ask, start }: HistoryProps) {
                 entry.query.toLowerCase().includes(words),
         ),
     );
-
-    const clear = () => {
-        clearHistory();
-        setEntries([]);
-    };
 
     // A bar picked on the chart scrolls its day into view
     const jump = (key: string) => {
@@ -68,7 +67,7 @@ function History({ ask, start }: HistoryProps) {
                 entries={entries}
                 asked={asked}
                 search={setAsked}
-                clear={clear}
+                clear={clearHistory}
             />
 
             {entries.length === 0 && (
