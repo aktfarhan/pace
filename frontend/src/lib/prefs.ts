@@ -1,6 +1,13 @@
 // Storage key for the chart's last picked view
 const SPAN_KEY = 'pace.span';
 
+// Storage key for the landing page
+const START_KEY = 'pace.start';
+
+// The options for the landing page
+export const STARTS = ['Ask', 'Transit', 'Saved'] as const;
+export type Start = (typeof STARTS)[number];
+
 // Reads a saved setting
 function readStored(key: string) {
     try {
@@ -18,6 +25,17 @@ function writeStored(key: string, value: string | null) {
     } catch (error) {
         console.error(error);
     }
+}
+
+// The landing page
+export function readStart(): Start {
+    const start = readStored(START_KEY);
+    return STARTS.find((one) => one === start) ?? 'Ask';
+}
+
+// Saves the picked start page
+export function writeStart(start: Start) {
+    writeStored(START_KEY, start === 'Ask' ? null : start);
 }
 
 // The views the History chart switches between

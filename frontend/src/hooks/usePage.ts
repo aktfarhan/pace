@@ -1,9 +1,10 @@
+import { readStart } from '@/lib/prefs';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Page } from '@/components/layout/sidebar/tints';
 
-// The open page: its title and its scroll place
+// The open page: where it starts, its title, its scroll place
 export function usePage() {
-    const [page, setPage] = useState<Page>('Ask');
+    const [page, setPage] = useState<Page>(readStart);
     const mainRef = useRef<HTMLElement>(null);
     const scrolls = useRef(new Map<Page, number>());
 
