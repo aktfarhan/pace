@@ -12,10 +12,11 @@ import AskInput from '@/components/ask/AskInput';
 import Transit from '@/components/transit/Transit';
 import History from '@/components/history/History';
 import { useShortcuts } from '@/hooks/useShortcuts';
+import { onSwitch, switchesSoFar } from '@/lib/pace';
 import Settings from '@/components/settings/Settings';
 import Drawer from '@/components/layout/sidebar/Drawer';
 import Sidebar from '@/components/layout/sidebar/Sidebar';
-import { Activity, useEffect, useRef, useState } from 'react';
+import { Activity, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { Page } from '@/components/layout/sidebar/tints';
 
 function App() {
@@ -24,6 +25,9 @@ function App() {
     const { page, setPage, mainRef, remember } = usePage();
     const { tab, setTab, show } = useLineTab(setPage);
     const status = useStatus();
+
+    // Remounts Saved on a code switch
+    const switches = useSyncExternalStore(onSwitch, switchesSoFar);
 
     // The question box
     const inputRef = useRef<HTMLInputElement>(null);
@@ -94,7 +98,7 @@ function App() {
                         </div>
                     )}
                     <Activity mode={page === 'Saved' ? 'visible' : 'hidden'}>
-                        <Saved start={toAsk} />
+                        <Saved key={switches} start={toAsk} />
                     </Activity>
                     {page === 'History' && <History ask={askAgain} start={toAsk} />}
                     <Activity mode={page === 'Transit' ? 'visible' : 'hidden'}>

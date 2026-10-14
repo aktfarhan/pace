@@ -23,6 +23,10 @@ const DATA_PREFIX = 'data: ';
 // Trips saved in a visit
 const kept = new Set<string>();
 
+// Code switches so far
+let switches = 0;
+const SWITCHED = 'pace:switched';
+
 // One event and data pair from the stream
 interface Frame {
     event: string;
@@ -68,6 +72,24 @@ export function readCode(): string | null {
 function writeCode(code: string) {
     if (code !== readCode()) kept.clear();
     writeStored(CODE_KEY, code);
+}
+
+// Switches to another device's code
+export function takeCode(code: string) {
+    writeCode(code);
+    switches += 1;
+    window.dispatchEvent(new Event(SWITCHED));
+}
+
+// The switch count
+export function switchesSoFar() {
+    return switches;
+}
+
+// Listens for code switches
+export function onSwitch(heard: () => void) {
+    window.addEventListener(SWITCHED, heard);
+    return () => window.removeEventListener(SWITCHED, heard);
 }
 
 // The header carrying the code

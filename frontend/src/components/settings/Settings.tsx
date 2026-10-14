@@ -26,7 +26,7 @@ function Settings({ go }: SettingsProps) {
     return (
         <div className="@container flex flex-col gap-3.5">
             <h1 className="text-board text-bright">Settings</h1>
-            <div className="grid gap-x-6 gap-y-3.5 @4xl:grid-cols-2">
+            <div className="grid grid-cols-1 gap-x-6 gap-y-3.5 @4xl:grid-cols-2">
                 <div className="flex flex-col gap-3.5">
                     <Group label="Sync" foot={foot}>
                         <Sync />
