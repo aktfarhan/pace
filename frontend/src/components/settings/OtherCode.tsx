@@ -1,4 +1,5 @@
 import Setting from './Setting';
+import OtherNote from './OtherNote';
 import { BUTTON, SHAPE } from './tints';
 import { countUnder } from '@/lib/pace';
 import { useRef, useState } from 'react';
@@ -7,10 +8,12 @@ import type { ChangeEvent, SubmitEvent } from 'react';
 
 interface OtherCodeProps {
     code: string | null;
+    was: string | null;
     take: (code: string) => void;
+    undo: () => void;
 }
 
-function OtherCode({ code, take }: OtherCodeProps) {
+function OtherCode({ code, was, take, undo }: OtherCodeProps) {
     const [entry, setEntry] = useState('');
     const [problem, setProblem] = useState<string | null>(null);
     const [checking, setChecking] = useState(false);
@@ -58,6 +61,12 @@ function OtherCode({ code, take }: OtherCodeProps) {
         check();
     };
 
+    // Goes back to this device's code
+    const back = () => {
+        undo();
+        inputRef.current?.focus();
+    };
+
     // Typing clears the problem
     const edit = (event: ChangeEvent<HTMLInputElement>) => {
         setEntry(event.target.value);
@@ -68,13 +77,7 @@ function OtherCode({ code, take }: OtherCodeProps) {
         <Setting
             Icon={MonitorSmartphone}
             title="Use a code from another device"
-            note={
-                problem === null ? (
-                    'The code shown on that device'
-                ) : (
-                    <span className="text-red">{problem}</span>
-                )
-            }
+            note={<OtherNote problem={problem} was={was} back={back} />}
         >
             <form onSubmit={submit} className="flex w-full gap-2 sm:pl-12">
                 <input

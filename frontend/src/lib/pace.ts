@@ -10,6 +10,9 @@ const API = 'http://localhost:8000';
 // Where the code is kept
 const CODE_KEY = 'pace.code';
 
+// Storage key for this device's own code
+const WAS_KEY = 'pace.code.was';
+
 // Longest gap allowed between frames before the request is dropped
 const IDLE_MS = 60000;
 
@@ -74,9 +77,30 @@ function writeCode(code: string) {
     writeStored(CODE_KEY, code);
 }
 
+// Reads this device's own code
+export function readWas(): string | null {
+    return readStored(WAS_KEY);
+}
+
 // Switches to another device's code
 export function takeCode(code: string) {
+    const own = readWas() ?? readCode();
+    writeStored(WAS_KEY, own !== null && own !== code ? own : null);
     writeCode(code);
+    announce();
+}
+
+// Goes back to this device's code
+export function undoCode() {
+    const own = readWas();
+    if (own === null) return;
+    writeStored(WAS_KEY, null);
+    writeCode(own);
+    announce();
+}
+
+// Sends the switch event
+function announce() {
     switches += 1;
     window.dispatchEvent(new Event(SWITCHED));
 }
@@ -172,7 +196,7 @@ export function forget(origin: string, destination: string) {
     kept.delete(tripKey(origin, destination));
 }
 
-// Saves one trip, keeping the code it comes back with
+// Saves one trip
 export async function saveTrip(origin: string, destination: string): Promise<SavedTrip> {
     const saved = await post<{ code: string; trip: SavedTrip }>('/v1/trips', {
         origin,
@@ -245,7 +269,7 @@ export async function ask(query: string, onStage: (name: Stage) => void): Promis
                 break;
             }
 
-            // Any byte proves the stream is alive, and restart the timer
+            // Any byte proves the stream is alive and restarts the timer
             clearTimeout(idle);
             idle = setTimeout(() => control.abort(), IDLE_MS);
             buffer += value;

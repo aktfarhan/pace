@@ -4,16 +4,17 @@ import Setting from './Setting';
 import { useState } from 'react';
 import OtherCode from './OtherCode';
 import { useMoment } from '@/hooks/useMoment';
-import { readCode, takeCode } from '@/lib/pace';
 import { useHolding } from '@/hooks/useHolding';
 import { Check, Copy, KeyRound } from 'lucide-react';
 import { BUTTON, ICON_BUTTON, SAID_MS } from './tints';
+import { readCode, readWas, takeCode, undoCode } from '@/lib/pace';
 
 // Shown when the clipboard refuses
 const BLOCKED = 'Copying was blocked';
 
 function Sync() {
     const code = readCode();
+    const was = readWas();
     const [shown, setShown] = useState(false);
     const [blocked, setBlocked] = useState(false);
     const [copied, setCopied] = useMoment(false, SAID_MS);
@@ -42,6 +43,12 @@ function Sync() {
     // Switches to another device's code
     const take = (other: string) => {
         takeCode(other);
+        setBlocked(false);
+    };
+
+    // Goes back to this device's code
+    const undo = () => {
+        undoCode();
         setBlocked(false);
     };
 
@@ -84,7 +91,7 @@ function Sync() {
                     </div>
                 )}
             </Setting>
-            <OtherCode code={code} take={take} />
+            <OtherCode code={code} was={was} take={take} undo={undo} />
         </>
     );
 }
