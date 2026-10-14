@@ -1,15 +1,36 @@
+import Sync from './Sync';
 import Keys from './Keys';
 import Group from './Group';
+import { LINK } from './tints';
 import General from './General';
 import Keeping from './Keeping';
 import Sources from './Sources';
+import { readCode } from '@/lib/pace';
+import type { Page } from '@/components/layout/sidebar/tints';
 
-function Settings() {
+interface SettingsProps {
+    go: (page: Page) => void;
+}
+
+function Settings({ go }: SettingsProps) {
+    const foot =
+        readCode() === null ? (
+            <>
+                Save a place or trip to get a code.{' '}
+                <button type="button" onClick={() => go('Saved')} className={LINK}>
+                    Open Saved
+                </button>
+            </>
+        ) : undefined;
+
     return (
         <div className="@container flex flex-col gap-3.5">
             <h1 className="text-board text-bright">Settings</h1>
             <div className="grid gap-x-6 gap-y-3.5 @4xl:grid-cols-2">
                 <div className="flex flex-col gap-3.5">
+                    <Group label="Sync" foot={foot}>
+                        <Sync />
+                    </Group>
                     <Group label="General">
                         <General />
                     </Group>

@@ -100,7 +100,7 @@ function App() {
                     <Activity mode={page === 'Transit' ? 'visible' : 'hidden'}>
                         <Transit tab={tab} choose={setTab} />
                     </Activity>
-                    {page === 'Settings' && <Settings />}
+                    {page === 'Settings' && <Settings go={setPage} />}
                 </main>
             </div>
         </ShowLine>

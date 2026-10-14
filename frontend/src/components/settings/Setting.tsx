@@ -9,7 +9,7 @@ interface SettingProps {
     Icon: LucideIcon;
     tile?: string;
     title: string;
-    note: string;
+    note: ReactNode;
     noteId?: string;
     children?: ReactNode;
 }

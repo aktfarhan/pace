@@ -1,3 +1,4 @@
+import { readStored, writeStored } from '@/lib/prefs';
 import type { Transit } from '@/types/transit';
 import type { SavedPlace } from '@/types/place';
 import type { SystemStatus } from '@/types/status';
@@ -12,7 +13,7 @@ const CODE_KEY = 'pace.code';
 // Longest gap allowed between frames before the request is dropped
 const IDLE_MS = 60000;
 
-// How long a write may hang
+// How long a request may hang
 const WRITE_MS = 15000;
 
 // What each line of a server-sent event opens with
@@ -60,12 +61,13 @@ function applyFrame(frame: Frame, onStage: (name: Stage) => void): Answer | null
 
 // Reads the code this device saves against
 export function readCode(): string | null {
-    return localStorage.getItem(CODE_KEY);
+    return readStored(CODE_KEY);
 }
 
 // Points this device at another code
-export function writeCode(code: string) {
-    localStorage.setItem(CODE_KEY, code);
+function writeCode(code: string) {
+    if (code !== readCode()) kept.clear();
+    writeStored(CODE_KEY, code);
 }
 
 // The header carrying the code
@@ -74,7 +76,7 @@ function codeHeader(): Record<string, string> {
     return code === null ? {} : { 'X-Pace-Code': code };
 }
 
-// Sends one write, exits if it hangs
+// Sends one request, exits if it hangs
 async function send(path: string, init: RequestInit): Promise<string> {
     const control = new AbortController();
     const timer = setTimeout(() => control.abort(), WRITE_MS);
@@ -99,16 +101,34 @@ export async function readPlaces(signal: AbortSignal): Promise<SavedPlace[]> {
     return response.json();
 }
 
-// Saves one place, keeping the code it comes back with
-export async function savePlace(label: string, address: string): Promise<SavedPlace> {
-    const body = await send('/v1/places', {
+// Sends one save and keeps a newly minted code
+async function post<Reply extends { code: string }>(path: string, payload: object): Promise<Reply> {
+    const had = readCode();
+    const body = await send(path, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...codeHeader() },
-        body: JSON.stringify({ label, address }),
+        body: JSON.stringify(payload),
     });
-    const saved = JSON.parse(body);
+    const saved: Reply = JSON.parse(body);
+    if (had === null) writeCode(saved.code);
+    return saved;
+}
 
-    if (typeof saved.code === 'string') writeCode(saved.code);
+// What a code holds
+export async function countUnder(code: string) {
+    const init = { headers: { 'X-Pace-Code': code } };
+    const [places, trips] = await Promise.all(
+        ['/v1/places', '/v1/trips'].map(async (path) => {
+            const list: unknown[] = JSON.parse(await send(path, init));
+            return list.length;
+        }),
+    );
+    return { places, trips };
+}
+
+// Saves one place
+export async function savePlace(label: string, address: string): Promise<SavedPlace> {
+    const saved = await post<{ code: string; place: SavedPlace }>('/v1/places', { label, address });
     return saved.place;
 }
 
@@ -132,14 +152,10 @@ export function forget(origin: string, destination: string) {
 
 // Saves one trip, keeping the code it comes back with
 export async function saveTrip(origin: string, destination: string): Promise<SavedTrip> {
-    const body = await send('/v1/trips', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...codeHeader() },
-        body: JSON.stringify({ origin, destination }),
+    const saved = await post<{ code: string; trip: SavedTrip }>('/v1/trips', {
+        origin,
+        destination,
     });
-    const saved = JSON.parse(body);
-
-    if (typeof saved.code === 'string') writeCode(saved.code);
     kept.add(tripKey(origin, destination));
     return saved.trip;
 }

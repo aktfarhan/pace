@@ -5,14 +5,16 @@ const GROUP = 'divide-y divide-seam rounded-tile border border-seam bg-panel sha
 
 interface GroupProps {
     label: string;
+    foot?: ReactNode;
     children: ReactNode;
 }
 
-function Group({ label, children }: GroupProps) {
+function Group({ label, foot, children }: GroupProps) {
     return (
         <section>
             <SectionHeading label={label} />
             <div className={GROUP}>{children}</div>
+            {foot !== undefined && <p className="px-1 pt-2 text-xs text-hush">{foot}</p>}
         </section>
     );
 }

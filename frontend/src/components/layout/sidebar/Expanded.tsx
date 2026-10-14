@@ -1,5 +1,4 @@
 import clsx from 'clsx';
-import Code from './Code';
 import Status from './Status';
 import Toggle from './Toggle';
 import { Settings } from 'lucide-react';
@@ -79,7 +78,6 @@ function Expanded({ status, toggle, page, select }: ExpandedProps) {
                     <Settings {...OUTLINED} />
                     Settings
                 </button>
-                <Code />
             </div>
         </div>
     );

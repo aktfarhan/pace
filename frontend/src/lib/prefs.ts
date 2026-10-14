@@ -21,7 +21,7 @@ export const STARTS = ['Ask', 'Transit', 'Saved'] as const;
 export type Start = (typeof STARTS)[number];
 
 // Reads a saved setting
-function readStored(key: string) {
+export function readStored(key: string) {
     try {
         return localStorage.getItem(key);
     } catch {
@@ -30,7 +30,7 @@ function readStored(key: string) {
 }
 
 // Saves or deletes a setting
-function writeStored(key: string, value: string | null) {
+export function writeStored(key: string, value: string | null) {
     try {
         if (value === null) localStorage.removeItem(key);
         else localStorage.setItem(key, value);
