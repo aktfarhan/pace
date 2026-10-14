@@ -1,7 +1,7 @@
 import SectionHeading from '@/components/layout/SectionHeading';
 import type { ReactNode } from 'react';
 
-const GROUP = 'rounded-tile border border-seam bg-panel shadow-card';
+const GROUP = 'divide-y divide-seam rounded-tile border border-seam bg-panel shadow-card';
 
 interface GroupProps {
     label: string;
