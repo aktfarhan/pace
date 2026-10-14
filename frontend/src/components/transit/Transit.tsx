@@ -61,11 +61,9 @@ function Transit({ tab, choose }: TransitProps) {
 
     return (
         <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4.5">
-            <div className="flex items-end justify-between gap-6 pb-1">
-                <span className="text-board text-bright">Transit</span>
-                {transit !== null && transit.status.ok && (
-                    <Stamp retrievedAt={transit.status.retrieved_at} />
-                )}
+            <div className="flex items-center justify-between gap-4 pb-1">
+                <h1 className="text-board text-bright">Transit</h1>
+                {transit !== null && <Stamp status={transit.status} refresh={retry} />}
             </div>
             <Tabs tab={tab} select={choose} troubled={troubleOf(transit)} />
             <div className="-mx-2 flex min-h-0 flex-1 scroll-edges flex-col gap-4.5 overflow-y-auto overscroll-contain px-2 pb-3">
@@ -99,7 +97,11 @@ function Transit({ tab, choose }: TransitProps) {
                     pick={(id) => setBranch(id === branch ? null : id)}
                     picked={branch}
                 />
-                <Notices key={tab} notices={notices} bare={focused === undefined} />
+                <Notices
+                    key={tab}
+                    notices={notices}
+                    bare={focused === undefined || !transit?.status.ok}
+                />
             </div>
         </div>
     );

@@ -10,7 +10,10 @@ export function useTransit() {
     const [attempt, setAttempt] = useState(0);
 
     // Asking again starts the timer over
-    const retry = useCallback(() => setAttempt((count) => count + 1), []);
+    const retry = useCallback(() => {
+        setFailed(false);
+        setAttempt((count) => count + 1);
+    }, []);
 
     useEffect(() => {
         const control = new AbortController();
