@@ -4,6 +4,7 @@ import Filtered from './Filtered';
 import Insights from './Insights';
 import { still } from '@/lib/device';
 import { flushSync } from 'react-dom';
+import { useKeeps } from '@/hooks/useKeeps';
 import Empty from '@/components/layout/Empty';
 import { dayKey, entryKind } from '@/lib/insights';
 import { useEffect, useRef, useState } from 'react';
@@ -26,6 +27,7 @@ function History({ ask, start }: HistoryProps) {
     const [asked, setAsked] = useState('');
     const [kind, setKind] = useState<Kind | null>(null);
     const titleRef = useRef<HTMLHeadingElement>(null);
+    const keeps = useKeeps();
 
     // Filter by kind and search
     const words = asked.trim().toLowerCase();
@@ -68,7 +70,11 @@ function History({ ask, start }: HistoryProps) {
                 <Empty
                     Icon={Clock}
                     title="Questions you ask show up here"
-                    note="Kept on this device only. Ask again by tapping on the question."
+                    note={
+                        keeps
+                            ? 'Kept on this device only. Ask again by tapping on the question.'
+                            : "New questions won't be saved."
+                    }
                     action="Ask a question"
                     ActionIcon={MessageSquare}
                     run={start}

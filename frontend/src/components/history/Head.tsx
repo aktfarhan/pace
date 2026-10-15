@@ -1,3 +1,4 @@
+import Paused from './Paused';
 import Find from '@/components/layout/Find';
 import type { RefObject } from 'react';
 import type { Entry } from '@/types/history';
@@ -26,7 +27,10 @@ function Head({ titleRef, entries, asked, search }: HeadProps) {
                 <h1 ref={titleRef} tabIndex={-1} className="text-board text-bright">
                     History
                 </h1>
-                <div className="mt-0.5 text-row text-faint">{kept}</div>
+                <div className="mt-0.5 text-row text-faint">
+                    {kept}
+                    <Paused />
+                </div>
             </div>
             {!empty && <Find asked={asked} search={search} label="Search questions" />}
         </div>
