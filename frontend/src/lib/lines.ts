@@ -94,16 +94,11 @@ export type Line = (typeof LINES)[number];
 // The label a line carries
 export type LineLabel = Line['label'];
 
+// The line fields a chart series is drawn from
+type Look = keyof Pick<Line, 'id' | 'label' | 'code' | 'text' | 'mark' | 'fill' | 'stroke'>;
+
 // What the chart draws one series from
-export interface Drawn {
-    id: string;
-    label: string;
-    code: string;
-    text: string;
-    mark: string;
-    fill: string;
-    stroke: string;
-}
+export type Drawn = Record<Look, string>;
 
 // Each line's row
 export const LINE_BY_ID: Record<string, Line> = {};
