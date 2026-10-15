@@ -14,5 +14,5 @@ export const LINK = 'cursor-pointer text-accent underline-offset-2 hover:underli
 // The shape of a code
 export const SHAPE = /^[a-z]+-[a-z]+-[2-9a-hjkmnp-z]{8}$/;
 
-// How long Copied stays (ms)
+// How long Copied and Done stay (ms)
 export const SAID_MS = 1200;

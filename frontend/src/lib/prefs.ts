@@ -92,3 +92,9 @@ export function readSpan(): Span {
 export function writeSpan(span: Span) {
     writeStored(SPAN_KEY, span === 'Week' ? null : span);
 }
+
+// Reset settings to default
+export function resetPrefs() {
+    for (const key of [START_KEY, KEEP_KEY, LINE_KEY, SPAN_KEY]) writeStored(key, null);
+    window.dispatchEvent(new Event(KEEPING));
+}

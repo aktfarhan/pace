@@ -1,10 +1,12 @@
 import Sync from './Sync';
 import Keys from './Keys';
 import Group from './Group';
+import Reset from './Reset';
 import { LINK } from './tints';
 import General from './General';
 import Keeping from './Keeping';
 import Sources from './Sources';
+import { useState } from 'react';
 import { readCode } from '@/lib/pace';
 import type { Page } from '@/components/layout/sidebar/tints';
 
@@ -13,6 +15,8 @@ interface SettingsProps {
 }
 
 function Settings({ go }: SettingsProps) {
+    const [round, setRound] = useState(0);
+
     const foot =
         readCode() === null ? (
             <>
@@ -32,7 +36,8 @@ function Settings({ go }: SettingsProps) {
                         <Sync />
                     </Group>
                     <Group label="General">
-                        <General />
+                        <General key={round} />
+                        <Reset done={() => setRound((one) => one + 1)} />
                     </Group>
                     <Group label="History">
                         <Keeping />
