@@ -154,15 +154,12 @@ def match_route_ids(cursor: psycopg.Cursor, query: str) -> list[str]:
     return named
 
 
-def retrieve(query: str, k: int = 5, resolve: bool = True) -> list[Row]:
+def retrieve(query: str, k: int = 5) -> list[Row]:
     """Returns the k chunks most similar to the query.
 
     Args:
         query: The user's question.
         k: How many chunks to return.
-        resolve: Whether to guarantee chunks for stations named in the
-            query. Off for parking queries, where station names collide
-            with street names and city names.
 
     Returns:
         Up to k rows (id, kind, text, metadata, distance), resolved
@@ -178,7 +175,7 @@ def retrieve(query: str, k: int = 5, resolve: bool = True) -> list[Row]:
     with connection.cursor() as cursor:
         # Stations named in the query are fetched directly
         rows = []
-        station_ids = match_station_ids(cursor, query) if resolve else []
+        station_ids = match_station_ids(cursor, query)
         if station_ids:
             cursor.execute(FETCH, (query_vector, station_ids))
             rows.extend(cursor.fetchall())

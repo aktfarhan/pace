@@ -25,10 +25,7 @@ ALERT_HOUR = 12
 
 # Responses for refusals
 REFUSALS = {
-    "off-topic": (
-        "Pace covers MBTA transit and Boston/Cambridge parking. "
-        "That falls outside the scope."
-    ),
+    "off-topic": "Pace covers MBTA transit. That falls outside the scope.",
     "low-confidence": "The available sources don't cover that with enough certainty.",
 }
 
@@ -96,9 +93,7 @@ def ask_stream(query: str) -> Iterator[Event]:
         return
 
     yield ("stage", {"name": "retrieve"})
-
-    # Station-name resolution is off for parking
-    chunks = retrieve(query, resolve=(intent != "parking-rules"))
+    chunks = retrieve(query)
 
     # Trip answers ground in a computed plan
     if intent == "route":

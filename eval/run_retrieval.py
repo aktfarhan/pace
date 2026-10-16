@@ -43,8 +43,7 @@ with output_path.open("w") as output_file:
     for query in queries:
         start_time = time.perf_counter()
         try:
-            # Retrieval call with the row's resolve flag
-            returned = retrieve(query["query"], resolve=query["resolve"])
+            returned = retrieve(query["query"])
             latency_ms = int((time.perf_counter() - start_time) * 1000)
             returned_ids = [chunk[0] for chunk in returned]
 

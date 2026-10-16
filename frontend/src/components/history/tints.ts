@@ -1,4 +1,4 @@
-import { Ban, Bell, CircleParking, Clock, Info, TrainFront } from 'lucide-react';
+import { Ban, Bell, Clock, Info, TrainFront } from 'lucide-react';
 import type { Intent } from '@/types/answer';
 import type { Kind, Tally } from '@/lib/insights';
 
@@ -28,11 +28,6 @@ export const KINDS: Record<
         label: 'Schedule',
     },
     alert: { Icon: Bell, tile: 'bg-amber/12 text-amber', label: 'Alerts' },
-    'parking-rules': {
-        Icon: CircleParking,
-        tile: 'bg-commuter-fill/12 text-commuter',
-        label: 'Parking rules',
-    },
     info: { Icon: Info, tile: 'bg-bubble text-muted', label: 'Info' },
     'off-topic': REFUSAL,
 };
@@ -49,7 +44,6 @@ export const FILLS: Record<Kind, string> = {
     info: 'bg-quiet',
     refused: 'bg-ghost',
     'off-topic': 'bg-ghost',
-    'parking-rules': 'bg-commuter-fill',
 };
 
 // A panel beside the list

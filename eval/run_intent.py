@@ -24,14 +24,6 @@ MODEL = "gpt-4o-mini"
 INPUT_COST_PER_1M = 0.15
 OUTPUT_COST_PER_1M = 0.60
 
-
-def classify_deterministic(query):
-    """Rules that bypass the LLM."""
-    if query.get("image"):
-        return "parking-sign", "image attached"
-    return None
-
-
 # Create eval/runs/
 RUNS_DIR.mkdir(exist_ok=True)
 
@@ -70,41 +62,6 @@ run_start = time.perf_counter()
 with output_path.open("w") as output_file:
     for query in queries:
         gold_intent = query["domain"]
-
-        deterministic = classify_deterministic(query)
-        if deterministic:
-            predicted_intent, reason = deterministic
-            is_correct = predicted_intent == gold_intent
-            result = {
-                "query_id": query["id"],
-                "model": "deterministic",
-                "query": query["query"],
-                "gold_intent": gold_intent,
-                "predicted_intent": predicted_intent,
-                "reason": reason,
-                "correct": is_correct,
-                "json_error": False,
-                "invalid_intent": False,
-                "refusal": None,
-                "raw_response": None,
-                "input_tokens": 0,
-                "output_tokens": 0,
-                "latency_ms": 0,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            }
-
-            # Update Tallies
-            domain_counts[gold_intent]["total"] += 1
-            if is_correct:
-                correct_count += 1
-                domain_counts[gold_intent]["correct"] += 1
-            marker = "OK" if is_correct else "NO"
-
-            print(
-                f"  [{query['id']}] {marker} {gold_intent} -> {predicted_intent} (deterministic)"
-            )
-            output_file.write(json.dumps(result) + "\n")
-            continue
 
         start_time = time.perf_counter()
         try:

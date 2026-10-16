@@ -7,7 +7,7 @@ import type { Answer, Card, Intent } from '@/types/answer';
 const HISTORY_KEY = 'pace.history';
 
 // Every kind a stored row can be
-const INTENTS: Intent[] = ['route', 'alert', 'parking-rules', 'schedule', 'info', 'off-topic'];
+const INTENTS: Intent[] = ['route', 'alert', 'schedule', 'info', 'off-topic'];
 
 // How many questions the device holds
 export const KEPT = 200;

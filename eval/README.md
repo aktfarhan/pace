@@ -24,33 +24,29 @@ Each line in `seed.jsonl` is one query in JSON:
 
 Fields:
 
-| Field             | Values                                                                                         |
-| ----------------- | ---------------------------------------------------------------------------------------------- |
-| `id`              | unique string                                                                                  |
-| `query`           | the user-facing question                                                                       |
-| `domain`          | `route` \| `alert` \| `parking-rules` \| `parking-sign` \| `schedule` \| `info` \| `off-topic` |
-| `style`           | `formal` \| `casual` \| `typo` \| `abbrev` \| `adversarial`                                    |
-| `gold_answer`     | reference answer for LLM-as-judge scoring                                                      |
-| `gold_sources`    | canonical sources that should appear in citations                                              |
-| `expected_action` | `answer` \| `refuse` \| `clarify`                                                              |
-| `expected_risk`   | `low` \| `mid` \| `high` \| `n/a`                                                              |
-| `notes`           | author commentary                                                                              |
-
-Parking sign queries also include `image: "signs/0042.jpg"`.
+| Field             | Values                                                      |
+| ----------------- | ----------------------------------------------------------- |
+| `id`              | unique string                                               |
+| `query`           | the user-facing question                                    |
+| `domain`          | `route` \| `alert` \| `schedule` \| `info` \| `off-topic`   |
+| `style`           | `formal` \| `casual` \| `typo` \| `abbrev` \| `adversarial` |
+| `gold_answer`     | reference answer for LLM-as-judge scoring                   |
+| `gold_sources`    | canonical sources that should appear in citations           |
+| `expected_action` | `answer` \| `refuse` \| `clarify`                           |
+| `expected_risk`   | `low` \| `mid` \| `high` \| `n/a`                           |
+| `notes`           | author commentary                                           |
 
 ---
 
 ## Distribution policy
 
-| Domain        | Share |
-| ------------- | ----- |
-| route         | 30%   |
-| alert         | 15%   |
-| parking-rules | 15%   |
-| schedule      | 15%   |
-| info          | 10%   |
-| parking-sign  | 10%   |
-| off-topic     | 5%    |
+| Domain    | Share |
+| --------- | ----- |
+| route     | 38%   |
+| alert     | 19%   |
+| schedule  | 21%   |
+| info      | 10%   |
+| off-topic | 12%   |
 
 Within each domain, writing styles mix as:
 
@@ -70,7 +66,6 @@ Each line in `retrieval.jsonl` is one retrieval check: the expected chunk should
   "id": "r-0001",
   "query": "what buses stop at central",
   "expected": ["stop:place-cntsq"],
-  "resolve": true,
   "notes": "2026-07-10: ranked below 20; Lynn 426 and suburban Central St stops won"
 }
 ```
@@ -82,7 +77,6 @@ Fields:
 | `id`       | unique string                                       |
 | `query`    | the user-facing question                            |
 | `expected` | chunk ids that answer the query; hit if any returns |
-| `resolve`  | station-name resolution on or off                   |
 | `notes`    | author commentary                                   |
 
 Run with `python -m eval.run_retrieval`. Target is 100% at Recall@5. Re-run after any retrieval change.
@@ -123,9 +117,9 @@ Run with `python -m eval.run_places`. Re-run after any change to ranking, normal
 
 ## Answer set
 
-`run_answers.py` runs every text query in `seed.jsonl` through the full pipeline and checks: answered when it should answer, refused when it should refuse.
+`run_answers.py` runs every query in `seed.jsonl` through the full pipeline and checks: answered when it should answer, refused when it should refuse.
 
-Expected action comes from `expected_action`, except domains listed in `NOT_BUILT` inside the runner — their data layer doesn't exist yet, so refusing is correct until it ships. Skips `image` queries until the sign reader exists.
+Expected action comes from `expected_action`.
 
 Run with `python -m eval.run_answers`. Re-run after any prompt change.
 
@@ -137,7 +131,6 @@ Run with `python -m eval.run_answers`. Re-run after any prompt change.
 - `retrieval.jsonl` — retrieval checks, re-run after any retrieval change
 - `places.jsonl` — destination resolution, re-run after any ranking or places-data change
 - `holdout.jsonl` — final-number set, never tuned against
-- `signs/` — parking sign photos + `signs/labels.jsonl`
 
 ---
 
@@ -153,13 +146,10 @@ Run with `python -m eval.run_answers`. Re-run after any prompt change.
 | Refusal rate              | 5–10%    |
 | Per-domain accuracy (min) | > 0.80   |
 | Risk calibration (ECE)    | < 0.10   |
-| Parking sign accuracy     | > 0.85   |
 | Data freshness (alerts)   | < 60s    |
 | Route planning latency    | < 500ms  |
 | TTFT (streaming)          | < 800ms  |
 | p95 latency (text)        | < 2s     |
-| p95 latency (VLM)         | < 6s     |
 | Text cost per query       | < $0.005 |
-| VLM cost per query        | < $0.03  |
 | Notification precision    | > 0.85   |
 | Notification recall       | > 0.80   |

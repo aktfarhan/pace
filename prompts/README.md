@@ -10,7 +10,6 @@ Every system prompt and few-shot example lives here.
 | ------------------- | ------------------------------------------------------ |
 | `intent.md`         | intent classifier prompt                               |
 | `generate.md`       | answer generation, citation-only enforcement           |
-| `vlm_sign.md`       | parking sign VLM prompt + few-shot examples            |
 | `refusal.md`        | templates for off-topic and low-confidence refusals    |
 | `guard.md`          | confidence gate phrasing                               |
 

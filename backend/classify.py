@@ -8,7 +8,7 @@ from backend.llm import llm
 from prompts.loader import load_prompt
 
 MODEL = "gpt-4o-mini"
-VALID_INTENTS = ["route", "alert", "parking-rules", "schedule", "info", "off-topic"]
+VALID_INTENTS = ["route", "alert", "schedule", "info", "off-topic"]
 VALID_DAYS = [
     "monday",
     "tuesday",

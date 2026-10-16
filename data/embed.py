@@ -29,10 +29,10 @@ def chunk_kind(chunk_id: str) -> str:
     """Returns a chunk's kind from its id prefix.
 
     Args:
-        chunk_id: A chunk id like "route:Red" or "street-cleaning:42".
+        chunk_id: A chunk id like "route:Red" or "stop:8607".
 
     Returns:
-        The prefix before the colon ("route", "stop", "street-cleaning").
+        The prefix before the colon ("route" or "stop").
     """
     return chunk_id.split(":", 1)[0]
 

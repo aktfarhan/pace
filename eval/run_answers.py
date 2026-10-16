@@ -1,4 +1,4 @@
-"""Answer eval: run every text seed query through the full ask() pipeline and score answer-or-refuse against the expected action."""
+"""Answer eval: run every seed query through the full ask() pipeline and score answer-or-refuse against the expected action."""
 
 import json
 import math
@@ -19,21 +19,16 @@ ROOT = Path(__file__).resolve().parent.parent
 SEED_PATH = ROOT / "eval" / "seed.jsonl"
 RUNS_DIR = ROOT / "eval" / "runs"
 
-# Domains whose data layer isn't built yet
-NOT_BUILT = {"parking-rules"}
-
 # One timestamped file per run
 run_stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d-%H%M%S")
 output_path = RUNS_DIR / f"answers-{run_stamp}.jsonl"
 
-# Build a list of text queries from seed.jsonl; sign queries need images
+# Build a list of all queries from seed.jsonl
 queries = []
 with SEED_PATH.open() as seed_file:
     for line in seed_file:
         if line.strip():
-            row = json.loads(line)
-            if not row.get("image"):
-                queries.append(row)
+            queries.append(json.loads(line))
 
 total_queries = len(queries)
 
@@ -74,7 +69,7 @@ run_start = time.perf_counter()
 with output_path.open("w") as output_file:
     for query in queries:
         domain = query["domain"]
-        expected = "refuse" if domain in NOT_BUILT else query["expected_action"]
+        expected = query["expected_action"]
 
         start_time = time.perf_counter()
         try:

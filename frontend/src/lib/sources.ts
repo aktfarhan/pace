@@ -10,7 +10,6 @@ const NAMES = new Map([
     ['schedule', TIMETABLE],
     ['stop', 'MBTA stations'],
     ['route', 'MBTA routes'],
-    ['street-cleaning', 'city street-cleaning rules'],
 ]);
 
 // The sources an answer drew on

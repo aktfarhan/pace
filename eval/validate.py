@@ -29,13 +29,11 @@ SEED_FIELDS = [
     "notes",
 ]
 PLACES_FIELDS = ["id", "query", "expected", "display", "notes"]
-RETRIEVAL_FIELDS = ["id", "query", "expected", "resolve", "notes"]
+RETRIEVAL_FIELDS = ["id", "query", "expected", "notes"]
 
 DOMAINS = {
     "route",
     "alert",
-    "parking-rules",
-    "parking-sign",
     "schedule",
     "info",
     "off-topic",
@@ -46,13 +44,11 @@ RISKS = {"low", "mid", "high", "n/a"}
 
 # What share of the seed set each domain should be
 DOMAIN_TARGETS = {
-    "route": 0.30,
-    "alert": 0.15,
-    "parking-rules": 0.15,
-    "schedule": 0.15,
+    "route": 0.38,
+    "alert": 0.19,
+    "schedule": 0.21,
     "info": 0.10,
-    "parking-sign": 0.10,
-    "off-topic": 0.05,
+    "off-topic": 0.12,
 }
 STYLE_TARGETS = {
     "casual": 0.50,
@@ -81,7 +77,7 @@ CITATION = re.compile(r"\b([qpr]-\d{4})\b")
 NAMESPACED = re.compile(r"^[a-z-]+:")
 
 # The only prefixes gold_sources is allowed to use
-SOURCE_SCHEMES = ("mbta://", "bos://", "cam://", "gbfs://", "signs/")
+SOURCE_SCHEMES = ("mbta://", "gbfs://")
 
 # The prompt files
 PROMPTS_DIR = ROOT / "prompts"
@@ -203,8 +199,7 @@ def check_shape(name: str, rows: list, prefix: str, fields: list[str]) -> list[s
 
     # Same fields, same order
     for row in rows:
-        # Ignore the image field
-        present = [key for key in row if key != "image"]
+        present = list(row)
         if present != fields:
             problems.append(f"{name}: {row['id']} field set is {present}")
 
@@ -277,17 +272,6 @@ def check_seed(rows: list, templates: list[str]) -> list[str]:
         elif action == "answer" and not sources:
             problems.append(f"seed: {row_id} answers but cites nothing")
 
-        # The sign photo
-        image = row.get("image", "")
-        if bool(image) != (domain == "parking-sign"):
-            problems.append(f"seed: {row_id} image field and domain disagree")
-        if image:
-            number = row_id.split("-")[-1]
-            if image != f"signs/{number}.jpg":
-                problems.append(
-                    f"seed: {row_id} image {image!r} is not signs/{number}.jpg"
-                )
-
     return problems
 
 
@@ -328,7 +312,7 @@ def check_places(rows: list) -> list[str]:
 
 
 def check_retrieval(rows: list) -> list[str]:
-    """Checks retrieval rows for chunk ids, notes, and a matching resolve flag.
+    """Checks retrieval rows for chunk ids and notes.
 
     Args:
         rows: The retrieval rows.
@@ -339,7 +323,6 @@ def check_retrieval(rows: list) -> list[str]:
     problems = []
     for row in rows:
         expected = row.get("expected", [])
-        resolve = row.get("resolve")
         notes = row.get("notes", "")
 
         # Every row names at least one chunk
@@ -349,24 +332,6 @@ def check_retrieval(rows: list) -> list[str]:
             problems.append(f"retrieval: {row['id']} lists a chunk twice")
         if not notes.strip():
             problems.append(f"retrieval: {row['id']} has no notes")
-
-        # The resolve flag must be true or false
-        if not isinstance(resolve, bool):
-            problems.append(
-                f"retrieval: {row['id']} resolve is {resolve!r}, not a boolean"
-            )
-            continue
-
-        # Parking rows
-        parking = False
-        for chunk_id in expected:
-            if chunk_id.startswith("street-cleaning:"):
-                parking = True
-                break
-        if parking and resolve:
-            problems.append(f"retrieval: {row['id']} is parking but resolve is on")
-        if not parking and not resolve:
-            problems.append(f"retrieval: {row['id']} is transit but resolve is off")
 
     return problems
 

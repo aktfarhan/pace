@@ -1,13 +1,13 @@
 ---
-version: 2
-hash: '2116bc8'
-last_updated: 2026-08-05
-notes: added outside-service-area for transit beyond the MBTA; dropped the advice tail from outside-coverage
+version: 3
+hash: '39042b7'
+last_updated: 2026-10-16
+notes: parking removed; new off-topic text, and the parking-only outside-coverage refusal is gone
 ---
 
 Refusal templates the system uses when it won't answer. Each one has a key, a trigger, and the exact text shown to the user.
 
-Priority when more than one fits: adversarial > outside-coverage > off-topic > low-confidence.
+Priority when more than one fits: adversarial > off-topic > low-confidence.
 
 ## off-topic
 
@@ -17,7 +17,7 @@ Priority when more than one fits: adversarial > outside-coverage > off-topic > l
 - **Template:**
 
 ```
-Pace covers MBTA transit and Boston/Cambridge parking. That falls outside the scope.
+Pace covers MBTA transit. That falls outside the scope.
 ```
 
 ## low-confidence
@@ -46,17 +46,6 @@ The available sources don't cover that with enough certainty.
 
 ```
 That question can't be processed as written. Rephrase or ask something else.
-```
-
-## outside-coverage
-
-- **Key:** `outside-coverage`
-- **Trigger:** Parking-rules query for a city other than Boston or Cambridge.
-- **Placeholders:** none.
-- **Template:**
-
-```
-Pace covers Boston and Cambridge for parking rules. Transit answers extend to the rest of the MBTA service area.
 ```
 
 ## outside-service-area

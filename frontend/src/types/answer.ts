@@ -96,7 +96,7 @@ export interface Answer {
 }
 
 // The domain of the query
-export type Intent = 'route' | 'alert' | 'parking-rules' | 'schedule' | 'info' | 'off-topic';
+export type Intent = 'route' | 'alert' | 'schedule' | 'info' | 'off-topic';
 
 // A stage the pipeline reports
 export type Stage = 'classify' | 'retrieve' | 'plan' | 'alerts' | 'departures' | 'generate';

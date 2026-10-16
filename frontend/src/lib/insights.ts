@@ -27,15 +27,7 @@ const BEFORE: Record<
 };
 
 // The order kinds stack in
-const ORDER: Kind[] = [
-    'route',
-    'schedule',
-    'alert',
-    'parking-rules',
-    'info',
-    'off-topic',
-    'refused',
-];
+const ORDER: Kind[] = ['route', 'schedule', 'alert', 'info', 'off-topic', 'refused'];
 
 // An hour's name on the day
 export function hourName(hour: number) {
