@@ -1,4 +1,5 @@
 import { GREEN_LETTERS } from '@/lib/lines';
+import { fullClock } from '@/lib/trip';
 import type { Chip, State, AlertedLine, LineStatus, SystemStatus } from '@/types/status';
 
 // A group of lines under one heading
@@ -9,6 +10,9 @@ interface Section {
 
 // Worst first
 const ORDER: State[] = ['severe', 'disrupted', 'notice', 'clear'];
+
+// The heading for lines with no trains running
+const RESTING_HEADING = 'Not running now';
 
 // A group's heading when its lines disagree on the effect
 const STATE_HEADINGS: Record<State, string> = {
@@ -71,6 +75,16 @@ export function running(line: LineStatus) {
     return line.state === 'clear' || !SERVICE_EFFECTS.has(line.effect);
 }
 
+// Whether a line has no trains running for now
+export function resting(line: LineStatus) {
+    return running(line) && line.back_at !== null;
+}
+
+// When a resting line's trains start again
+export function backAt(line: LineStatus) {
+    return line.back_at === null ? null : fullClock(line.back_at);
+}
+
 // How many lines are running normally
 export function runningCount(lines: LineStatus[]) {
     let count = 0;
@@ -101,7 +115,7 @@ export function sectionsOf(lines: LineStatus[]) {
         const group = [];
         for (const line of lines) {
             const belongsIn = running(line) ? 'clear' : line.state;
-            if (belongsIn === state) {
+            if (belongsIn === state && !resting(line)) {
                 group.push(line);
             }
         }
@@ -133,6 +147,12 @@ export function sectionsOf(lines: LineStatus[]) {
         sections.push({ heading, lines: group });
     }
 
+    // Lines resting overnight go last
+    const rest = lines.filter(resting);
+    if (rest.length > 0) {
+        sections.push({ heading: RESTING_HEADING, lines: rest });
+    }
+
     return sections;
 }
 
@@ -156,6 +176,18 @@ export function headlineOf(status: SystemStatus) {
     const hit = hitLines(status);
 
     if (hit.length === 0) {
+        const rest = status.lines.filter(resting);
+
+        // When every line is closed for the night
+        if (rest.length === status.lines.length) {
+            const soonest = rest.reduce((one, other) =>
+                Date.parse(other.back_at ?? '') < Date.parse(one.back_at ?? '') ? other : one,
+            );
+            return `Service resumes at ${backAt(soonest)}`;
+        }
+        if (rest.length > 0) {
+            return 'All running lines on time';
+        }
         return `All ${status.lines.length} lines on time`;
     }
 
@@ -191,12 +223,13 @@ export function sublineOf(status: SystemStatus, now: number) {
     }
 
     const age = `Updated ${ageOf(status.retrieved_at, now)}`;
-    const ok = runningCount(status.lines);
+    const hit = status.lines.length - runningCount(status.lines);
+    const ok = status.lines.filter((line) => running(line) && !resting(line)).length;
 
-    if (ok === status.lines.length) {
+    if (hit === 0) {
         return age;
     }
-    if (ok === status.lines.length - 1) {
+    if (hit === 1) {
         return `${ok} other lines on time · ${age}`;
     }
     return `${ok} lines on time · ${age}`;
@@ -231,6 +264,13 @@ function typicalChip(line: LineStatus): Chip {
 
 // The two facts under a card's title row
 export function chipsOf(line: LineStatus): Chip[] {
+    if (resting(line)) {
+        return [
+            { text: `Back at ${backAt(line)}`, tone: 'quiet' },
+            { text: 'Both ways', tone: 'quiet' },
+        ];
+    }
+
     if (running(line)) {
         return [typicalChip(line), { text: 'Both ways', tone: 'quiet' }];
     }

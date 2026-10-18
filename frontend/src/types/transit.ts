@@ -21,6 +21,7 @@ export interface Transit {
     typical: Record<string, TypicalReading[]>;
     headways: Partial<Record<string, number>>;
     resumes: Partial<Record<string, string>>;
+    timetable: boolean;
     branches: Partial<Record<string, Branch[]>>;
     late_minutes: number;
     rolling_minutes: number;
@@ -53,6 +54,7 @@ export interface Standing {
     every: number | null;
     next: string | null;
     started: boolean;
+    timetable: boolean;
     trend: { at: number; share: number }[];
 }
 

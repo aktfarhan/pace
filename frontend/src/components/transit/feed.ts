@@ -1,6 +1,7 @@
 import { HOUR_MS } from './plot';
 import { clockOf } from './frame';
 import { LINES } from '@/lib/lines';
+import { ZONE, bostonDate } from '@/lib/boston';
 import {
     Ban,
     Bus,
@@ -24,8 +25,16 @@ export interface Thread {
 const DAY_MS = 24 * HOUR_MS;
 const STALE_DAYS = 30;
 
-const MONTH = new Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric' });
-const MONTH_DAY = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
+const MONTH = new Intl.DateTimeFormat('en-US', {
+    timeZone: ZONE,
+    month: 'short',
+    year: 'numeric',
+});
+const MONTH_DAY = new Intl.DateTimeFormat('en-US', {
+    timeZone: ZONE,
+    month: 'short',
+    day: 'numeric',
+});
 
 // The icon with each kind of effect
 const KINDS = [
@@ -56,7 +65,7 @@ export function datesOf(since: string | null, until: string | null) {
 
     // A one-day alert shows its times
     const day = MONTH_DAY.format(begin);
-    if (new Date(begin).toDateString() === new Date(end).toDateString()) {
+    if (bostonDate(begin) === bostonDate(end)) {
         return `${day}, ${clockOf(begin)} → ${clockOf(end)}`;
     }
     return `${day} → ${MONTH_DAY.format(end)}`;
@@ -94,7 +103,7 @@ export function sinceOf(at: string | null) {
     if (!Number.isFinite(when)) return 'in effect';
 
     // Only a moment today reads as a clock time
-    const today = new Date(when).toDateString() === new Date().toDateString();
+    const today = bostonDate(when) === bostonDate(Date.now());
     const date = today ? clockOf(when) : MONTH_DAY.format(when);
 
     const days = Math.floor((Date.now() - when) / DAY_MS);

@@ -7,11 +7,10 @@ from datetime import date, datetime, time, timedelta, timezone
 from functools import lru_cache
 from statistics import median
 from typing import TypedDict
-from zoneinfo import ZoneInfo
 
-import httpx
 import psycopg
 
+from backend.clock import ZONE, in_boston, moment_at, now_in_boston
 from backend.lines import LINES, LINE_OF, BRANCH_ROUTES
 from backend.mbta import fetch
 from backend.timetable import (
@@ -72,9 +71,6 @@ TYPICAL_DAYS = 14
 # Too few days to call anything typical
 TYPICAL_FLOOR = 2
 
-# The zone earlier days are read back in
-SERVICE_ZONE = ZoneInfo("America/New_York")
-
 # How wide a stretch one headway is read from
 HEADWAY_REACH = 3600
 
@@ -84,16 +80,27 @@ COUNTED_SECONDS = 3600
 # How often the fleet is read
 POLL_SECONDS = 15
 
+# How long a saved quarter hour is kept
+KEPT_SECONDS = 3600
+
+# A line is resting when the next train is further off than this
+RESTING_SECONDS = 900
+
 # Every line's readings
 READ_READINGS = """
     SELECT route_id, at, late, seen FROM readings
     WHERE route_id = ANY(%s) AND at >= %s AND at < %s ORDER BY at;
 """
 
-# One line's closed window
+# One line's quarter hour
 WRITE_READING = """
     INSERT INTO readings (route_id, at, late, seen) VALUES (%s, %s, %s, %s)
-    ON CONFLICT (route_id, at) DO NOTHING;
+    ON CONFLICT (route_id, at) DO UPDATE SET late = EXCLUDED.late, seen = EXCLUDED.seen;
+"""
+
+# Every line's count for the quarter hours
+READ_QUARTERS = """
+    SELECT route_id, at, late, seen FROM readings WHERE at >= %s AND at <= %s;
 """
 
 
@@ -119,8 +126,20 @@ class TypicalReading(Reading):
 # Each line's arrivals inside the window
 _arrivals: dict[str, deque[tuple[int, bool]]] = defaultdict(deque)
 
-# The quarter hour whose reading has been written
-_written: datetime | None = None
+# Each quarter hour's (late, seen) per line
+_quarters: dict[datetime, dict[str, list[int]]] = {}
+
+# The quarter hours with counts the database doesn't have yet
+_unsaved: set[datetime] = set()
+
+# The quarter hour the last summary line was printed for
+_summarized: datetime | None = None
+
+# Arrivals counted since that summary
+_added = 0
+
+# Trips seen standing that the timetable doesn't know
+_skipped: set[str] = set()
 
 # The arrivals already counted, so a standing train counts once
 _counted: dict[tuple[str, str], int] = {}
@@ -200,12 +219,12 @@ def record(now: datetime) -> int:
     """Notes every fresh arrival the fleet is reporting.
 
     Args:
-        now: The local time, with a timezone on it.
+        now: The time, with a timezone on it.
 
     Returns:
         How many arrivals this reading added.
     """
-    global _day
+    global _day, _added
 
     target = service_date_at(now)
     clock = service_seconds(now)
@@ -214,6 +233,7 @@ def record(now: datetime) -> int:
 
     # The fleet is read before the lock is taken
     standing = []
+    skipped = set()
     for vehicle in fetch("/vehicles", {"filter[route_type]": ROUTE_TYPES})["data"]:
         if vehicle["attributes"]["current_status"] != "STOPPED_AT":
             continue
@@ -242,12 +262,19 @@ def record(now: datetime) -> int:
         station = parents.get(stop_id, stop_id)
         due = timetable.get((trip_id, station))
         if due is None:
+            skipped.add(trip_id)
             continue
 
         # Timed from when the train stopped
         arrived = service_seconds(reported)
         standing.append(
-            (arrived, route_id, (trip_id, station), arrived - due > LATE_SECONDS)
+            (
+                arrived,
+                route_id,
+                (trip_id, station),
+                arrived - due > LATE_SECONDS,
+                bucket_of(in_boston(reported)),
+            )
         )
 
     standing.sort()
@@ -261,13 +288,22 @@ def record(now: datetime) -> int:
             _counted.clear()
 
         # One reading per arrival
-        for arrived, route_id, key, was_late in standing:
+        for arrived, route_id, key, was_late, quarter in standing:
             if key in _counted:
                 continue
             _counted[key] = arrived
             _arrivals[route_id].append((arrived, was_late))
             added += 1
 
+            # The quarter hour it arrived in
+            if route_id in LINE_OF:
+                totals = _quarters.setdefault(quarter, {}).setdefault(route_id, [0, 0])
+                totals[0] += was_late
+                totals[1] += 1
+                _unsaved.add(quarter)
+
+        _added += added
+        _skipped.update(skipped)
         forget(clock)
 
     return added
@@ -325,53 +361,147 @@ def bucket_of(now: datetime) -> datetime:
     return now.replace(minute=now.minute // width * width, second=0, microsecond=0)
 
 
+def write(rows: list[tuple[str, datetime, int, int]]) -> bool:
+    """Writes quarter hour counts, replacing any earlier count of the same quarter.
+
+    Args:
+        rows: (route, quarter start, late, seen) per line.
+
+    Returns:
+        Whether the database took them.
+    """
+    try:
+        with connect() as connection, connection.cursor() as cursor:
+            cursor.executemany(WRITE_READING, rows)
+    except psycopg.Error as error:
+        print(f"lateness: {error}")
+        return False
+    return True
+
+
+def summarize(now: datetime) -> None:
+    """Prints one line per quarter hour on what the poller counted.
+
+    Args:
+        now: The moment being polled.
+    """
+    global _summarized, _added
+
+    quarter = bucket_of(now)
+    if quarter == _summarized:
+        return
+
+    with _lock:
+        added = _added
+        skipped = len(_skipped)
+        _added = 0
+        _skipped.clear()
+
+    # The first quarter began before the server
+    if _summarized is not None:
+        print(
+            f"lateness: {in_boston(_summarized):%H:%M} quarter: "
+            f"{added} arrivals counted, "
+            f"{skipped} trains skipped (trip not in the timetable)"
+        )
+    _summarized = quarter
+
+
 def store(now: datetime) -> int:
-    """Writes the quarter hour that has just closed.
+    """Writes every quarter hour that has closed with new arrivals in it.
 
     Args:
         now: The moment being polled.
 
     Returns:
-        How many lines had an arrival to write down.
+        How many line counts were written.
     """
-    global _written
+    summarize(now)
+    opened = bucket_of(now)
 
-    bucket = bucket_of(now)
-    if bucket == _written:
-        return 0
+    # Only arrivals inside each closed quarter count toward it
+    with _lock:
+        closed = sorted(at for at in _unsaved if at < opened)
+        taken = {
+            at: {route: list(totals) for route, totals in _quarters[at].items()}
+            for at in closed
+        }
 
-    # The first poll lands mid window
-    if _written is None:
-        _written = bucket
-        return 0
-
-    # The window counts back from now, which is the last quarter
-    closed = bucket - timedelta(seconds=WINDOW_SECONDS)
     rows = []
-    for route in LINE_OF:
-        late, seen = tally(route)
-
-        # A thin branch counts once its line is added up
-        if seen:
-            rows.append((route, closed, late, seen))
+    for at, routes in taken.items():
+        for route, (late, seen) in routes.items():
+            rows.append((route, at, late, seen))
 
     written = 0
-    if rows:
-        try:
-            with connect() as connection, connection.cursor() as cursor:
-                cursor.executemany(WRITE_READING, rows)
-            written = len(rows)
-        except psycopg.Error as error:
-            print(f"lateness: {error}")
+    if rows and write(rows):
+        written = len(rows)
 
-    # The day's readings have gained a quarter
-    if written:
+        # Saved, unless an arrival joined it since
+        with _lock:
+            for at, routes in taken.items():
+                current = {
+                    route: list(totals) for route, totals in _quarters[at].items()
+                }
+                if current == routes:
+                    _unsaved.discard(at)
+
+        # The day's readings have gained a quarter
         read_series.cache_clear()
 
-    # The window moves either way
-    _written = bucket
+    # Saved quarters stay an hour
+    edge = opened - timedelta(seconds=KEPT_SECONDS)
+    with _lock:
+        for at in list(_quarters):
+            if at < edge and at not in _unsaved:
+                del _quarters[at]
 
     return written
+
+
+def save_open() -> int:
+    """Writes every unsaved quarter hour.
+
+    Returns:
+        How many line counts were written.
+    """
+    with _lock:
+        rows = []
+        for at in sorted(_unsaved):
+            for route, (late, seen) in _quarters[at].items():
+                rows.append((route, at, late, seen))
+
+    if rows and write(rows):
+        return len(rows)
+    return 0
+
+
+def resume(now: datetime) -> int:
+    """Reads back the recent quarter hours saved.
+
+    Args:
+        now: The time the server started.
+
+    Returns:
+        How many line counts were read back.
+    """
+    opened = bucket_of(now)
+
+    # The last hour
+    edge = opened - timedelta(seconds=KEPT_SECONDS)
+    try:
+        with connect() as connection, connection.cursor() as cursor:
+            cursor.execute(READ_QUARTERS, (edge, opened))
+            rows = cursor.fetchall()
+    except psycopg.Error as error:
+        print(f"lateness: {error}")
+        return 0
+
+    # New arrivals add to the saved counts
+    with _lock:
+        for route_id, at, late, seen in rows:
+            _quarters.setdefault(in_boston(at), {})[route_id] = [late, seen]
+
+    return len(rows)
 
 
 def keys_for(route_id: str) -> list[str]:
@@ -392,33 +522,23 @@ def keys_for(route_id: str) -> list[str]:
     return keys
 
 
-@lru_cache(maxsize=2)
-def read_resumes(edge: datetime, scraped_at: float) -> dict[str, str]:
-    """Reads when each lines next train is booked.
+def first_departures(target: date, after: int, scraped_at: float) -> dict[str, int]:
+    """Finds each line's first departure at or after a time.
 
     Args:
-        edge: The quarter hour to look on from.
+        target: The service date.
+        after: Seconds into that day to look on from.
         scraped_at: When the GTFS tables were scraped.
 
     Returns:
-        When the next train is booked, per line and per branch.
+        Seconds into the day of the earliest departure, per line and per branch.
     """
-    target = service_date_at(edge)
-    try:
-        trips, connections = load_service_day(target, scraped_at)
-    except (OSError, KeyError, ValueError) as error:
-        print(f"lateness: {error}")
-        return {}
+    trips, connections = load_service_day(target, scraped_at)
 
-    # The timetable counts from midnight
-    opened = datetime.combine(target, time(), SERVICE_ZONE)
-    clock = service_seconds(edge)
-
-    # The earliest departure still ahead
     soonest: dict[str, int] = {}
     for departure, _, _, _, trip_id, _, _ in connections:
         # Already gone
-        if departure < clock:
+        if departure < after:
             continue
 
         trip = trips.get(trip_id)
@@ -431,10 +551,115 @@ def read_resumes(edge: datetime, scraped_at: float) -> dict[str, str]:
             if key not in soonest or departure < soonest[key]:
                 soonest[key] = departure
 
-    return {
-        key: (opened + timedelta(seconds=seconds)).astimezone(timezone.utc).isoformat()
-        for key, seconds in soonest.items()
+    return soonest
+
+
+@lru_cache(maxsize=2)
+def read_resumes(edge: datetime, scraped_at: float) -> dict[str, str]:
+    """Reads when each lines next train is booked.
+
+    Args:
+        edge: The quarter hour to look on from.
+        scraped_at: When the GTFS tables were scraped.
+
+    Returns:
+        When the next train is booked, per line and per branch.
+    """
+    target = service_date_at(edge)
+    found = {
+        key: moment_at(target, seconds)
+        for key, seconds in first_departures(
+            target, service_seconds(edge), scraped_at
+        ).items()
     }
+
+    # Between the last train and the 3 AM rollover
+    every = set(LINE_OF.values()) | BRANCH_ROUTES
+    if not every <= found.keys():
+        later = target + timedelta(days=1)
+        for key, seconds in first_departures(later, 0, scraped_at).items():
+            found.setdefault(key, moment_at(later, seconds))
+
+    return {key: at.astimezone(timezone.utc).isoformat() for key, at in found.items()}
+
+
+@lru_cache(maxsize=3)
+def line_spans(target: date, scraped_at: float) -> dict[str, list[tuple[int, int]]]:
+    """Reads when each of a line's trips sets off and finishes.
+
+    Args:
+        target: The service date.
+        scraped_at: When the GTFS tables were scraped.
+
+    Returns:
+        (first departure, last arrival) seconds per trip.
+    """
+    trips, connections = load_service_day(target, scraped_at)
+
+    spans: dict[str, list[int]] = {}
+    for departure, _, arrival, _, trip_id, _, _ in connections:
+        trip = trips.get(trip_id)
+
+        # Buses and anything that is not a line
+        if trip is None or trip[0] not in LINE_OF:
+            continue
+
+        span = spans.get(trip_id)
+        if span is None:
+            spans[trip_id] = [departure, arrival]
+        else:
+            span[0] = min(span[0], departure)
+            span[1] = max(span[1], arrival)
+
+    by_line: dict[str, list[tuple[int, int]]] = {}
+    for trip_id, (start, end) in spans.items():
+        by_line.setdefault(LINE_OF[trips[trip_id][0]], []).append((start, end))
+
+    for ordered in by_line.values():
+        ordered.sort()
+    return by_line
+
+
+def read_resting(now: datetime) -> dict[str, str]:
+    """Finds the lines with no train running, and when each starts again.
+
+    Args:
+        now: The time.
+
+    Returns:
+        When the next train sets off.
+    """
+    stamp = gtfs_stamp()
+    target = service_date_at(now)
+    clock = service_seconds(now) + now.second
+    today = line_spans(target, stamp)
+
+    resting = {}
+    for line_id, _, _, _ in LINES:
+        spans = today.get(line_id, [])
+
+        # A trip under way means the line is running
+        if any(start <= clock <= end for start, end in spans):
+            continue
+
+        # The next trip today, else the first one tomorrow
+        ahead = [start for start, _ in spans if start > clock]
+        if ahead:
+            back = moment_at(target, min(ahead))
+        else:
+            later = target + timedelta(days=1)
+            tomorrow = line_spans(later, stamp).get(line_id)
+
+            # No trips at all is a gap in the timetable
+            if not tomorrow:
+                continue
+            back = moment_at(later, tomorrow[0][0])
+
+        # A short gap between trains is not a line at rest
+        if (back - now).total_seconds() > RESTING_SECONDS:
+            resting[line_id] = back.isoformat()
+
+    return resting
 
 
 @lru_cache(maxsize=2)
@@ -449,12 +674,8 @@ def read_headways(target: date, hour: int, scraped_at: float) -> dict[str, int]:
     Returns:
         Whole minutes between trains, per line and per branch.
     """
-    try:
-        trips, connections = load_service_day(target, scraped_at)
-        _, _, parents, _ = load_stops(scraped_at)
-    except (OSError, KeyError, ValueError) as error:
-        print(f"lateness: {error}")
-        return {}
+    trips, connections = load_service_day(target, scraped_at)
+    _, _, parents, _ = load_stops(scraped_at)
 
     # Trains are read an hour either side of this
     middle = hour * 3600
@@ -587,7 +808,7 @@ def read_typical(began: datetime, edge: datetime) -> dict[str, list[TypicalReadi
     # A branch counts toward its line
     pooled: dict[tuple[date, str, datetime], list[int]] = {}
     for route_id, at, late, seen in rows:
-        at = at.astimezone(SERVICE_ZONE)
+        at = at.astimezone(ZONE)
         served = service_date_at(at)
         for key in keys_for(route_id):
             totals = pooled.setdefault((served, key, at), [0, 0])
@@ -602,7 +823,7 @@ def read_typical(began: datetime, edge: datetime) -> dict[str, list[TypicalReadi
     # What each day looked like at that minute
     stacked: dict[tuple[str, int], list[Reading]] = {}
     for (served, key), day in quarters.items():
-        opened = datetime.combine(served, time(SERVICE_ROLLOVER_HOUR), SERVICE_ZONE)
+        opened = datetime.combine(served, time(SERVICE_ROLLOVER_HOUR), ZONE)
         for reading in rolling(day):
             minute = round(
                 (datetime.fromisoformat(reading["at"]) - opened).total_seconds() / 60
@@ -675,8 +896,8 @@ async def poll() -> None:
     """Reads the fleet on a timer for as long as the server runs."""
     while True:
         try:
-            await asyncio.to_thread(record, datetime.now().astimezone())
-            await asyncio.to_thread(store, datetime.now().astimezone())
-        except httpx.HTTPError as error:
-            print(f"lateness: {error}")
+            await asyncio.to_thread(record, now_in_boston())
+            await asyncio.to_thread(store, now_in_boston())
+        except Exception as error:
+            print(f"lateness: {type(error).__name__}: {error}")
         await asyncio.sleep(POLL_SECONDS)

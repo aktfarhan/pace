@@ -7,6 +7,7 @@ from datetime import datetime
 import httpx
 
 from backend.classify import ParsedQuery, classify
+from backend.clock import ZONE, now_in_boston
 from backend.alerts import blocking_alerts, fetch_alerts
 from backend.cards import build_card, card_sources
 from backend.generate import Answer, generate
@@ -19,6 +20,7 @@ from backend.schedules import (
     live_departures,
     requested_date,
 )
+from backend.timetable import service_date_at
 
 # Midday on the asked date
 ALERT_HOUR = 12
@@ -40,17 +42,17 @@ def service_moment(parsed: ParsedQuery) -> str | None:
         parsed: The classifier's read of the query.
 
     Returns:
-        A local ISO timestamp on a later date, or None.
+        A Boston ISO timestamp on a later date, or None.
     """
     # The date the query asks about, unless that date is today
-    now = datetime.now()
+    now = now_in_boston()
     target = requested_date(parsed["day"], now)
-    if target is None or target == now.date().isoformat():
+    if target is None or target == service_date_at(now).isoformat():
         return None
 
     # That date at midday
-    midday = datetime.fromisoformat(target).replace(hour=ALERT_HOUR)
-    return midday.astimezone().isoformat()
+    midday = datetime.fromisoformat(target).replace(hour=ALERT_HOUR, tzinfo=ZONE)
+    return midday.isoformat()
 
 
 def refused(reason: str, intent: str) -> Answer:
@@ -129,7 +131,7 @@ def ask_stream(query: str) -> Iterator[Event]:
             chunks = departures + chunks
 
     yield ("stage", {"name": "generate"})
-    now = datetime.now().isoformat()
+    now = now_in_boston().isoformat()
     answer = generate(query, chunks, intent, now)
 
     # The generator refuses with an empty string
@@ -164,7 +166,7 @@ def ask_stream(query: str) -> Iterator[Event]:
     answer["card"] = card
 
     # The risk pill and the chance beside it
-    found = risk_for(chunks, datetime.now())
+    found = risk_for(chunks, now_in_boston())
     answer["risk"] = found["level"] if found else None
     answer["chance"] = found["chance"] if found else None
 

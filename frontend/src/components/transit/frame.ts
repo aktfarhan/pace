@@ -1,4 +1,5 @@
 import { BUCKET_MS, HOUR_MS, TOP, landOf, spanOf, xOf, yOf } from './plot';
+import { ZONE, bostonHour, bostonMoment } from '@/lib/boston';
 import type { Box } from './plot';
 import type { Reading } from '@/types/transit';
 
@@ -17,9 +18,10 @@ const RULED = 25;
 // How often one of them is named
 const NAMED = 50;
 
-const HOUR = new Intl.DateTimeFormat('en-US', { hour: 'numeric', hour12: true });
+const HOUR = new Intl.DateTimeFormat('en-US', { timeZone: ZONE, hour: 'numeric', hour12: true });
 
 const CLOCK = new Intl.DateTimeFormat('en-US', {
+    timeZone: ZONE,
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
@@ -40,12 +42,8 @@ export function windowOf(now: number, shown: Reading[][], hours: number | null) 
 
     // Nothing has reported, so open where the trains do
     if (!Number.isFinite(first)) {
-        const dawn = new Date(now);
-        if (dawn.getHours() < ROLLOVER_HOUR) {
-            dawn.setDate(dawn.getDate() - 1);
-        }
-        dawn.setHours(FIRST_HOUR, 0, 0, 0);
-        first = dawn.getTime();
+        const back = bostonHour(now) < ROLLOVER_HOUR ? -1 : 0;
+        first = bostonMoment(now, back, FIRST_HOUR);
     }
 
     // Readings land on the quarter hour
@@ -79,20 +77,16 @@ export function ticksOf(start: number, end: number, box: Box) {
     const every = Math.max(Math.ceil(HOUR_ROOM / (across / hours)), 1);
 
     // Marks land on the hour
-    const first = new Date(start);
-    first.setMinutes(0, 0, 0);
-    if (first.getTime() < start) {
-        first.setHours(first.getHours() + 1);
-    }
+    let first = Math.ceil(start / HOUR_MS) * HOUR_MS;
 
-    // Anchor to a multiple
-    while (first.getHours() % every !== 0) {
-        first.setHours(first.getHours() + 1);
+    // Start on a Boston hour the step divides
+    while (bostonHour(first) % every !== 0) {
+        first += HOUR_MS;
     }
 
     // One mark every step
     const ticks = [];
-    for (let at = first.getTime(); at <= end; at += every * HOUR_MS) {
+    for (let at = first; at <= end; at += every * HOUR_MS) {
         ticks.push({ at, x: xOf(at, start, end, box), label: HOUR.format(at) });
     }
 

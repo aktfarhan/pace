@@ -32,6 +32,7 @@ class Transit(TypedDict):
     typical: dict[str, list[TypicalReading]]
     headways: dict[str, int]
     resumes: dict[str, str]
+    timetable: bool
     branches: dict[str, list[dict[str, str]]]
     late_minutes: int
     rolling_minutes: int
@@ -79,14 +80,28 @@ def read_transit(status: SystemStatus, now: datetime) -> Transit:
         The cards and the readings.
     """
     began = began_of(now)
+
+    # A timetable that can't be read should not look like a quiet night
+    try:
+        stamp = gtfs_stamp()
+        headways = read_headways(
+            service_date_at(now), service_seconds(now) // 3600, stamp
+        )
+        resumes = read_resumes(bucket_of(now), stamp)
+        timetable = True
+    except (OSError, KeyError, ValueError) as error:
+        print(f"transit: timetable unreadable: {error}")
+        headways = {}
+        resumes = {}
+        timetable = False
+
     return {
         "status": status,
         "series": read_series(began, bucket_of(now)),
         "typical": read_typical(began, bucket_of(now)),
-        "headways": read_headways(
-            service_date_at(now), service_seconds(now) // 3600, gtfs_stamp()
-        ),
-        "resumes": read_resumes(bucket_of(now), gtfs_stamp()),
+        "headways": headways,
+        "resumes": resumes,
+        "timetable": timetable,
         "branches": BRANCH_LIST,
         "late_minutes": LATE_SECONDS // 60,
         "rolling_minutes": ROLLING_SECONDS // 60,

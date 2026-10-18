@@ -2,10 +2,10 @@
 
 import json
 import sys
-from datetime import datetime
 from typing import TypedDict
 
 from backend.cards import Card
+from backend.clock import now_in_boston
 from backend.llm import llm
 from backend.retrieve import Row, retrieve
 from prompts.loader import load_prompt
@@ -95,6 +95,6 @@ def generate(
 if __name__ == "__main__":
     query = sys.argv[1]
     chunks = retrieve(query)
-    now = datetime.now().isoformat()
+    now = now_in_boston().isoformat()
     result = generate(query, chunks, intent="route", now=now)
     print(json.dumps(result, indent=2))

@@ -4,7 +4,7 @@ import { LINE_BY_ID } from '@/lib/lines';
 import { LIVE } from '@/components/layout/tints';
 import { useShowLine } from '@/hooks/useShowLine';
 import { CARDS, CHIPS, PILL, PILLS } from './tints';
-import { chipsOf, effectWord, running } from '@/lib/status';
+import { chipsOf, effectWord, resting, running } from '@/lib/status';
 import type { LineStatus } from '@/types/status';
 
 interface LineCardProps {
@@ -15,6 +15,7 @@ function LineCard({ line }: LineCardProps) {
     const show = useShowLine();
     const chips = chipsOf(line);
     const ok = running(line);
+    const asleep = resting(line);
 
     return (
         <div
@@ -38,8 +39,17 @@ function LineCard({ line }: LineCardProps) {
 
                 {ok && (
                     <span className="flex shrink-0 items-center gap-1.75">
-                        <span className={clsx('size-1.75 rounded-full', LIVE)} />
-                        <span className="font-mono text-state text-steady uppercase">On time</span>
+                        <span
+                            className={clsx('size-1.75 rounded-full', asleep ? 'bg-dim' : LIVE)}
+                        />
+                        <span
+                            className={clsx(
+                                'font-mono text-state uppercase',
+                                asleep ? 'text-faint' : 'text-steady',
+                            )}
+                        >
+                            {asleep ? 'Not running' : 'On time'}
+                        </span>
                     </span>
                 )}
                 {!ok && line.alert_delay_minutes !== null && (

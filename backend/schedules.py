@@ -4,6 +4,7 @@ import sys
 from datetime import date, datetime, timedelta, timezone
 
 from backend.classify import ParsedQuery
+from backend.clock import in_boston, now_in_boston
 from backend.mbta import fetch
 from backend.retrieve import Row, match_route_ids, match_station_ids
 from backend.timetable import service_date_at, service_seconds
@@ -114,7 +115,7 @@ def requested_date(day: str | None, now: datetime) -> str | None:
     Args:
         day: The parsed day ("saturday", "today", "tonight", "tomorrow"),
             or None when the query named no day.
-        now: The local time of the query.
+        now: The time of the query.
 
     Returns:
         "YYYY-MM-DD" for a named weekday (the next one, counting today),
@@ -123,18 +124,20 @@ def requested_date(day: str | None, now: datetime) -> str | None:
     if day is None:
         return None
 
+    today = service_date_at(now)
+
     # Tomorrow's date
     if day == "tomorrow":
-        return (now.date() + timedelta(days=1)).isoformat()
+        return (today + timedelta(days=1)).isoformat()
 
     # Today and tonight land on the same date
     if day in ("today", "tonight"):
-        return now.date().isoformat()
+        return today.isoformat()
 
     # A named weekday: the next one, counting today as zero days ahead
     if day in WEEKDAYS:
-        ahead = (WEEKDAYS[day] - now.weekday()) % 7
-        return (now.date() + timedelta(days=ahead)).isoformat()
+        ahead = (WEEKDAYS[day] - today.weekday()) % 7
+        return (today + timedelta(days=ahead)).isoformat()
 
     return None
 
@@ -172,7 +175,7 @@ def departure_groups(rows: list[dict]) -> dict[tuple[str, int], list[str]]:
 
 
 def clock(iso_time: str) -> str:
-    """Formats an ISO timestamp as a readable local time ("4:16 PM").
+    """Formats an ISO timestamp as a readable Boston time ("4:16 PM").
 
     Args:
         iso_time: An ISO 8601 timestamp.
@@ -180,7 +183,8 @@ def clock(iso_time: str) -> str:
     Returns:
         The clock time, no leading zero.
     """
-    return datetime.fromisoformat(iso_time).strftime("%I:%M %p").lstrip("0")
+    moment = in_boston(datetime.fromisoformat(iso_time))
+    return moment.strftime("%I:%M %p").lstrip("0")
 
 
 def route_label(short_name: str, long_name: str, route_type: int) -> str:
@@ -365,8 +369,8 @@ def fetch_departures(parsed: ParsedQuery) -> list[Row]:
         first, scheduled times as the fallback; "first"/"last" questions
         read the schedule for the asked day.
     """
-    # Local time for the service calculations
-    now = datetime.now()
+    # Boston time for the service calculations
+    now = now_in_boston()
     retrieved_at = datetime.now(timezone.utc).isoformat()
 
     # The boarding stop and the route come from parse
@@ -408,7 +412,7 @@ def fetch_departures(parsed: ParsedQuery) -> list[Row]:
     # The service date those questions read
     spoken_date = ""
     if wants_first or wants_last:
-        target = requested_date(parsed["day"], now) or now.date().isoformat()
+        target = requested_date(parsed["day"], now) or service_date_at(now).isoformat()
         asked = date.fromisoformat(target)
         day_name = asked.strftime("%A")
 

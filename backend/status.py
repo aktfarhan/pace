@@ -93,6 +93,7 @@ class LineStatus(TypedDict):
     alert_count: int
     alerts: list[LineAlert]
     typical_share: int | None
+    back_at: str | None
 
 
 class SystemStatus(TypedDict):
@@ -347,6 +348,7 @@ def read_line(
     line_name: str,
     alerts: list[Alert],
     typical_share: int | None,
+    back_at: str | None,
 ) -> LineStatus:
     """Reduces one line's alerts to the card it draws.
 
@@ -356,6 +358,7 @@ def read_line(
         line_name: The line's spoken name.
         alerts: Every alert on that line.
         typical_share: The share of arrivals typically late by now.
+        back_at: When its trains start again.
 
     Returns:
         The line's card.
@@ -389,9 +392,14 @@ def read_line(
             "alert_count": 0,
             "alerts": listed,
             "typical_share": typical_share,
+            "back_at": back_at,
         }
 
-    worst = min(scored, key=rank)
+    slowing = []
+    for alert in scored:
+        if alert["attributes"]["effect"] in SLOWING_EFFECTS:
+            slowing.append(alert)
+    worst = min(slowing or scored, key=rank)
     attributes = worst["attributes"]
 
     return {
@@ -411,6 +419,7 @@ def read_line(
         "alert_count": len(scored),
         "alerts": listed,
         "typical_share": typical_share,
+        "back_at": back_at,
     }
 
 
@@ -429,11 +438,12 @@ def without_alerts(live: SystemStatus) -> SystemStatus:
     return {**live, "lines": lines}
 
 
-def read_status(typical: dict[str, int]) -> SystemStatus:
+def read_status(typical: dict[str, int], resting: dict[str, str]) -> SystemStatus:
     """Reads every rail line's state from the live alert feed.
 
     Args:
         typical: Each line's typical late share by now.
+        resting: When each line starts running again.
 
     Returns:
         One card per line in board order.
@@ -445,7 +455,14 @@ def read_status(typical: dict[str, int]) -> SystemStatus:
         lines = []
         for line_id, badge_text, line_name, _ in LINES:
             lines.append(
-                read_line(line_id, badge_text, line_name, [], typical.get(line_id))
+                read_line(
+                    line_id,
+                    badge_text,
+                    line_name,
+                    [],
+                    typical.get(line_id),
+                    resting.get(line_id),
+                )
             )
         return {
             "lines": lines,
@@ -473,6 +490,7 @@ def read_status(typical: dict[str, int]) -> SystemStatus:
             line_name,
             filed.get(line_id, []),
             typical.get(line_id),
+            resting.get(line_id),
         )
         if line["state"] == "clear":
             clear_count += 1
@@ -487,4 +505,4 @@ def read_status(typical: dict[str, int]) -> SystemStatus:
 
 
 if __name__ == "__main__":
-    print(json.dumps(read_status({}), indent=2))
+    print(json.dumps(read_status({}, {}), indent=2))

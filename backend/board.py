@@ -1,10 +1,10 @@
 """Plan every trip saved against a code."""
 
-from datetime import datetime
 from typing import TypedDict
 
 from backend.cards import TripCard, trip_card
 from backend.classify import ParsedQuery
+from backend.clock import now_in_boston
 from backend.planner.trip import plan_trip
 from backend.risk import risk_for
 from backend.trips import read_trips
@@ -52,7 +52,7 @@ def plan_saved(code: str | None) -> list[Planned]:
     Returns:
         One entry per saved trip, oldest first.
     """
-    now = datetime.now()
+    now = now_in_boston()
 
     planned = []
     for trip in read_trips(code):

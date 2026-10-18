@@ -1,4 +1,5 @@
 import { tintOf } from '@/lib/lines';
+import { ZONE, bostonDate } from '@/lib/boston';
 import type { Wait, TripCard, WalkLeg, RideLeg } from '@/types/answer';
 
 // One slice of the trip bar
@@ -16,7 +17,11 @@ const NO_SERVICE_MINUTES = 60;
 const WAIT_ROW_MINUTES = 10;
 
 // Formatter
-const CLOCK = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' });
+const CLOCK = new Intl.DateTimeFormat('en-US', {
+    timeZone: ZONE,
+    hour: 'numeric',
+    minute: '2-digit',
+});
 
 // Split time and meridiem
 export function clockParts(iso: string) {
@@ -94,10 +99,7 @@ function dayOf(serviceDate: string) {
 
 // Whether the service day is past today
 function laterDay(serviceDate: string, now: number) {
-    const today = new Date(now);
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const dayNumber = String(today.getDate()).padStart(2, '0');
-    return serviceDate > `${today.getFullYear()}-${month}-${dayNumber}`;
+    return serviceDate > bostonDate(now);
 }
 
 // The leave line

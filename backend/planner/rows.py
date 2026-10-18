@@ -1,7 +1,8 @@
 """Turn a planned journey into citable plan rows."""
 
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime
 
+from backend.clock import moment_at
 from backend.planner.ends import Endpoint, trip_times
 from backend.retrieve import Row
 from backend.schedules import clock, route_label
@@ -17,7 +18,7 @@ def service_moment(service_date: date, seconds: int) -> datetime:
     Returns:
         The full datetime.
     """
-    return datetime.combine(service_date, time()) + timedelta(seconds=seconds)
+    return moment_at(service_date, seconds)
 
 
 def service_clock(service_date: date, seconds: int) -> str:

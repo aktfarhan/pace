@@ -7,7 +7,7 @@ import { useGlide } from '@/hooks/useGlide';
 import { useShowLine } from '@/hooks/useShowLine';
 import { GLIDE } from '@/components/layout/tints';
 import { AWAY, GLIDE_ROUND, HERE, NAV, OUTLINED } from './tints';
-import { branchLettersOf, branchesHeard, effectWord, running } from '@/lib/status';
+import { backAt, branchLettersOf, branchesHeard, effectWord, resting, running } from '@/lib/status';
 import type { PaneProps } from './tints';
 
 const CELL = 'grid size-11 shrink-0 place-items-center rounded-row';
@@ -60,10 +60,14 @@ function Collapsed({ status, toggle, page, select }: PaneProps) {
                 <div className="mt-5.5 flex flex-col items-center gap-3">
                     {status.lines.map((line) => {
                         const ok = running(line);
+                        const asleep = resting(line);
                         const hit = ok ? [] : branchLettersOf(line);
                         const at = hit.length > 0 ? ` · ${hit.join(' ')}` : '';
-                        const shown =
+                        let shown =
                             ok || line.state === 'clear' ? 'On time' : effectWord(line.effect);
+                        if (asleep) {
+                            shown = `Not running, back at ${backAt(line)}`;
+                        }
                         const tint = LINE_BY_ID[line.line_id];
                         return (
                             <Tip key={line.line_id} label={`${line.line_name} · ${shown}${at}`}>
@@ -81,7 +85,11 @@ function Collapsed({ status, toggle, page, select }: PaneProps) {
                                     <span
                                         className={clsx(
                                             'absolute -top-hair -right-hair size-2.5 rounded-full ring-[2.5px] ring-rail',
-                                            ok ? 'bg-good' : 'animate-beacon bg-amber',
+                                            asleep
+                                                ? 'bg-dim'
+                                                : ok
+                                                  ? 'bg-good'
+                                                  : 'animate-beacon bg-amber',
                                         )}
                                     />
                                 </button>

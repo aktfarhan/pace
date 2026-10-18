@@ -84,6 +84,7 @@ function Transit({ tab, choose }: TransitProps) {
                         rolling={transit.rolling_minutes}
                         branching={branching}
                         resumes={transit.resumes}
+                        timetable={transit.timetable}
                     />
                 )}
                 <Cards

@@ -5,12 +5,14 @@ from datetime import date, datetime, timedelta
 from functools import lru_cache
 from pathlib import Path
 
+from backend.clock import in_boston, now_in_boston
+
 INFINITY = float("inf")
 
 GTFS_DIR = Path(__file__).resolve().parent.parent / "data" / "raw" / "gtfs"
 
 # Service days held in memory at once
-CACHED_DAYS = 2
+CACHED_DAYS = 3
 
 # Before this hour, "today" is still yesterday's MBTA service day
 SERVICE_ROLLOVER_HOUR = 3
@@ -71,28 +73,34 @@ def place_on_service_day(target: date, clock_seconds: int) -> tuple[date, int]:
     return target, clock_seconds
 
 
-def service_date_at(now: datetime) -> date:
-    """Reads which service day is running at a local moment.
+def service_date_at(moment: datetime) -> date:
+    """Reads which service day is running at a moment.
 
     Args:
-        now: The local time.
+        moment: Any moment, read on Boston's clock.
 
     Returns:
         The date whose service is running.
     """
-    return place_on_service_day(now.date(), now.hour * 3600 + now.minute * 60)[0]
+    moment = in_boston(moment)
+    return place_on_service_day(moment.date(), moment.hour * 3600 + moment.minute * 60)[
+        0
+    ]
 
 
-def service_seconds(now: datetime) -> int:
+def service_seconds(moment: datetime) -> int:
     """Reads the service clock at a moment.
 
     Args:
-        now: The local time.
+        moment: Any moment, read on Boston's clock.
 
     Returns:
         Seconds since the service day began.
     """
-    return place_on_service_day(now.date(), now.hour * 3600 + now.minute * 60)[1]
+    moment = in_boston(moment)
+    return place_on_service_day(moment.date(), moment.hour * 3600 + moment.minute * 60)[
+        1
+    ]
 
 
 def active_service_ids(target: date) -> set[str]:
@@ -123,6 +131,31 @@ def active_service_ids(target: date) -> set[str]:
         else:
             active.discard(row["service_id"])
     return active
+
+
+@lru_cache(maxsize=1)
+def last_service_date(scraped_at: float) -> date | None:
+    """Finds the last date the timetable has any service on.
+
+    Args:
+        scraped_at: When the tables were scraped.
+
+    Returns:
+        The date, or None when the tables name no dates.
+    """
+    ends = []
+    for row in read_table("calendar.txt"):
+        ends.append(row["end_date"])
+
+    # A one-day schedule can run past the weekly ones
+    for row in read_table("calendar_dates.txt"):
+        if row["exception_type"] == "1":
+            ends.append(row["date"])
+
+    if not ends:
+        return None
+    
+    return datetime.strptime(max(ends), "%Y%m%d").date()
 
 
 @lru_cache(maxsize=1)
@@ -384,4 +417,4 @@ def warm() -> None:
     load_stops(stamp)
     load_routes(stamp)
     load_footpaths(stamp)
-    load_service_day(service_date_at(datetime.now()), stamp)
+    load_service_day(service_date_at(now_in_boston()), stamp)

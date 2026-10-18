@@ -28,9 +28,20 @@ interface ChartProps {
     rolling: number;
     branching: Branching | null;
     resumes: Transit['resumes'];
+    timetable: boolean;
 }
 
-function Chart({ lines, series, typical, read, late, rolling, branching, resumes }: ChartProps) {
+function Chart({
+    lines,
+    series,
+    typical,
+    read,
+    late,
+    rolling,
+    branching,
+    resumes,
+    timetable,
+}: ChartProps) {
     const { cardRef, width, box, height, tight } = useChartBox();
     const [span, setSpan] = useState<number | null>(null);
 
@@ -96,7 +107,15 @@ function Chart({ lines, series, typical, read, late, rolling, branching, resumes
                         <Labels labels={labels} box={box} tight={tight} strengthOf={strengthOf} />
                     </svg>
                 )}
-                {quiet && <Quiet box={box} lines={lines} resumes={resumes} read={read} />}
+                {quiet && (
+                    <Quiet
+                        box={box}
+                        lines={lines}
+                        resumes={resumes}
+                        read={read}
+                        timetable={timetable}
+                    />
+                )}
                 {readout !== null && guide !== null && (
                     <Callout said={readout} x={guide.x} box={box} marks={marks} />
                 )}

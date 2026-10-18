@@ -31,6 +31,7 @@ interface LineFields {
     alert_count: number;
     alerts: LineAlert[];
     typical_share: number | null;
+    back_at: string | null;
 }
 
 // A line with no alert

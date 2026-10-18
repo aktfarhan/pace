@@ -5,7 +5,7 @@ import json
 import time
 from collections.abc import AsyncGenerator, Iterator
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import timedelta, timezone
 from functools import lru_cache
 
 import psycopg
@@ -17,13 +17,21 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from backend.ask import ask_stream
 from backend.board import Planned, plan_saved
-from backend.lateness import poll
+from backend.clock import now_in_boston
+from backend.lateness import poll, read_resting, resume, save_open
 from backend.places import Saved, SavedPlace, add_place, read_places, remove_place
 from backend.trips import Kept, SavedTrip, add_trip, read_trips, remove_trip
 from backend.risk import warm as warm_model
 from backend.status import SystemStatus, read_status, without_alerts
-from backend.timetable import warm
+from backend.timetable import (
+    active_service_ids,
+    gtfs_stamp,
+    last_service_date,
+    service_date_at,
+    warm,
+)
 from backend.transit.page import Transit, read_transit, read_usual
+from data.mbta.scrape_gtfs import refresh
 from data.schema import connect
 
 # Where the frontend runs
@@ -47,6 +55,42 @@ STREAM_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
 
 CHUNK_COUNT = "SELECT count(*) FROM chunks;"
 
+# When the timetable is fetched again each night
+REFRESH_HOUR = 3
+REFRESH_MINUTE = 30
+
+# A timetable ending sooner than this many days gets a warning
+TIMETABLE_WARN_DAYS = 7
+
+
+def seconds_until_refresh() -> float:
+    """Counts down to the next nightly timetable refresh.
+
+    Returns:
+        Seconds until the next 3:30 AM in Boston.
+    """
+    now = now_in_boston()
+    due = now.replace(hour=REFRESH_HOUR, minute=REFRESH_MINUTE, second=0, microsecond=0)
+    if due <= now:
+        due += timedelta(days=1)
+    return (due.astimezone(timezone.utc) - now.astimezone(timezone.utc)).total_seconds()
+
+
+async def refresh_nightly() -> None:
+    """Fetches the timetable again each night."""
+    while True:
+        await asyncio.sleep(seconds_until_refresh())
+
+        # A failed night keeps yesterday's timetable
+        try:
+            if await asyncio.to_thread(refresh):
+                await asyncio.to_thread(warm)
+                print("timetable: refreshed")
+            else:
+                print("timetable: already current")
+        except Exception as error:
+            print(f"timetable: refresh failed: {type(error).__name__}: {error}")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
@@ -60,11 +104,20 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
     warm()
     warm_model()
+
+    # The quarter hour saved when the server last stopped
+    await asyncio.to_thread(resume, now_in_boston())
+
     watcher = asyncio.create_task(poll())
+    refresher = asyncio.create_task(refresh_nightly())
     try:
         yield
     finally:
         watcher.cancel()
+        refresher.cancel()
+
+        # The open quarter hour
+        await asyncio.to_thread(save_open)
 
 
 # The server
@@ -171,7 +224,16 @@ def status_during(bucket: int) -> SystemStatus:
     Returns:
         That window's reading. Only the current bucket is kept.
     """
-    return read_status(read_usual(datetime.now().astimezone()))
+    now = now_in_boston()
+
+    # Without a timetable the cards fall back to alerts
+    try:
+        resting = read_resting(now)
+    except (OSError, KeyError, ValueError) as error:
+        print(f"status: timetable unreadable: {error}")
+        resting = {}
+
+    return read_status(read_usual(now), resting)
 
 
 @app.get("/v1/status")
@@ -198,7 +260,7 @@ def check_transit() -> Transit:
         Each line's card with their alerts, and the day's readings.
     """
     live = status_during(int(time.monotonic() // STATUS_TTL))
-    return read_transit(live, datetime.now().astimezone())
+    return read_transit(live, now_in_boston())
 
 
 @app.get("/v1/places")
@@ -292,17 +354,48 @@ def list_board(x_pace_code: str | None = Header(default=None)) -> list[Planned]:
     return plan_saved(x_pace_code)
 
 
-@app.get("/v1/health")
-def check_health() -> dict:
-    """Reports whether the database is reachable.
+def timetable_health() -> dict:
+    """Reports whether the timetable covers today and tomorrow, and when it ends.
 
     Returns:
-        The chunk count, or the error that stopped the query.
+        Whether it is fine, the dates it covers, and a warning when it isn't.
     """
+    today = service_date_at(now_in_boston())
+    tomorrow = today + timedelta(days=1)
+    try:
+        ends = last_service_date(gtfs_stamp())
+        covers_today = bool(active_service_ids(today))
+        covers_tomorrow = bool(active_service_ids(tomorrow))
+    except (OSError, KeyError, ValueError) as error:
+        return {"ok": False, "warning": f"The timetable can't be read: {error}"}
+
+    warning = None
+    if not covers_today or not covers_tomorrow:
+        warning = "The timetable has no service for today or tomorrow"
+    elif ends is None or (ends - today).days < TIMETABLE_WARN_DAYS:
+        warning = f"The timetable ends on {ends}; the nightly refresh may be failing"
+
+    return {
+        "ok": warning is None,
+        "today": covers_today,
+        "tomorrow": covers_tomorrow,
+        "ends": ends.isoformat() if ends else None,
+        "warning": warning,
+    }
+
+
+@app.get("/v1/health")
+def check_health() -> dict:
+    """Reports whether the database is reachable and the timetable is current.
+
+    Returns:
+        The chunk count and the timetable's state, or what went wrong.
+    """
+    timetable = timetable_health()
     try:
         with connect() as connection, connection.cursor() as cursor:
             cursor.execute(CHUNK_COUNT)
             chunks = cursor.fetchone()[0]
     except psycopg.Error as error:
-        return {"ok": False, "error": str(error)}
-    return {"ok": True, "chunks": chunks}
+        return {"ok": False, "error": str(error), "timetable": timetable}
+    return {"ok": timetable["ok"], "chunks": chunks, "timetable": timetable}

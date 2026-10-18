@@ -4,6 +4,7 @@ import sys
 from datetime import date, datetime, timedelta, timezone
 
 from backend.classify import ParsedQuery
+from backend.clock import moment_at, now_in_boston
 from backend.planner.ends import resolve_endpoint, trip_times, walk_between
 from backend.planner.legs import (
     build_legs,
@@ -21,8 +22,9 @@ from backend.planner.rows import (
     render_walk,
 )
 from backend.retrieve import Row
-from backend.schedules import requested_date
+from backend.schedules import WEEKDAYS, requested_date
 from backend.timetable import (
+    SERVICE_ROLLOVER_HOUR,
     gtfs_stamp,
     load_footpaths,
     load_routes,
@@ -69,15 +71,21 @@ def deadline_moment(deadline: str, day: str | None, now: datetime) -> tuple | No
     if clock_seconds is None:
         return None
 
-    # The calendar date: named day, today if still ahead, else tomorrow
-    if day:
-        target = date.fromisoformat(requested_date(day, now))
-    elif clock_seconds > now.hour * 3600 + now.minute * 60:
-        target = now.date()
+    if day in (None, "today", "tonight"):
+        target = service_date_at(now)
+        if clock_seconds < SERVICE_ROLLOVER_HOUR * 3600:
+            clock_seconds += 24 * 3600
     else:
-        target = now.date() + timedelta(days=1)
+        named = date.fromisoformat(requested_date(day, now))
+        target, clock_seconds = place_on_service_day(named, clock_seconds)
 
-    return place_on_service_day(target, clock_seconds)
+    # The next time that clock comes round
+    if not day or day in WEEKDAYS:
+        later = 7 if day else 1
+        if moment_at(target, clock_seconds) <= now:
+            target += timedelta(days=later)
+
+    return target, clock_seconds
 
 
 def plan_trip(query: str, parsed: ParsedQuery) -> list[Row]:
@@ -92,7 +100,7 @@ def plan_trip(query: str, parsed: ParsedQuery) -> list[Row]:
         per leg. Empty when either endpoint is missing or unknown; a
         no-route row when the scan finds nothing.
     """
-    now = datetime.now()
+    now = now_in_boston()
     retrieved_at = datetime.now(timezone.utc).isoformat()
 
     # The query has to name both ends
@@ -137,7 +145,10 @@ def plan_trip(query: str, parsed: ParsedQuery) -> list[Row]:
     elif parsed["day"]:
         # A named day plans that date around the current time
         service_date = date.fromisoformat(requested_date(parsed["day"], now))
-        depart_seconds = now.hour * 3600 + now.minute * 60
+        if service_date == now_date:
+            depart_seconds = now_seconds
+        else:
+            depart_seconds = now.hour * 3600 + now.minute * 60
     else:
         service_date = now_date
         depart_seconds = now_seconds
@@ -190,7 +201,7 @@ def plan_trip(query: str, parsed: ParsedQuery) -> list[Row]:
     # A leave time already in the past is not makeable
     if deadline is not None and best_stop is not None:
         leave_seconds = -earliest[best_stop] - origin_walks[best_stop]
-        if service_date == now_date and leave_seconds < now_seconds:
+        if (service_date, leave_seconds) < (now_date, now_seconds):
             best_stop = None
 
     # The ridden answer, when the scan found one
@@ -220,7 +231,7 @@ def plan_trip(query: str, parsed: ParsedQuery) -> list[Row]:
             leaves = depart_seconds
 
         # A walk that starts in the past is not makeable
-        if service_date != now_date or leaves >= now_seconds:
+        if (service_date, leaves) >= (now_date, now_seconds):
             return render_walk(
                 origin,
                 destination,
