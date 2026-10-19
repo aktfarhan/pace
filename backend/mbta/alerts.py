@@ -71,8 +71,7 @@ def fetch_alerts(
         no-active-alerts row so the answer can cite it.
     """
     # Match the routes and stations the query names
-    connection = connect()
-    with connection.cursor() as cursor:
+    with connect() as connection, connection.cursor() as cursor:
         route_ids = match_route_ids(cursor, route) if route else []
         station_ids = match_station_ids(cursor, query)
 

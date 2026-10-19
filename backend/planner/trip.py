@@ -111,8 +111,7 @@ def plan_trip(query: str, parsed: ParsedQuery) -> list[Row]:
     names, children, parents, positions = load_stops(gtfs_stamp())
 
     # Match the endpoints, origin first
-    connection = connect()
-    with connection.cursor() as cursor:
+    with connect() as connection, connection.cursor() as cursor:
         origin = resolve_endpoint(cursor, parsed["origin"], names, children, positions)
         destination = None
         if origin is not None:

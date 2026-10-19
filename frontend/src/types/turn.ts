@@ -6,6 +6,7 @@ export interface Turn {
     query: string;
     answer: Answer | null;
     failed: boolean;
+    said?: string;
 }
 
 // The parts of a turn that can be written after it opens

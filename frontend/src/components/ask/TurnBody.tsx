@@ -27,7 +27,7 @@ function TurnBody({ turn, stage, refresh, refreshing, fresh }: TurnBodyProps) {
     }
     // A failed question can be asked again
     if (turn.failed && !refreshing) {
-        return <Failed said={UNREACHABLE} retry={refresh} />;
+        return <Failed said={turn.said ?? UNREACHABLE} retry={refresh} />;
     }
     return <Thinking stage={turn.failed ? null : stage} />;
 }

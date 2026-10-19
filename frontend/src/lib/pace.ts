@@ -5,7 +5,7 @@ import type { SystemStatus } from '@/types/status';
 import type { Answer, Stage } from '@/types/answer';
 import type { Planned, SavedTrip } from '@/types/trip';
 
-const API = 'http://localhost:8000';
+const API = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 // Where the code is kept
 const CODE_KEY = 'pace.code';
@@ -29,6 +29,8 @@ const kept = new Set<string>();
 // Code switches so far
 let switches = 0;
 const SWITCHED = 'pace:switched';
+
+export class Notice extends Error {}
 
 // One event and data pair from the stream
 interface Frame {
@@ -55,7 +57,7 @@ function readFrame(frame: string): Frame | null {
 function applyFrame(frame: Frame, onStage: (name: Stage) => void): Answer | null {
     const payload = JSON.parse(frame.data);
     if (frame.event === 'error') {
-        throw new Error(payload.message);
+        throw new Notice(payload.message);
     }
     if (frame.event === 'stage') {
         onStage(payload.name);
@@ -252,6 +254,10 @@ export async function ask(query: string, onStage: (name: Stage) => void): Promis
             signal: control.signal,
         });
 
+        if (response.status === 429) {
+            const { detail } = await response.json();
+            throw new Notice(detail);
+        }
         if (!response.ok) {
             throw new Error(`Pace returned ${response.status}`);
         }

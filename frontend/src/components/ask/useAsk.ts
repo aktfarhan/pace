@@ -1,10 +1,13 @@
-import { ask } from '@/lib/pace';
+import { ask, Notice } from '@/lib/pace';
 import { keep } from '@/lib/history';
 import { useCallback, useRef, useState } from 'react';
 import type { Stage } from '@/types/answer';
 import type { Turn, TurnFields } from '@/types/turn';
 
 export type AskController = ReturnType<typeof useAsk>;
+
+// What a failure tells the visitor
+const saidOf = (error: unknown) => (error instanceof Notice ? error.message : undefined);
 
 // Holds the conversation and runs one question at a time
 export function useAsk() {
@@ -55,7 +58,7 @@ export function useAsk() {
                 keep(asked, answer);
             } catch (error) {
                 console.error(error);
-                amend(id, { failed: true });
+                amend(id, { failed: true, said: saidOf(error) });
             } finally {
                 // Free the guard whether it answered or failed
                 running.current = false;
@@ -86,6 +89,7 @@ export function useAsk() {
                 return true;
             } catch (error) {
                 console.error(error);
+                if (failed) amend(id, { said: saidOf(error) });
                 return false;
             } finally {
                 running.current = false;

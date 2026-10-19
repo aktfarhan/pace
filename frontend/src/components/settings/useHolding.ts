@@ -19,7 +19,7 @@ export function useHolding(code: string | null) {
         countUnder(code)
             // The count in words
             .then(({ places, trips }) => {
-                const text = `${places} place${places === 1 ? '' : 's'} and ${trips} trip${trips === 1 ? '' : 's'} saved`;
+                const text = `${places} place${places === 1 ? '' : 's'} and ${trips} trip${trips === 1 ? '' : 's'}`;
                 if (live) setHeld({ under: code, text, failed: false });
             })
             // A read that failed

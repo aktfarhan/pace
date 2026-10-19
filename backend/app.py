@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import os
 import time
 from collections.abc import AsyncGenerator, Iterator
 from contextlib import asynccontextmanager
@@ -9,10 +10,11 @@ from datetime import timedelta, timezone
 from functools import lru_cache
 
 import psycopg
-from fastapi import FastAPI, Header
+from fastapi import Depends, FastAPI, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import StreamingResponse
+from openai import OpenAIError
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend.assistant.ask import ask_stream
@@ -33,12 +35,16 @@ from backend.planner.timetable import (
 from backend.transit.page import Transit, read_transit, read_usual
 from backend.planner.scrape_gtfs import refresh
 from backend.core.db import connect
+from backend.core.limits import limit_asks, limit_saves
 
 # Where the frontend runs
-ORIGINS = ["http://localhost:3000"]
+ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+]
 
 # The longest askable question
-MAX_QUERY = 500
+MAX_QUERY = 300
 
 # The longest a saved place's fields may be
 MAX_LABEL = 60
@@ -54,6 +60,10 @@ STATUS_TTL = 20.0
 STREAM_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
 
 CHUNK_COUNT = "SELECT count(*) FROM chunks;"
+
+# What a visitor reads when a question fails
+PAUSED = "Questions are paused right now."
+UNANSWERED = "Couldn't get an answer"
 
 # When the timetable is fetched again each night
 REFRESH_HOUR = 3
@@ -193,20 +203,27 @@ def stream(query: str) -> Iterator[str]:
     try:
         for name, data in ask_stream(query):
             yield event(name, data)
+    except OpenAIError as error:
+        print(f"ask: OpenAI failed: {type(error).__name__}: {error}")
+        yield event("error", {"message": PAUSED})
     except Exception as error:
-        yield event("error", {"message": str(error)})
+        print(f"ask: failed: {type(error).__name__}: {error}")
+        yield event("error", {"message": UNANSWERED})
 
 
 @app.post("/v1/ask")
-def answer_query(question: Question) -> StreamingResponse:
+def answer_query(question: Question, request: Request) -> StreamingResponse:
     """Answers one question as a stream of stage events.
 
     Args:
         question: The posted query.
+        request: Who sent it.
 
     Returns:
         A text/event-stream response.
     """
+    limit_asks(request)
+
     return StreamingResponse(
         stream(question.query),
         media_type="text/event-stream",
@@ -276,7 +293,7 @@ def list_places(x_pace_code: str | None = Header(default=None)) -> list[SavedPla
     return read_places(x_pace_code)
 
 
-@app.post("/v1/places")
+@app.post("/v1/places", dependencies=[Depends(limit_saves)])
 def save_place(
     place: NewPlace, x_pace_code: str | None = Header(default=None)
 ) -> Saved:
@@ -292,7 +309,9 @@ def save_place(
     return add_place(x_pace_code, place.label, place.address)
 
 
-@app.delete("/v1/places/{place_id}", status_code=204)
+@app.delete(
+    "/v1/places/{place_id}", status_code=204, dependencies=[Depends(limit_saves)]
+)
 def drop_place(place_id: int, x_pace_code: str | None = Header(default=None)) -> None:
     """Removes one of the user's saved places.
 
@@ -316,7 +335,7 @@ def list_trips(x_pace_code: str | None = Header(default=None)) -> list[SavedTrip
     return read_trips(x_pace_code)
 
 
-@app.post("/v1/trips")
+@app.post("/v1/trips", dependencies=[Depends(limit_saves)])
 def save_trip(trip: NewTrip, x_pace_code: str | None = Header(default=None)) -> Kept:
     """Saves one trip, giving a code to a user without one.
 
@@ -330,7 +349,9 @@ def save_trip(trip: NewTrip, x_pace_code: str | None = Header(default=None)) -> 
     return add_trip(x_pace_code, trip.origin, trip.destination)
 
 
-@app.delete("/v1/trips/{trip_id}", status_code=204)
+@app.delete(
+    "/v1/trips/{trip_id}", status_code=204, dependencies=[Depends(limit_saves)]
+)
 def drop_trip(trip_id: int, x_pace_code: str | None = Header(default=None)) -> None:
     """Removes one of the user's saved trips.
 
@@ -367,7 +388,8 @@ def timetable_health() -> dict:
         covers_today = bool(active_service_ids(today))
         covers_tomorrow = bool(active_service_ids(tomorrow))
     except (OSError, KeyError, ValueError) as error:
-        return {"ok": False, "warning": f"The timetable can't be read: {error}"}
+        print(f"health: timetable unreadable: {type(error).__name__}: {error}")
+        return {"ok": False, "warning": "The timetable can't be read"}
 
     warning = None
     if not covers_today or not covers_tomorrow:
@@ -397,5 +419,10 @@ def check_health() -> dict:
             cursor.execute(CHUNK_COUNT)
             chunks = cursor.fetchone()[0]
     except psycopg.Error as error:
-        return {"ok": False, "error": str(error), "timetable": timetable}
+        print(f"health: database unreachable: {type(error).__name__}: {error}")
+        return {
+            "ok": False,
+            "error": "The database can't be reached",
+            "timetable": timetable,
+        }
     return {"ok": timetable["ok"], "chunks": chunks, "timetable": timetable}

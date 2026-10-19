@@ -169,26 +169,26 @@ def retrieve(query: str, k: int = 5) -> list[Row]:
     query_vector = Vector(embed_query(client, query))
 
     # Connect and pass Python lists as vectors
-    connection = connect()
-    register_vector(connection)
+    with connect() as connection:
+        register_vector(connection)
 
-    with connection.cursor() as cursor:
-        # Stations named in the query are fetched directly
-        rows = []
-        station_ids = match_station_ids(cursor, query)
-        if station_ids:
-            cursor.execute(FETCH, (query_vector, station_ids))
-            rows.extend(cursor.fetchall())
+        with connection.cursor() as cursor:
+            # Stations named in the query are fetched directly
+            rows = []
+            station_ids = match_station_ids(cursor, query)
+            if station_ids:
+                cursor.execute(FETCH, (query_vector, station_ids))
+                rows.extend(cursor.fetchall())
 
-        # Vector search fills the rest
-        cursor.execute(SEARCH, (query_vector, k))
+            # Vector search fills the rest
+            cursor.execute(SEARCH, (query_vector, k))
 
-        # Track resolved ids so vector results don't duplicate
-        seen = {row[0] for row in rows}
-        for row in cursor.fetchall():
-            if row[0] not in seen and len(rows) < k:
-                rows.append(row)
-        return rows[:k]
+            # Track resolved ids so vector results don't duplicate
+            seen = {row[0] for row in rows}
+            for row in cursor.fetchall():
+                if row[0] not in seen and len(rows) < k:
+                    rows.append(row)
+            return rows[:k]
 
 
 if __name__ == "__main__":

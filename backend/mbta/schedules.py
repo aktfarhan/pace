@@ -374,8 +374,7 @@ def fetch_departures(parsed: ParsedQuery) -> list[Row]:
     retrieved_at = datetime.now(timezone.utc).isoformat()
 
     # The boarding stop and the route come from parse
-    connection = connect()
-    with connection.cursor() as cursor:
+    with connect() as connection, connection.cursor() as cursor:
         origin = parsed["origin"]
         station_ids = match_station_ids(cursor, origin) if origin else []
 

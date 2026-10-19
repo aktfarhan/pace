@@ -4,6 +4,7 @@ import { useAsk } from '@/components/ask/useAsk';
 import { usePage } from '@/hooks/usePage';
 import { setDraft } from '@/components/ask/useDraft';
 import Saved from '@/components/saved/Saved';
+import Boundary from '@/components/layout/Boundary';
 import { useStatus } from '@/hooks/useStatus';
 import { ShowLine } from '@/hooks/useShowLine';
 import { useLineTab } from '@/hooks/useLineTab';
@@ -81,30 +82,44 @@ function App() {
                 >
                     {page === 'Ask' && (
                         <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col gap-6">
-                            <TurnList
-                                turns={turns}
-                                stage={stage}
-                                refresh={refresh}
-                                refreshing={refreshing}
-                                ask={start}
-                                status={status}
-                            />
-                            <AskInput
-                                ref={inputRef}
-                                send={send}
-                                busy={busy}
-                                asked={turns.map((turn) => turn.query)}
-                            />
+                            <Boundary>
+                                <TurnList
+                                    turns={turns}
+                                    stage={stage}
+                                    refresh={refresh}
+                                    refreshing={refreshing}
+                                    ask={start}
+                                    status={status}
+                                />
+                                <AskInput
+                                    ref={inputRef}
+                                    send={send}
+                                    busy={busy}
+                                    asked={turns.map((turn) => turn.query)}
+                                />
+                            </Boundary>
                         </div>
                     )}
                     <Activity mode={page === 'Saved' ? 'visible' : 'hidden'}>
-                        <Saved key={switches} start={toAsk} />
+                        <Boundary>
+                            <Saved key={switches} start={toAsk} />
+                        </Boundary>
                     </Activity>
-                    {page === 'History' && <History ask={askAgain} start={toAsk} />}
+                    {page === 'History' && (
+                        <Boundary>
+                            <History ask={askAgain} start={toAsk} />
+                        </Boundary>
+                    )}
                     <Activity mode={page === 'Transit' ? 'visible' : 'hidden'}>
-                        <Transit tab={tab} choose={setTab} />
+                        <Boundary>
+                            <Transit tab={tab} choose={setTab} />
+                        </Boundary>
                     </Activity>
-                    {page === 'Settings' && <Settings go={setPage} />}
+                    {page === 'Settings' && (
+                        <Boundary>
+                            <Settings go={setPage} />
+                        </Boundary>
+                    )}
                 </main>
             </div>
         </ShowLine>

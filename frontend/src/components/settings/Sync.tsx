@@ -59,6 +59,7 @@ function Sync() {
                 tile="bg-accent/10 text-accent"
                 title="This device's code"
                 note={noteOf()}
+                fit
             >
                 {code !== null && (
                     <div className="flex flex-wrap items-center gap-2">
