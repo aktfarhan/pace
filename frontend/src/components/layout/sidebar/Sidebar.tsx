@@ -2,7 +2,7 @@ import clsx from 'clsx';
 import Expanded from './Expanded';
 import Collapsed from './Collapsed';
 import { onWide, wide } from '@/lib/device';
-import { setDrawer } from '@/hooks/useDrawer';
+import { setDrawer } from './useDrawer';
 import { useState, useSyncExternalStore } from 'react';
 import type { PaneProps } from './tints';
 import type { TransitionEvent } from 'react';

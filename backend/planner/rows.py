@@ -2,10 +2,10 @@
 
 from datetime import date, datetime
 
-from backend.clock import moment_at
+from backend.core.clock import moment_at
 from backend.planner.ends import Endpoint, trip_times
-from backend.retrieve import Row
-from backend.schedules import clock, route_label
+from backend.assistant.retrieve import Row
+from backend.mbta.schedules import clock, route_label
 
 
 def service_moment(service_date: date, seconds: int) -> datetime:

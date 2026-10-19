@@ -1,4 +1,4 @@
-import { drawerOpen } from '@/hooks/useDrawer';
+import { drawerOpen } from '@/components/layout/sidebar/useDrawer';
 import { NAV } from '@/components/layout/sidebar/tints';
 import type { Page } from '@/components/layout/sidebar/tints';
 

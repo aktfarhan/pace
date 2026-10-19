@@ -3,7 +3,7 @@
 from datetime import datetime, time
 from typing import TypedDict
 
-from backend.lateness import (
+from backend.reliability.lateness import (
     LATE_SECONDS,
     ROLLING_SECONDS,
     Reading,
@@ -14,9 +14,9 @@ from backend.lateness import (
     read_typical,
     read_headways,
 )
-from backend.lines import BRANCH_LIST, LINES
-from backend.status import SystemStatus
-from backend.timetable import (
+from backend.mbta.lines import BRANCH_LIST, LINES
+from backend.mbta.status import SystemStatus
+from backend.planner.timetable import (
     SERVICE_ROLLOVER_HOUR,
     gtfs_stamp,
     service_date_at,

@@ -4,7 +4,7 @@ import { X } from 'lucide-react';
 import { REMOVE } from './tints';
 import Risk from '@/components/ask/cards/Risk';
 import Plan from '@/components/ask/cards/Plan';
-import { useRemoval } from '@/hooks/useRemoval';
+import { useRemoval } from './useRemoval';
 import type { RefObject } from 'react';
 import type { Planned } from '@/types/trip';
 

@@ -9,8 +9,8 @@ from collections import defaultdict
 
 from dotenv import load_dotenv
 
-from backend.ask import ask
-from backend.timetable import warm
+from backend.assistant.ask import ask
+from backend.planner.timetable import warm
 
 # Reads the .env
 load_dotenv()

@@ -1,6 +1,6 @@
 import { useId } from 'react';
 import { Undo2 } from 'lucide-react';
-import { UNDO_MS } from '@/hooks/useUndo';
+import { UNDO_MS } from './useUndo';
 import { BUBBLE } from '@/components/layout/tints';
 
 interface UndoProps {

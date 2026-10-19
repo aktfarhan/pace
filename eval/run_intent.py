@@ -9,7 +9,7 @@ from collections import defaultdict
 from openai import OpenAI
 from dotenv import load_dotenv
 
-from backend.classify import INTENT_SCHEMA, VALID_INTENTS
+from backend.assistant.classify import INTENT_SCHEMA, VALID_INTENTS
 from prompts.loader import load_prompt
 
 # Reads the .env

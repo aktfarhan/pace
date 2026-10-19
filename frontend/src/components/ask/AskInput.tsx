@@ -1,8 +1,8 @@
 import { ArrowUp } from 'lucide-react';
 import { readHistory } from '@/lib/history';
 import { useStrayKeys } from '@/hooks/useStrayKeys';
-import { setDraft, useDraft } from '@/hooks/useDraft';
-import type { AskController } from '@/hooks/useAsk';
+import { setDraft, useDraft } from './useDraft';
+import type { AskController } from './useAsk';
 import type { KeyboardEvent, RefObject } from 'react';
 
 interface AskInputProps {

@@ -6,7 +6,7 @@ import { useModal } from '@/hooks/useModal';
 import { onWide, wide } from '@/lib/device';
 import { useSwipeAway } from '@/hooks/useSwipeAway';
 import { useEffect, useRef, useState } from 'react';
-import { setDrawer, useDrawer } from '@/hooks/useDrawer';
+import { setDrawer, useDrawer } from './useDrawer';
 import { ShowLine, useShowLine } from '@/hooks/useShowLine';
 import type { PaneProps } from './tints';
 

@@ -3,8 +3,8 @@
 import sys
 from datetime import date, datetime, timedelta, timezone
 
-from backend.classify import ParsedQuery
-from backend.clock import moment_at, now_in_boston
+from backend.assistant.classify import ParsedQuery
+from backend.core.clock import moment_at, now_in_boston
 from backend.planner.ends import resolve_endpoint, trip_times, walk_between
 from backend.planner.legs import (
     build_legs,
@@ -21,9 +21,9 @@ from backend.planner.rows import (
     render_same_stop,
     render_walk,
 )
-from backend.retrieve import Row
-from backend.schedules import WEEKDAYS, requested_date
-from backend.timetable import (
+from backend.assistant.retrieve import Row
+from backend.mbta.schedules import WEEKDAYS, requested_date
+from backend.planner.timetable import (
     SERVICE_ROLLOVER_HOUR,
     gtfs_stamp,
     load_footpaths,
@@ -34,7 +34,7 @@ from backend.timetable import (
     service_date_at,
     service_seconds,
 )
-from data.schema import connect
+from backend.core.db import connect
 
 # The longest trip offered on foot alone
 MAX_TRIP_WALK_SECONDS = 60 * 60
@@ -271,7 +271,7 @@ def plan_trip(query: str, parsed: ParsedQuery) -> list[Row]:
 
 
 if __name__ == "__main__":
-    from backend.classify import classify
+    from backend.assistant.classify import classify
 
     query = sys.argv[1]
     parsed = classify(query)

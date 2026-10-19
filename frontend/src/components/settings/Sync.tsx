@@ -4,7 +4,7 @@ import Setting from './Setting';
 import { useState } from 'react';
 import OtherCode from './OtherCode';
 import { useMoment } from '@/hooks/useMoment';
-import { useHolding } from '@/hooks/useHolding';
+import { useHolding } from './useHolding';
 import { Check, Copy, KeyRound } from 'lucide-react';
 import { BUTTON, ICON_BUTTON, SAID_MS } from './tints';
 import { readCode, readWas, takeCode, undoCode } from '@/lib/pace';

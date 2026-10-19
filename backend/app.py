@@ -15,15 +15,15 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
-from backend.ask import ask_stream
-from backend.board import Planned, plan_saved
-from backend.clock import now_in_boston
-from backend.lateness import poll, read_resting, resume, save_open
-from backend.places import Saved, SavedPlace, add_place, read_places, remove_place
-from backend.trips import Kept, SavedTrip, add_trip, read_trips, remove_trip
-from backend.risk import warm as warm_model
-from backend.status import SystemStatus, read_status, without_alerts
-from backend.timetable import (
+from backend.assistant.ask import ask_stream
+from backend.saved.board import Planned, plan_saved
+from backend.core.clock import now_in_boston
+from backend.reliability.lateness import poll, read_resting, resume, save_open
+from backend.saved.places import Saved, SavedPlace, add_place, read_places, remove_place
+from backend.saved.trips import Kept, SavedTrip, add_trip, read_trips, remove_trip
+from backend.reliability.risk import warm as warm_model
+from backend.mbta.status import SystemStatus, read_status, without_alerts
+from backend.planner.timetable import (
     active_service_ids,
     gtfs_stamp,
     last_service_date,
@@ -31,8 +31,8 @@ from backend.timetable import (
     warm,
 )
 from backend.transit.page import Transit, read_transit, read_usual
-from data.mbta.scrape_gtfs import refresh
-from data.schema import connect
+from backend.planner.scrape_gtfs import refresh
+from backend.core.db import connect
 
 # Where the frontend runs
 ORIGINS = ["http://localhost:3000"]

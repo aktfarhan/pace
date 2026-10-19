@@ -1,8 +1,8 @@
 import { flushSync } from 'react-dom';
 import { pointing } from '@/lib/device';
-import { useAsk } from '@/hooks/useAsk';
+import { useAsk } from '@/components/ask/useAsk';
 import { usePage } from '@/hooks/usePage';
-import { setDraft } from '@/hooks/useDraft';
+import { setDraft } from '@/components/ask/useDraft';
 import Saved from '@/components/saved/Saved';
 import { useStatus } from '@/hooks/useStatus';
 import { ShowLine } from '@/hooks/useShowLine';

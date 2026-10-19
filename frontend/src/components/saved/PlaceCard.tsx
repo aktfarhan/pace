@@ -4,7 +4,7 @@ import { kindOf } from './kinds';
 import { REMOVE } from './tints';
 import { tintOf } from '@/lib/lines';
 import { MapPinOff, X } from 'lucide-react';
-import { useRemoval } from '@/hooks/useRemoval';
+import { useRemoval } from './useRemoval';
 import { UNTINTED } from '@/components/layout/tints';
 import type { RefObject } from 'react';
 import type { SavedPlace } from '@/types/place';

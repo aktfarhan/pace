@@ -7,8 +7,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from backend.geocode import resolve
-from data.schema import connect
+from backend.geo.geocode import resolve
+from backend.core.db import connect
 
 # Reads the .env
 load_dotenv()

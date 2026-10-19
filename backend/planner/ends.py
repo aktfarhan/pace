@@ -4,7 +4,7 @@ from typing import TypedDict
 
 import psycopg
 
-from backend.geocode import distance_km, resolve
+from backend.geo.geocode import distance_km, resolve
 
 INFINITY = float("inf")
 

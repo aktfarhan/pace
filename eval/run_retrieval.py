@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 from dotenv import load_dotenv
 
-from backend.retrieve import retrieve
+from backend.assistant.retrieve import retrieve
 
 # Reads the .env
 load_dotenv()

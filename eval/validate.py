@@ -9,8 +9,8 @@ from typing import Any
 
 import psycopg
 
-from backend.geocode import distance_km, root_id
-from data.schema import connect
+from backend.geo.geocode import distance_km, root_id
+from backend.core.db import connect
 
 ROOT = Path(__file__).resolve().parent.parent
 EVAL_DIR = ROOT / "eval"
