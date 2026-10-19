@@ -10,7 +10,7 @@ from collections import defaultdict
 from dotenv import load_dotenv
 
 from backend.assistant.ask import ask
-from backend.planner.timetable import warm
+from backend.planner.days import warm
 
 # Reads the .env
 load_dotenv()

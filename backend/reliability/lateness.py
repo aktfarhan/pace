@@ -13,10 +13,10 @@ import psycopg
 from backend.core.clock import ZONE, in_boston, moment_at, now_in_boston
 from backend.mbta.lines import LINES, LINE_OF, BRANCH_ROUTES
 from backend.mbta.client import fetch
+from backend.planner.days import Day, load_service_day
 from backend.planner.timetable import (
     SERVICE_ROLLOVER_HOUR,
     gtfs_stamp,
-    load_service_day,
     load_stops,
     service_date_at,
     service_seconds,
@@ -25,6 +25,12 @@ from backend.core.db import connect
 
 # Tram, subway, commuter rail and bus
 ROUTE_TYPES = "0,1,2,3"
+
+# The only vehicle fields the poller reads
+VEHICLE_FIELDS = "current_status,updated_at"
+
+# Every route drawn under a line
+LINE_ROUTES = frozenset(LINE_OF)
 
 # The lines the delay model answers for
 ROUTES = (
@@ -138,6 +144,9 @@ _summarized: datetime | None = None
 # Arrivals counted since that summary
 _added = 0
 
+# Goes up each time the day's readings gain a quarter
+_saves = 0
+
 # Trips seen standing that the timetable doesn't know
 _skipped: set[str] = set()
 
@@ -151,28 +160,24 @@ _day: date | None = None
 _lock = threading.Lock()
 
 
-@lru_cache(maxsize=2)
-def scheduled_arrivals(target: date, scraped_at: float) -> dict[tuple[str, str], int]:
-    """Reads when each trip is due at each of its stops.
+def scheduled_arrival(
+    day: Day, parents: dict[str, str], trip_id: str, station: str
+) -> int | None:
+    """Reads when a trip is due at a station.
 
     Args:
-        target: The service date.
-        scraped_at: When the GTFS tables were scraped.
+        day: The service day.
+        parents: Platform stop id -> parent station id.
+        trip_id: The trip.
+        station: The station, or a stop with no station.
 
     Returns:
-        Scheduled arrival seconds, keyed by (trip, station).
+        Scheduled arrival seconds at its last call there, or None.
     """
-    _, connections = load_service_day(target, scraped_at)
-    _, _, parents, _ = load_stops(scraped_at)
-
-    timetable = {}
-    for connection in connections:
-        _, _, arrival_seconds, arrival_stop, trip_id, _, _ = connection
-
-        station = parents.get(arrival_stop, arrival_stop)
-        timetable[(trip_id, station)] = arrival_seconds
-
-    return timetable
+    for arrival_seconds, arrival_stop in reversed(day.ridden(trip_id)):
+        if parents.get(arrival_stop, arrival_stop) == station:
+            return arrival_seconds
+    return None
 
 
 def _parents() -> dict[str, str]:
@@ -228,13 +233,14 @@ def record(now: datetime) -> int:
 
     target = service_date_at(now)
     clock = service_seconds(now)
-    timetable = scheduled_arrivals(target, gtfs_stamp())
+    day = load_service_day(target, gtfs_stamp())
     parents = _parents()
 
     # The fleet is read before the lock is taken
     standing = []
     skipped = set()
-    for vehicle in fetch("/vehicles", {"filter[route_type]": ROUTE_TYPES})["data"]:
+    params = {"filter[route_type]": ROUTE_TYPES, "fields[vehicle]": VEHICLE_FIELDS}
+    for vehicle in fetch("/vehicles", params)["data"]:
         if vehicle["attributes"]["current_status"] != "STOPPED_AT":
             continue
 
@@ -260,7 +266,7 @@ def record(now: datetime) -> int:
             continue
 
         station = parents.get(stop_id, stop_id)
-        due = timetable.get((trip_id, station))
+        due = scheduled_arrival(day, parents, trip_id, station)
         if due is None:
             skipped.add(trip_id)
             continue
@@ -416,6 +422,8 @@ def store(now: datetime) -> int:
     Returns:
         How many line counts were written.
     """
+    global _saves
+
     summarize(now)
     opened = bucket_of(now)
 
@@ -446,6 +454,7 @@ def store(now: datetime) -> int:
                     _unsaved.discard(at)
 
         # The day's readings have gained a quarter
+        _saves += 1
         read_series.cache_clear()
 
     # Saved quarters stay an hour
@@ -533,10 +542,11 @@ def first_departures(target: date, after: int, scraped_at: float) -> dict[str, i
     Returns:
         Seconds into the day of the earliest departure, per line and per branch.
     """
-    trips, connections = load_service_day(target, scraped_at)
+    day = load_service_day(target, scraped_at)
+    trips = day.trips
 
     soonest: dict[str, int] = {}
-    for departure, _, _, _, trip_id, _, _ in connections:
+    for departure, _, _, _, trip_id, _, _ in day.rows(day.kept(LINE_ROUTES)):
         # Already gone
         if departure < after:
             continue
@@ -594,10 +604,11 @@ def line_spans(target: date, scraped_at: float) -> dict[str, list[tuple[int, int
     Returns:
         (first departure, last arrival) seconds per trip.
     """
-    trips, connections = load_service_day(target, scraped_at)
+    day = load_service_day(target, scraped_at)
+    trips = day.trips
 
     spans: dict[str, list[int]] = {}
-    for departure, _, arrival, _, trip_id, _, _ in connections:
+    for departure, _, arrival, _, trip_id, _, _ in day.rows(day.kept(LINE_ROUTES)):
         trip = trips.get(trip_id)
 
         # Buses and anything that is not a line
@@ -674,7 +685,8 @@ def read_headways(target: date, hour: int, scraped_at: float) -> dict[str, int]:
     Returns:
         Whole minutes between trains, per line and per branch.
     """
-    trips, connections = load_service_day(target, scraped_at)
+    day = load_service_day(target, scraped_at)
+    trips = day.trips
     _, _, parents, _ = load_stops(scraped_at)
 
     # Trains are read an hour either side of this
@@ -682,7 +694,9 @@ def read_headways(target: date, hour: int, scraped_at: float) -> dict[str, int]:
 
     # Trains booked into each stop
     booked: dict[tuple[str, str, str], list[int]] = {}
-    for _, _, arrival_seconds, arrival_stop, trip_id, _, _ in connections:
+    for _, _, arrival_seconds, arrival_stop, trip_id, _, _ in day.rows(
+        day.kept(LINE_ROUTES)
+    ):
         if abs(arrival_seconds - middle) > HEADWAY_REACH:
             continue
 
@@ -785,25 +799,22 @@ def empty_series() -> dict[str, list[Reading]]:
 
 
 @lru_cache(maxsize=2)
-def read_typical(began: datetime, edge: datetime) -> dict[str, list[TypicalReading]]:
-    """Reads the share each line typically runs at, by time of day.
+def typical_day(began: datetime) -> dict[str, list[tuple[datetime, TypicalReading]]]:
+    """Reads the share each line typically runs at, once per service day.
 
     Args:
         began: When today's service day started.
-        edge: The quarter hour the readings run up to.
 
     Returns:
-        One list of readings per line and per branch, laid over today's clock.
+        (moment, reading) per line and per branch, laid over all of today's clock.
     """
-    typical: dict[str, list[TypicalReading]] = {key: [] for key in empty_series()}
+    typical: dict[str, list[tuple[datetime, TypicalReading]]] = {
+        key: [] for key in empty_series()
+    }
     start = began - timedelta(days=TYPICAL_DAYS)
-    try:
-        with connect() as connection, connection.cursor() as cursor:
-            cursor.execute(READ_READINGS, (list(LINE_OF), start, began))
-            rows = cursor.fetchall()
-    except psycopg.Error as error:
-        print(f"lateness: {error}")
-        return typical
+    with connect() as connection, connection.cursor() as cursor:
+        cursor.execute(READ_READINGS, (list(LINE_OF), start, began))
+        rows = cursor.fetchall()
 
     # A branch counts toward its line
     pooled: dict[tuple[date, str, datetime], list[int]] = {}
@@ -836,22 +847,53 @@ def read_typical(began: datetime, edge: datetime) -> dict[str, list[TypicalReadi
             continue
 
         at = began + timedelta(minutes=minute)
-
-        # Today has not reached this time yet
-        if at >= edge:
-            continue
-
         typical[key].append(
-            {
-                "at": at.astimezone(timezone.utc).isoformat(),
-                "share": round(median(x["share"] for x in stood)),
-                "seen": sum(x["seen"] for x in stood),
-                "reach": round(sum(x["reach"] for x in stood) / len(stood)),
-                "days": len(stood),
-            }
+            (
+                at,
+                {
+                    "at": at.astimezone(timezone.utc).isoformat(),
+                    "share": round(median(x["share"] for x in stood)),
+                    "seen": sum(x["seen"] for x in stood),
+                    "reach": round(sum(x["reach"] for x in stood) / len(stood)),
+                    "days": len(stood),
+                },
+            )
         )
 
     return typical
+
+
+def read_typical(began: datetime, edge: datetime) -> dict[str, list[TypicalReading]]:
+    """Reads the share each line typically runs at, by time of day.
+
+    Args:
+        began: When today's service day started.
+        edge: The quarter hour the readings run up to.
+
+    Returns:
+        One list of readings per line and per branch, laid over today's clock.
+    """
+    # A failed read is tried again next time
+    try:
+        day = typical_day(began)
+    except psycopg.Error as error:
+        print(f"lateness: {error}")
+        return {key: [] for key in empty_series()}
+
+    # Today has not reached this time yet
+    return {
+        key: [reading for at, reading in readings if at < edge]
+        for key, readings in day.items()
+    }
+
+
+def readings_saved() -> int:
+    """Counts how many times the day's readings have gained a quarter.
+
+    Returns:
+        A number that changes whenever read_series would.
+    """
+    return _saves
 
 
 @lru_cache(maxsize=2)

@@ -10,14 +10,16 @@ from datetime import timedelta, timezone
 from functools import lru_cache
 
 import psycopg
+from anyio import to_thread
 from fastapi import Depends, FastAPI, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 from openai import OpenAIError
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend.assistant.ask import ask_stream
+from backend.assistant.retrieve import searchable
 from backend.saved.board import Planned, plan_saved
 from backend.core.clock import now_in_boston
 from backend.reliability.lateness import poll, read_resting, resume, save_open
@@ -25,14 +27,14 @@ from backend.saved.places import Saved, SavedPlace, add_place, read_places, remo
 from backend.saved.trips import Kept, SavedTrip, add_trip, read_trips, remove_trip
 from backend.reliability.risk import warm as warm_model
 from backend.mbta.status import SystemStatus, read_status, without_alerts
+from backend.planner.days import forget, warm
 from backend.planner.timetable import (
     active_service_ids,
     gtfs_stamp,
     last_service_date,
     service_date_at,
-    warm,
 )
-from backend.transit.page import Transit, read_transit, read_usual
+from backend.transit.page import Transit, read_readings, read_transit, read_usual
 from backend.planner.scrape_gtfs import refresh
 from backend.core.db import connect
 from backend.core.limits import limit_asks, limit_saves
@@ -55,6 +57,9 @@ MAX_END = 120
 
 # Seconds before the alert feed is read again
 STATUS_TTL = 20.0
+
+# Requests worked on at once; the rest wait their turn
+MAX_THREADS = 8
 
 # Proxies buffer a stream unless told not to
 STREAM_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
@@ -94,6 +99,8 @@ async def refresh_nightly() -> None:
         # A failed night keeps yesterday's timetable
         try:
             if await asyncio.to_thread(refresh):
+                # The old timetable goes before the new one loads
+                forget()
                 await asyncio.to_thread(warm)
                 print("timetable: refreshed")
             else:
@@ -112,8 +119,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     Yields:
         Once, with the tables loaded and the poller running.
     """
+    to_thread.current_default_thread_limiter().total_tokens = MAX_THREADS
     warm()
     warm_model()
+
+    # The question search, unless the database is not up yet
+    try:
+        await asyncio.to_thread(searchable)
+    except psycopg.Error as error:
+        print(f"search: not loaded yet: {type(error).__name__}: {error}")
 
     # The quarter hour saved when the server last stopped
     await asyncio.to_thread(resume, now_in_boston())
@@ -278,6 +292,16 @@ def check_transit() -> Transit:
     """
     live = status_during(int(time.monotonic() // STATUS_TTL))
     return read_transit(live, now_in_boston())
+
+
+@app.get("/v1/readings")
+def check_readings() -> Response:
+    """Reports how each line has run since the day began, and how it usually runs.
+
+    Returns:
+        The day's readings, which change once a quarter hour.
+    """
+    return Response(read_readings(now_in_boston()), media_type="application/json")
 
 
 @app.get("/v1/places")

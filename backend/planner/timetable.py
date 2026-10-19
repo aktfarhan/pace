@@ -5,13 +5,13 @@ from datetime import date, datetime, timedelta
 from functools import lru_cache
 from pathlib import Path
 
-from backend.core.clock import in_boston, now_in_boston
+from backend.core.clock import in_boston
 
 INFINITY = float("inf")
 
 GTFS_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "raw" / "gtfs"
 
-# Service days held in memory at once
+# Schedule patterns held in memory at once
 CACHED_DAYS = 3
 
 # Before this hour, "today" is still yesterday's MBTA service day
@@ -229,92 +229,6 @@ def load_route_order(scraped_at: float) -> dict:
     return order
 
 
-def load_trips(services: set[str]) -> dict:
-    """Loads the trips running on the target date.
-
-    Args:
-        services: The date's active service ids.
-
-    Returns:
-        trip_id -> (route_id, headsign) for the active trips.
-    """
-    trips = {}
-    for row in read_table("trips.txt"):
-        # Keep a trip only when its service runs that day
-        if row["service_id"] in services:
-            trips[row["trip_id"]] = (row["route_id"], row["trip_headsign"])
-    return trips
-
-
-def load_connections(trips: dict) -> list[tuple]:
-    """Builds the day's connections from stop_times.
-
-    Args:
-        trips: The date's active trips.
-
-    Returns:
-        One connection per consecutive stop pair on an active trip, as
-        (departure_seconds, departure_stop, arrival_seconds,
-        arrival_stop, trip_id, boardable, alightable), sorted by
-        departure time.
-    """
-    # Column indexes from the header
-    stop_times = {}
-    stop_times_path = GTFS_DIR / "stop_times.txt"
-    with stop_times_path.open(encoding="utf-8-sig", newline="") as table_file:
-        reader = csv.reader(table_file)
-        header = next(reader)
-        trip_column = header.index("trip_id")
-        arrival_column = header.index("arrival_time")
-        departure_column = header.index("departure_time")
-        stop_column = header.index("stop_id")
-        sequence_column = header.index("stop_sequence")
-        pickup_column = header.index("pickup_type")
-        drop_off_column = header.index("drop_off_type")
-
-        # Keep the active trips' rows, grouped by trip
-        for row in reader:
-            trip_id = row[trip_column]
-            if trip_id not in trips:
-                continue
-
-            # (sequence, departure, arrival, stop, boardable, alightable)
-            stop_times.setdefault(trip_id, []).append(
-                (
-                    int(row[sequence_column]),
-                    parse_gtfs_time(row[departure_column]),
-                    parse_gtfs_time(row[arrival_column]),
-                    row[stop_column],
-                    row[pickup_column] != "1",
-                    row[drop_off_column] != "1",
-                )
-            )
-
-    # Build connections: pair each trip's consecutive stops
-    connections = []
-    for trip_id, trip_stops in stop_times.items():
-        # Stops in riding order
-        trip_stops.sort()
-        for index in range(len(trip_stops) - 1):
-            _, departure_seconds, _, departure_stop, boardable, _ = trip_stops[index]
-            _, _, arrival_seconds, arrival_stop, _, alightable = trip_stops[index + 1]
-            connections.append(
-                (
-                    departure_seconds,
-                    departure_stop,
-                    arrival_seconds,
-                    arrival_stop,
-                    trip_id,
-                    boardable,
-                    alightable,
-                )
-            )
-
-    # Sort departures in time order
-    connections.sort(key=lambda connection: connection[0])
-    return connections
-
-
 def gtfs_stamp() -> float:
     """Reads when the GTFS tables were last scraped.
 
@@ -322,22 +236,6 @@ def gtfs_stamp() -> float:
         The modification time of stop_times.txt.
     """
     return (GTFS_DIR / "stop_times.txt").stat().st_mtime
-
-
-@lru_cache(maxsize=CACHED_DAYS)
-def load_service_day(target: date, scraped_at: float) -> tuple[dict, list]:
-    """Loads the trips and connections running on a date.
-
-    Args:
-        target: The service date.
-        scraped_at: When the tables were scraped.
-
-    Returns:
-        Tuple of (trips, connections).
-    """
-    services = active_service_ids(target)
-    trips = load_trips(services)
-    return trips, load_connections(trips)
 
 
 def close_footpaths(footpaths: dict) -> dict:
@@ -410,11 +308,3 @@ def load_footpaths(scraped_at: float) -> dict:
     # One entry for every stop reachable
     return close_footpaths(footpaths)
 
-
-def warm() -> None:
-    """Loads every cached table."""
-    stamp = gtfs_stamp()
-    load_stops(stamp)
-    load_routes(stamp)
-    load_footpaths(stamp)
-    load_service_day(service_date_at(now_in_boston()), stamp)

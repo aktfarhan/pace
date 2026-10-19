@@ -6,13 +6,8 @@ from datetime import date, datetime, timedelta, timezone
 from backend.assistant.classify import ParsedQuery
 from backend.core.clock import moment_at, now_in_boston
 from backend.planner.ends import resolve_endpoint, trip_times, walk_between
-from backend.planner.legs import (
-    build_legs,
-    mirror_connections,
-    mirror_footpaths,
-    scan,
-    unmirror_legs,
-)
+from backend.planner.days import load_service_day
+from backend.planner.legs import build_legs, mirror_footpaths, scan, unmirror_legs
 from backend.planner.rows import (
     render_legs,
     render_no_arrival,
@@ -28,7 +23,6 @@ from backend.planner.timetable import (
     gtfs_stamp,
     load_footpaths,
     load_routes,
-    load_service_day,
     load_stops,
     place_on_service_day,
     service_date_at,
@@ -162,7 +156,7 @@ def plan_trip(query: str, parsed: ParsedQuery) -> list[Row]:
         stamp = gtfs_stamp()
         routes = load_routes(stamp)
         footpaths = load_footpaths(stamp)
-        trips, connections = load_service_day(service_date, stamp)
+        day = load_service_day(service_date, stamp)
 
         # A deadline scans backward from the destination
         if deadline is not None:
@@ -170,7 +164,7 @@ def plan_trip(query: str, parsed: ParsedQuery) -> list[Row]:
             for platform, walk_seconds in destination_walks.items():
                 sources[platform] = -deadline + walk_seconds
             best_stop, earliest, arrived_via, boarded = scan(
-                mirror_connections(connections),
+                day.backward(min(sources.values())),
                 mirror_footpaths(footpaths),
                 sources,
                 origin_walks,
@@ -180,7 +174,7 @@ def plan_trip(query: str, parsed: ParsedQuery) -> list[Row]:
             for platform, walk_seconds in origin_walks.items():
                 sources[platform] = depart_seconds + walk_seconds
             best_stop, earliest, arrived_via, boarded = scan(
-                connections, footpaths, sources, destination_walks
+                day.forward(min(sources.values())), footpaths, sources, destination_walks
             )
 
             # Rescan backward so the leave is the latest for the same arrival
@@ -190,7 +184,7 @@ def plan_trip(query: str, parsed: ParsedQuery) -> list[Row]:
                 for platform, walk_seconds in destination_walks.items():
                     sources[platform] = -arrive_by + walk_seconds
                 best_stop, earliest, arrived_via, boarded = scan(
-                    mirror_connections(connections),
+                    day.backward(min(sources.values())),
                     mirror_footpaths(footpaths),
                     sources,
                     origin_walks,
@@ -263,7 +257,7 @@ def plan_trip(query: str, parsed: ParsedQuery) -> list[Row]:
         names,
         parents,
         routes,
-        trips,
+        day.trips,
         retrieved_at,
         deadline,
     )

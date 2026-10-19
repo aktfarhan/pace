@@ -2,38 +2,22 @@
 
 import re
 import sys
+from functools import lru_cache
 from typing import Any
 
-import psycopg
+import numpy as np
 from openai import OpenAI
-from pgvector import Vector
 from pgvector.psycopg import register_vector
 
-from backend.assistant.llm import llm
+from backend.assistant.llm import SHORT_TIMEOUT, llm
 from backend.core.db import EMBEDDING_DIM, connect
 
 MODEL = "text-embedding-3-small"
 
 # Every chunk without the individual bus stops
-SEARCH = """
-    SELECT id, kind, text, metadata, embedding <=> %s AS distance
-    FROM chunks WHERE NOT (kind = 'stop' AND metadata->>'location_type' = '0')
-    ORDER BY distance
-    LIMIT %s;
-"""
-STATIONS = """
-    SELECT id, metadata->>'name' AS name
-    FROM chunks WHERE metadata->>'location_type' = '1';
-"""
-ROUTES = """
-    SELECT metadata->>'route_id' AS route_id,
-           metadata->>'long_name' AS long_name,
-           metadata->>'short_name' AS short_name
-    FROM chunks WHERE kind = 'route';
-"""
-FETCH = """
-    SELECT id, kind, text, metadata, embedding <=> %s AS distance
-    FROM chunks WHERE id = ANY(%s) ORDER BY distance;
+SEARCHABLE = """
+    SELECT id, kind, text, metadata, embedding
+    FROM chunks WHERE NOT (kind = 'stop' AND metadata->>'location_type' = '0');
 """
 
 # Lines that need prefixes
@@ -41,6 +25,73 @@ LINES = {"SL": "silver line", "CR-": "commuter rail"}
 
 # A retrieved row: (id, kind, text, metadata, distance)
 Row = tuple[str, str, str, dict[str, Any], float]
+
+
+class Searchable:
+    """The searchable chunks and their embeddings, held in memory."""
+
+    def __init__(self, rows: list[tuple]):
+        """Keeps the chunks and scales each embedding to length one.
+
+        Args:
+            rows: (id, kind, text, metadata, embedding) per chunk.
+        """
+        self.chunks = [row[:4] for row in rows]
+        self.position = {chunk[0]: index for index, chunk in enumerate(self.chunks)}
+        vectors = np.array([row[4].to_numpy() for row in rows], dtype=np.float32)
+        self.vectors = vectors / np.linalg.norm(vectors, axis=1, keepdims=True)
+
+        # Stations as metadata->>'location_type' = '1' finds them
+        self.stations = [
+            (chunk_id, metadata["name"])
+            for chunk_id, _, _, metadata in self.chunks
+            if str(metadata.get("location_type")) == "1"
+        ]
+
+        # Routes with the fields the matcher reads
+        self.routes = [
+            (meta.get("route_id"), meta.get("long_name"), meta.get("short_name"))
+            for _, kind, _, meta in self.chunks
+            if kind == "route"
+        ]
+
+    def distances(self, vector: list[float]) -> np.ndarray:
+        """Measures the cosine distance from a query to every chunk.
+
+        Args:
+            vector: The query's embedding.
+
+        Returns:
+            One distance per chunk, in chunk order.
+        """
+        query = np.asarray(vector, dtype=np.float32)
+        return 1.0 - self.vectors @ (query / np.linalg.norm(query))
+
+    def row(self, index: int, distances: np.ndarray) -> Row:
+        """Builds one retrieved row.
+
+        Args:
+            index: The chunk's position.
+            distances: Distances from distances().
+
+        Returns:
+            (id, kind, text, metadata, distance).
+        """
+        return (*self.chunks[index], float(distances[index]))
+
+
+@lru_cache(maxsize=1)
+def searchable() -> Searchable:
+    """Reads the searchable chunks once, on first use.
+
+    Returns:
+        The chunks and embeddings in memory.
+    """
+    with connect() as connection:
+        register_vector(connection)
+        with connection.cursor() as cursor:
+            cursor.execute(SEARCHABLE)
+            return Searchable(cursor.fetchall())
 
 
 def embed_query(client: OpenAI, query: str) -> list[float]:
@@ -53,28 +104,24 @@ def embed_query(client: OpenAI, query: str) -> list[float]:
     Returns:
         The query's embedding vector.
     """
-    response = client.embeddings.create(
+    response = client.with_options(timeout=SHORT_TIMEOUT).embeddings.create(
         model=MODEL, input=[query], dimensions=EMBEDDING_DIM
     )
     return response.data[0].embedding
 
 
-def match_station_ids(cursor: psycopg.Cursor, query: str) -> list[str]:
+def match_station_ids(query: str) -> list[str]:
     """Finds stations named in the query.
 
     Args:
-        cursor: An open cursor on the database.
         query: The user's question.
 
     Returns:
         Chunk IDs of stations whose name appears in the query.
     """
-    # Pull every station id and name from the chunks table
-    cursor.execute(STATIONS)
-
     matched = []
     lowered = query.lower()
-    for chunk_id, name in cursor.fetchall():
+    for chunk_id, name in searchable().stations:
         # Split slash names so "Kendall/MIT" matches "kendall" or "mit"
         for part in name.lower().split("/"):
             # Word boundaries so "central" hits "central square" but not "centralized"
@@ -105,23 +152,21 @@ def line_of(route_id: str, long_name: str, short_name: str) -> str:
     return first if first and len(last) == 1 else ""
 
 
-def match_route_ids(cursor: psycopg.Cursor, query: str) -> list[str]:
+def match_route_ids(query: str) -> list[str]:
     """Finds routes named in the query.
 
     Args:
-        cursor: An open cursor on the database.
         query: The user's question.
 
     Returns:
         Route IDs whose long_name or short_name appears in the query.
         Slash names match by part.
     """
-    cursor.execute(ROUTES)
     named = []
     by_line = []
     claimed = set()
     lowered = query.lower()
-    for route_id, long_name, short_name in cursor.fetchall():
+    for route_id, long_name, short_name in searchable().routes:
         # Name phrases this route answers to
         phrases = long_name.lower().split("/")
 
@@ -154,41 +199,39 @@ def match_route_ids(cursor: psycopg.Cursor, query: str) -> list[str]:
     return named
 
 
-def retrieve(query: str, k: int = 5) -> list[Row]:
+def retrieve(query: str, k: int = 5, vector: list[float] | None = None) -> list[Row]:
     """Returns the k chunks most similar to the query.
 
     Args:
         query: The user's question.
         k: How many chunks to return.
+        vector: The query's embedding, when it was already made.
 
     Returns:
         Up to k rows (id, kind, text, metadata, distance), resolved
         stations first, then vector search fills the rest.
     """
-    client = llm()
-    query_vector = Vector(embed_query(client, query))
+    if vector is None:
+        vector = embed_query(llm(), query)
+    index = searchable()
+    distances = index.distances(vector)
 
-    # Connect and pass Python lists as vectors
-    with connect() as connection:
-        register_vector(connection)
+    # Stations named in the query are fetched directly
+    rows = []
+    for chunk_id in match_station_ids(query):
+        rows.append(index.row(index.position[chunk_id], distances))
+    rows.sort(key=lambda row: row[4])
 
-        with connection.cursor() as cursor:
-            # Stations named in the query are fetched directly
-            rows = []
-            station_ids = match_station_ids(cursor, query)
-            if station_ids:
-                cursor.execute(FETCH, (query_vector, station_ids))
-                rows.extend(cursor.fetchall())
+    # Vector search fills the rest
+    nearest = np.argsort(distances, kind="stable")[:k]
 
-            # Vector search fills the rest
-            cursor.execute(SEARCH, (query_vector, k))
-
-            # Track resolved ids so vector results don't duplicate
-            seen = {row[0] for row in rows}
-            for row in cursor.fetchall():
-                if row[0] not in seen and len(rows) < k:
-                    rows.append(row)
-            return rows[:k]
+    # Track resolved ids so vector results don't duplicate
+    seen = {row[0] for row in rows}
+    for position in nearest.tolist():
+        row = index.row(position, distances)
+        if row[0] not in seen and len(rows) < k:
+            rows.append(row)
+    return rows[:k]
 
 
 if __name__ == "__main__":

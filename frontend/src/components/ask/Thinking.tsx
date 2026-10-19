@@ -3,6 +3,9 @@ import { useNow } from '@/hooks/useNow';
 import { TICK } from '@/components/layout/tints';
 import type { Stage } from '@/types/answer';
 
+// When a question has taken long enough to say so
+const SLOW_SECONDS = 10;
+
 const LABELS: Record<Stage, string> = {
     classify: 'Reading the question',
     retrieve: 'Searching the sources',
@@ -34,6 +37,9 @@ function Thinking({ stage }: ThinkingProps) {
                 <span key={stage ?? 'working'} className={`shimmer ${TICK}`}>
                     {stage === null ? 'Working' : LABELS[stage]}
                 </span>
+                {seconds >= SLOW_SECONDS && (
+                    <span className="text-dim"> · This is taking longer than usual</span>
+                )}
             </span>
         </div>
     );

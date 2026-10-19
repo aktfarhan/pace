@@ -12,6 +12,9 @@ load_dotenv()
 # Longest one read might stall before the call is dropped
 LLM_TIMEOUT = httpx.Timeout(20.0, connect=5.0)
 
+# The same for calls whose answer is short
+SHORT_TIMEOUT = httpx.Timeout(8.0, connect=5.0)
+
 # Attempts after the first
 LLM_RETRIES = 1
 

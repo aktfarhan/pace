@@ -4,7 +4,7 @@ import json
 import sys
 from typing import TypedDict
 
-from backend.assistant.llm import llm
+from backend.assistant.llm import SHORT_TIMEOUT, llm
 from prompts.loader import load_prompt
 
 MODEL = "gpt-4o-mini"
@@ -73,7 +73,7 @@ def classify(query: str) -> ParsedQuery:
     Returns:
         The parsed query: intent + trip details.
     """
-    client = llm()
+    client = llm().with_options(timeout=SHORT_TIMEOUT)
     response = client.chat.completions.create(
         model=MODEL,
         temperature=0,

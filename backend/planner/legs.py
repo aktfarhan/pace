@@ -1,42 +1,8 @@
 """Scan a day of connections for the fastest journey between stops."""
 
+from collections.abc import Iterable
+
 INFINITY = float("inf")
-
-
-def mirror_connections(connections: list[tuple]) -> list[tuple]:
-    """Flips the day's connections into reversed time.
-
-    Args:
-        connections: The day's connections, sorted by departure.
-
-    Returns:
-        The connections reversed in time and sorted.
-    """
-    mirrored = []
-    # Reversed so same-minute connections keep reverse riding order
-    for connection in reversed(connections):
-        (
-            departure_seconds,
-            departure_stop,
-            arrival_seconds,
-            arrival_stop,
-            trip_id,
-            boardable,
-            alightable,
-        ) = connection
-        mirrored.append(
-            (
-                -arrival_seconds,
-                arrival_stop,
-                -departure_seconds,
-                departure_stop,
-                trip_id,
-                alightable,
-                boardable,
-            )
-        )
-    mirrored.sort(key=lambda connection: connection[0])
-    return mirrored
 
 
 def mirror_footpaths(footpaths: dict) -> dict:
@@ -56,12 +22,12 @@ def mirror_footpaths(footpaths: dict) -> dict:
 
 
 def scan(
-    connections: list[tuple], footpaths: dict, sources: dict, targets: dict
+    connections: Iterable[tuple], footpaths: dict, sources: dict, targets: dict
 ) -> tuple:
     """Finds the target stop that finishes the trip soonest.
 
     Args:
-        connections: The day's connections, sorted by departure.
+        connections: The connections from the start time on, sorted by departure.
         footpaths: The walking transfers at each stop.
         sources: The stops the scan starts from, each with its time.
         targets: The stops that end the scan, each with the walk still to go.

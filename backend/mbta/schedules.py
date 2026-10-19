@@ -376,10 +376,10 @@ def fetch_departures(parsed: ParsedQuery) -> list[Row]:
     # The boarding stop and the route come from parse
     with connect() as connection, connection.cursor() as cursor:
         origin = parsed["origin"]
-        station_ids = match_station_ids(cursor, origin) if origin else []
+        station_ids = match_station_ids(origin) if origin else []
 
         route = parsed["route"]
-        route_ids = match_route_ids(cursor, route) if route else []
+        route_ids = match_route_ids(route) if route else []
         if not station_ids:
             return []
 

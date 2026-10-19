@@ -25,7 +25,7 @@ function App() {
     const [sidebar, setSidebar] = useState(true);
     const { page, setPage, mainRef, remember } = usePage();
     const { tab, setTab, show } = useLineTab(setPage);
-    const status = useStatus();
+    const status = useStatus(page === 'Transit');
 
     // Remounts Saved on a code switch
     const switches = useSyncExternalStore(onSwitch, switchesSoFar);

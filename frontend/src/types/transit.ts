@@ -14,11 +14,16 @@ export interface TypicalReading extends Reading {
     days: number;
 }
 
-// What /v1/transit returns
-export interface Transit {
-    status: SystemStatus;
+// What /v1/readings returns, once a quarter hour
+export interface Readings {
     series: Record<string, Reading[]>;
     typical: Record<string, TypicalReading[]>;
+}
+
+// What /v1/transit returns
+export interface Live {
+    status: SystemStatus;
+    readings: string;
     headways: Partial<Record<string, number>>;
     resumes: Partial<Record<string, string>>;
     timetable: boolean;
@@ -26,6 +31,9 @@ export interface Transit {
     late_minutes: number;
     rolling_minutes: number;
 }
+
+// The live state and the readings together
+export type Transit = Live & Readings;
 
 // One route a line runs under its main
 interface Branch {

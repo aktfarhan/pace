@@ -7,7 +7,6 @@ import httpx
 
 from backend.mbta.client import Alert, fetch
 from backend.assistant.retrieve import Row, match_route_ids, match_station_ids
-from backend.core.db import connect
 
 # System-wide fetches keep the biggest alerts only
 TOP_ALERTS = 8
@@ -71,9 +70,8 @@ def fetch_alerts(
         no-active-alerts row so the answer can cite it.
     """
     # Match the routes and stations the query names
-    with connect() as connection, connection.cursor() as cursor:
-        route_ids = match_route_ids(cursor, route) if route else []
-        station_ids = match_station_ids(cursor, query)
+    route_ids = match_route_ids(route) if route else []
+    station_ids = match_station_ids(query)
 
     # The route and the stop are asked separately
     scopes = []
