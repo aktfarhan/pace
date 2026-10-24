@@ -8,7 +8,7 @@ from backend.core.clock import in_boston, now_in_boston
 from backend.mbta.client import fetch
 from backend.assistant.retrieve import Row, match_route_ids, match_station_ids
 from backend.planner.timetable import service_date_at, service_seconds
-from backend.core.db import connect
+from backend.core.db import borrow
 
 # Upcoming departures shown per route and direction
 NEXT_DEPARTURES = 3
@@ -374,7 +374,7 @@ def fetch_departures(parsed: ParsedQuery) -> list[Row]:
     retrieved_at = datetime.now(timezone.utc).isoformat()
 
     # The boarding stop and the route come from parse
-    with connect() as connection, connection.cursor() as cursor:
+    with borrow() as connection, connection.cursor() as cursor:
         origin = parsed["origin"]
         station_ids = match_station_ids(origin) if origin else []
 

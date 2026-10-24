@@ -1,12 +1,13 @@
 """The HTTP server: streaming endpoint that answers a query."""
 
 import asyncio
+import gzip
 import json
 import os
 import time
 from collections.abc import AsyncGenerator, Iterator
 from contextlib import asynccontextmanager
-from datetime import timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 
 import psycopg
@@ -16,13 +17,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from openai import OpenAIError
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from backend.assistant.ask import ask_stream
 from backend.assistant.retrieve import searchable
 from backend.saved.board import Planned, plan_saved
+from backend.geo.geocode import forget_places
 from backend.core.clock import now_in_boston
-from backend.reliability.lateness import poll, read_resting, resume, save_open
+from backend.reliability.lateness import (
+    bucket_of,
+    poll,
+    read_resting,
+    readings_saved,
+    resume,
+    save_open,
+)
 from backend.saved.places import Saved, SavedPlace, add_place, read_places, remove_place
 from backend.saved.trips import Kept, SavedTrip, add_trip, read_trips, remove_trip
 from backend.reliability.risk import warm as warm_model
@@ -36,7 +45,7 @@ from backend.planner.timetable import (
 )
 from backend.transit.page import Transit, read_readings, read_transit, read_usual
 from backend.planner.scrape_gtfs import refresh
-from backend.core.db import connect
+from backend.core.db import borrow, close_pool
 from backend.core.limits import limit_asks, limit_saves
 
 # Where the frontend runs
@@ -60,6 +69,9 @@ STATUS_TTL = 20.0
 
 # Requests worked on at once; the rest wait their turn
 MAX_THREADS = 8
+
+# Turns the Transit page into JSON
+TRANSIT_JSON = TypeAdapter(Transit)
 
 # Proxies buffer a stream unless told not to
 STREAM_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
@@ -96,6 +108,8 @@ def seconds_until_refresh() -> float:
 
 async def refresh_timetable() -> None:
     """Fetches the timetable and loads it if it changed."""
+    forget_places()
+
     # A failed refresh keeps the current timetable
     try:
         if await asyncio.to_thread(refresh):
@@ -152,6 +166,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
         # The open quarter hour
         await asyncio.to_thread(save_open)
+        await asyncio.to_thread(close_pool)
 
 
 # The server
@@ -293,15 +308,46 @@ def check_status(alerts: bool = False) -> SystemStatus:
     return without_alerts(live)
 
 
-@app.get("/v1/transit")
-def check_transit() -> Transit:
+@lru_cache(maxsize=1)
+def transit_during(bucket: int, quarter: datetime, saved: int) -> tuple[bytes, bytes]:
+    """Builds the Transit page once per status window.
+
+    Args:
+        bucket: The STATUS_TTL-wide window.
+        quarter: The quarter hour the readings run up to.
+        saved: How many times the readings have gained a quarter.
+
+    Returns:
+        Tuple of (the page as JSON, the same compressed).
+    """
+    page = read_transit(status_during(bucket), now_in_boston())
+    body = TRANSIT_JSON.dump_json(TRANSIT_JSON.validate_python(page))
+    return body, gzip.compress(body, compresslevel=6, mtime=0)
+
+
+@app.get("/v1/transit", response_model=Transit)
+def check_transit(accept_encoding: str = Header(default="")) -> Response:
     """Reports every line's state and how it has run since the day began.
+
+    Args:
+        accept_encoding: What the browser can decompress.
 
     Returns:
         Each line's card with their alerts, and the day's readings.
     """
-    live = status_during(int(time.monotonic() // STATUS_TTL))
-    return read_transit(live, now_in_boston())
+    now = now_in_boston()
+    body, squashed = transit_during(
+        int(time.monotonic() // STATUS_TTL), bucket_of(now), readings_saved()
+    )
+
+    # Same bytes for every visitor in the window
+    if "gzip" in accept_encoding:
+        return Response(
+            squashed,
+            media_type="application/json",
+            headers={"Content-Encoding": "gzip", "Vary": "Accept-Encoding"},
+        )
+    return Response(body, media_type="application/json")
 
 
 @app.get("/v1/readings")
@@ -459,7 +505,7 @@ def check_health() -> JSONResponse:
     """
     timetable = timetable_health()
     try:
-        with connect() as connection, connection.cursor() as cursor:
+        with borrow() as connection, connection.cursor() as cursor:
             cursor.execute(CHUNK_COUNT)
             chunks = cursor.fetchone()[0]
     except psycopg.Error as error:

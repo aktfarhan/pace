@@ -6,6 +6,8 @@ from datetime import datetime, timezone
 import httpx
 
 from backend.mbta.client import Alert, fetch
+from backend.mbta.lines import LINE_OF
+from backend.mbta.status import fetch_rail_alerts
 from backend.assistant.retrieve import Row, match_route_ids, match_station_ids
 
 # System-wide fetches keep the biggest alerts only
@@ -55,6 +57,35 @@ def render_alert(alert: Alert, retrieved_at: str) -> Row:
     return (f"alert:{alert['id']}", "alert", text, metadata, 0.0)
 
 
+def read_scope(
+    base: dict, scope: dict, route_ids: list[str], when: str | None
+) -> list[Alert]:
+    """Reads one scope's alerts.
+
+    Args:
+        base: The parameters every scope shares.
+        scope: The route or stop filter.
+        route_ids: The routes the query names.
+        when: An ISO moment to ask about.
+
+    Returns:
+        The alerts in effect for that scope.
+    """
+    # Only rail routes asked about now are in the shared reading
+    rail_only = route_ids and all(route_id in LINE_OF for route_id in route_ids)
+    if when is None and "filter[route]" in scope and rail_only:
+        named = set(route_ids)
+        found = []
+        for alert in fetch_rail_alerts():
+            for entity in alert["attributes"]["informed_entity"]:
+                if entity.get("route") in named:
+                    found.append(alert)
+                    break
+        return found
+
+    return fetch("/alerts", base | scope)["data"]
+
+
 def fetch_alerts(
     query: str, route: str | None = None, when: str | None = None
 ) -> list[Row]:
@@ -90,7 +121,7 @@ def fetch_alerts(
     alerts = []
     seen = set()
     for scope in scopes:
-        for alert in fetch("/alerts", base | scope)["data"]:
+        for alert in read_scope(base, scope, route_ids, when):
             if alert["id"] not in seen:
                 seen.add(alert["id"])
                 alerts.append(alert)

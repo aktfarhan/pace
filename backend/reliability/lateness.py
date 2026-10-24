@@ -21,7 +21,7 @@ from backend.planner.timetable import (
     service_date_at,
     service_seconds,
 )
-from backend.core.db import connect
+from backend.core.db import borrow
 
 # Tram, subway, commuter rail and bus
 ROUTE_TYPES = "0,1,2,3"
@@ -377,7 +377,7 @@ def write(rows: list[tuple[str, datetime, int, int]]) -> bool:
         Whether the database took them.
     """
     try:
-        with connect() as connection, connection.cursor() as cursor:
+        with borrow() as connection, connection.cursor() as cursor:
             cursor.executemany(WRITE_READING, rows)
     except psycopg.Error as error:
         print(f"lateness: {error}")
@@ -498,7 +498,7 @@ def resume(now: datetime) -> int:
     # The last hour
     edge = opened - timedelta(seconds=KEPT_SECONDS)
     try:
-        with connect() as connection, connection.cursor() as cursor:
+        with borrow() as connection, connection.cursor() as cursor:
             cursor.execute(READ_QUARTERS, (edge, opened))
             rows = cursor.fetchall()
     except psycopg.Error as error:
@@ -812,7 +812,7 @@ def typical_day(began: datetime) -> dict[str, list[tuple[datetime, TypicalReadin
         key: [] for key in empty_series()
     }
     start = began - timedelta(days=TYPICAL_DAYS)
-    with connect() as connection, connection.cursor() as cursor:
+    with borrow() as connection, connection.cursor() as cursor:
         cursor.execute(READ_READINGS, (list(LINE_OF), start, began))
         rows = cursor.fetchall()
 
@@ -909,7 +909,7 @@ def read_series(start: datetime, end: datetime) -> dict[str, list[Reading]]:
     """
     series = empty_series()
     try:
-        with connect() as connection, connection.cursor() as cursor:
+        with borrow() as connection, connection.cursor() as cursor:
             cursor.execute(READ_READINGS, (list(LINE_OF), start, end))
             rows = cursor.fetchall()
     except psycopg.Error as error:

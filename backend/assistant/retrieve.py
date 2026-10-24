@@ -10,7 +10,7 @@ from openai import OpenAI
 from pgvector.psycopg import register_vector
 
 from backend.assistant.llm import SHORT_TIMEOUT, llm
-from backend.core.db import EMBEDDING_DIM, connect
+from backend.core.db import EMBEDDING_DIM, borrow
 
 MODEL = "text-embedding-3-small"
 
@@ -87,7 +87,7 @@ def searchable() -> Searchable:
     Returns:
         The chunks and embeddings in memory.
     """
-    with connect() as connection:
+    with borrow() as connection:
         register_vector(connection)
         with connection.cursor() as cursor:
             cursor.execute(SEARCHABLE)

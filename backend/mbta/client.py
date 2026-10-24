@@ -16,6 +16,11 @@ BASE_URL = "https://api-v3.mbta.com"
 # Longest an MBTA call may run before it is dropped
 MBTA_TIMEOUT = 5.0
 
+# One client for every call
+CLIENT = httpx.Client(
+    base_url=BASE_URL, headers={"X-API-Key": API_KEY}, timeout=MBTA_TIMEOUT
+)
+
 
 class InformedEntity(TypedDict, total=False):
     """One thing an alert names."""
@@ -66,12 +71,7 @@ def fetch(path: str, params: dict) -> dict[str, Any]:
     Returns:
         The decoded JSON body.
     """
-    response = httpx.get(
-        f"{BASE_URL}{path}",
-        params=params,
-        headers={"X-API-Key": API_KEY},
-        timeout=MBTA_TIMEOUT,
-    )
+    response = CLIENT.get(path, params=params)
     response.raise_for_status()
     return response.json()
 

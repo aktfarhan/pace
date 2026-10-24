@@ -4,7 +4,7 @@ import secrets
 from typing import TypedDict
 
 from backend.mbta.station import station_for
-from backend.core.db import connect
+from backend.core.db import borrow
 
 READ = """
     SELECT id, label, address, station, route_id, walk_seconds
@@ -128,7 +128,7 @@ def read_places(code: str | None) -> list[SavedPlace]:
     if code is None:
         return []
 
-    with connect() as connection, connection.cursor() as cursor:
+    with borrow() as connection, connection.cursor() as cursor:
         cursor.execute(READ, (code,))
         rows = cursor.fetchall()
 
@@ -152,7 +152,7 @@ def add_place(code: str | None, label: str, address: str) -> Saved:
     """
     against = code or mint_code()
 
-    with connect() as connection, connection.cursor() as cursor:
+    with borrow() as connection, connection.cursor() as cursor:
         found = station_for(cursor, address)
 
         station = found["name"] if found else None
@@ -175,5 +175,5 @@ def remove_place(code: str | None, place_id: int) -> None:
     if code is None:
         return
 
-    with connect() as connection, connection.cursor() as cursor:
+    with borrow() as connection, connection.cursor() as cursor:
         cursor.execute(REMOVE, (place_id, code))

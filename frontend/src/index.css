@@ -48,8 +48,8 @@
     --color-faint: #6b6b70;
     --color-ghost: #5a5a60;
 
-    --font-sans: Geist, ui-sans-serif, system-ui, sans-serif;
-    --font-mono: 'Geist Mono', ui-monospace, monospace;
+    --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'Geist Mono Variable', ui-monospace, monospace;
 
     --text-label: 0.625rem;
     --text-label--line-height: 1.4;

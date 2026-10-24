@@ -2,12 +2,13 @@
 
 import re
 import sys
+import threading
 from typing import TypedDict
 
 import psycopg
 
 from backend.geo.normalize import normalize_street
-from backend.core.db import connect
+from backend.core.db import borrow
 
 # Trigram floor for a row to be a match
 WORD_SIMILARITY = "0.45"
@@ -53,6 +54,8 @@ PLACE_WINS = 1.005
 
 # Boston, for ranking when the caller gives no location
 DOWNTOWN = (42.3554, -71.0605)
+
+REMEMBERED_MAX = 2000
 
 SET_THRESHOLD = "SELECT set_config('pg_trgm.word_similarity_threshold', %s, false);"
 CANDIDATES = """
@@ -104,6 +107,11 @@ class Place(TypedDict):
     kind: str
     lat: float
     lon: float
+
+
+# Places already found
+_remembered: dict[tuple[str, tuple[float, float]], Place | None] = {}
+_remembered_lock = threading.Lock()
 
 
 def root_id(place_id: str) -> str:
@@ -453,6 +461,12 @@ def lookup(
     return Place(place_id=root_id(place_id), label=display, kind=kind, lat=lat, lon=lon)
 
 
+def forget_places() -> None:
+    """Clears the remembered places."""
+    with _remembered_lock:
+        _remembered.clear()
+
+
 def resolve(
     query: str,
     near: tuple[float, float] | None = None,
@@ -473,12 +487,24 @@ def resolve(
         return None
 
     near = near or DOWNTOWN
-    if cursor is not None:
-        return lookup(cursor, text, near)
+    key = (text, near)
+    with _remembered_lock:
+        if key in _remembered:
+            return _remembered[key]
 
-    # Open one when the caller has none
-    with connect() as connection, connection.cursor() as own_cursor:
-        return lookup(own_cursor, text, near)
+    if cursor is not None:
+        found = lookup(cursor, text, near)
+    else:
+        # Open one when the caller has none
+        with borrow() as connection, connection.cursor() as own_cursor:
+            found = lookup(own_cursor, text, near)
+
+    # The oldest goes first when full
+    with _remembered_lock:
+        if len(_remembered) >= REMEMBERED_MAX:
+            del _remembered[next(iter(_remembered))]
+        _remembered[key] = found
+    return found
 
 
 if __name__ == "__main__":

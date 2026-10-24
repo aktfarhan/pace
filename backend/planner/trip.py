@@ -28,7 +28,7 @@ from backend.planner.timetable import (
     service_date_at,
     service_seconds,
 )
-from backend.core.db import connect
+from backend.core.db import borrow
 
 # The longest trip offered on foot alone
 MAX_TRIP_WALK_SECONDS = 60 * 60
@@ -105,7 +105,7 @@ def plan_trip(query: str, parsed: ParsedQuery) -> list[Row]:
     names, children, parents, positions = load_stops(gtfs_stamp())
 
     # Match the endpoints, origin first
-    with connect() as connection, connection.cursor() as cursor:
+    with borrow() as connection, connection.cursor() as cursor:
         origin = resolve_endpoint(cursor, parsed["origin"], names, children, positions)
         destination = None
         if origin is not None:

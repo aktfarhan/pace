@@ -2,7 +2,9 @@
 
 import json
 import re
+import time
 from datetime import datetime, timezone
+from functools import lru_cache
 from typing import Literal, TypedDict
 
 import httpx
@@ -13,6 +15,9 @@ from backend.planner.timetable import gtfs_stamp, load_routes, load_stops
 
 # Heavy rail, light rail, and commuter rail
 RAIL_TYPES = "0,1,2"
+
+# Seconds before the rail alerts are read again
+ALERT_TTL = 20.0
 
 # A station id, as against a door
 STATION_PREFIX = "place-"
@@ -105,11 +110,15 @@ class SystemStatus(TypedDict):
     ok: bool
 
 
-def fetch_rail_alerts() -> list[Alert]:
-    """Fetches the alerts in effect on the rail lines.
+@lru_cache(maxsize=1)
+def rail_alerts_during(bucket: int) -> list[Alert]:
+    """Fetches the alerts in effect on the rail lines once per bucket of time.
+
+    Args:
+        bucket: The ALERT_TTL-wide window.
 
     Returns:
-        The alerts in effect.
+        The alerts in effect. Only the current bucket is kept.
     """
     params = {
         "filter[datetime]": "NOW",
@@ -117,6 +126,15 @@ def fetch_rail_alerts() -> list[Alert]:
         "filter[activity]": "ALL",
     }
     return fetch("/alerts", params)["data"]
+
+
+def fetch_rail_alerts() -> list[Alert]:
+    """Reads the alerts in effect on the rail lines.
+
+    Returns:
+        The alerts in effect.
+    """
+    return rail_alerts_during(int(time.monotonic() // ALERT_TTL))
 
 
 def earliest_start(alert: Alert) -> str | None:

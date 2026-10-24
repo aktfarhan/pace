@@ -3,7 +3,7 @@
 from typing import TypedDict
 
 from backend.saved.places import mint_code
-from backend.core.db import connect
+from backend.core.db import borrow
 
 READ = "SELECT id, origin, destination FROM saved_trips WHERE code = %s ORDER BY id;"
 ADD = """
@@ -55,7 +55,7 @@ def read_trips(code: str | None) -> list[SavedTrip]:
     if code is None:
         return []
 
-    with connect() as connection, connection.cursor() as cursor:
+    with borrow() as connection, connection.cursor() as cursor:
         cursor.execute(READ, (code,))
         rows = cursor.fetchall()
 
@@ -79,7 +79,7 @@ def add_trip(code: str | None, origin: str, destination: str) -> Kept:
     """
     against = code or mint_code()
 
-    with connect() as connection, connection.cursor() as cursor:
+    with borrow() as connection, connection.cursor() as cursor:
         cursor.execute(ADD, (against, origin, destination))
         row = cursor.fetchone()
 
@@ -96,5 +96,5 @@ def remove_trip(code: str | None, trip_id: int) -> None:
     if code is None:
         return
 
-    with connect() as connection, connection.cursor() as cursor:
+    with borrow() as connection, connection.cursor() as cursor:
         cursor.execute(REMOVE, (trip_id, code))
