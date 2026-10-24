@@ -235,7 +235,7 @@ def gtfs_stamp() -> float:
     Returns:
         The modification time of stop_times.txt.
     """
-    return (GTFS_DIR / "stop_times.txt").stat().st_mtime
+    return float(int((GTFS_DIR / "stop_times.txt").stat().st_mtime))
 
 
 def close_footpaths(footpaths: dict) -> dict:

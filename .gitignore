@@ -33,6 +33,7 @@ Thumbs.db
 models/artifacts/*.pkl
 models/artifacts/*.bin
 !models/artifacts/.gitkeep
+!models/artifacts/delay.pkl
 
 # Raw data and caches
 data/raw/

@@ -14,7 +14,7 @@ from anyio import to_thread
 from fastapi import Depends, FastAPI, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import Response, StreamingResponse
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from openai import OpenAIError
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -77,6 +77,9 @@ REFRESH_MINUTE = 30
 # A timetable ending sooner than this many days gets a warning
 TIMETABLE_WARN_DAYS = 7
 
+# A timetable older than this is checked for a newer one at start-up
+STALE_SECONDS = 20 * 3600
+
 
 def seconds_until_refresh() -> float:
     """Counts down to the next nightly timetable refresh.
@@ -91,22 +94,29 @@ def seconds_until_refresh() -> float:
     return (due.astimezone(timezone.utc) - now.astimezone(timezone.utc)).total_seconds()
 
 
+async def refresh_timetable() -> None:
+    """Fetches the timetable and loads it if it changed."""
+    # A failed refresh keeps the current timetable
+    try:
+        if await asyncio.to_thread(refresh):
+            # The old timetable goes before the new one loads
+            forget()
+            await asyncio.to_thread(warm)
+            print("timetable: refreshed")
+        else:
+            print("timetable: already current")
+    except Exception as error:
+        print(f"timetable: refresh failed: {type(error).__name__}: {error}")
+
+
 async def refresh_nightly() -> None:
-    """Fetches the timetable again each night."""
+    """Fetches the timetable at start-up if it's old, then again each night."""
+    if time.time() - gtfs_stamp() > STALE_SECONDS:
+        await refresh_timetable()
+
     while True:
         await asyncio.sleep(seconds_until_refresh())
-
-        # A failed night keeps yesterday's timetable
-        try:
-            if await asyncio.to_thread(refresh):
-                # The old timetable goes before the new one loads
-                forget()
-                await asyncio.to_thread(warm)
-                print("timetable: refreshed")
-            else:
-                print("timetable: already current")
-        except Exception as error:
-            print(f"timetable: refresh failed: {type(error).__name__}: {error}")
+        await refresh_timetable()
 
 
 @asynccontextmanager
@@ -430,12 +440,22 @@ def timetable_health() -> dict:
     }
 
 
-@app.get("/v1/health")
-def check_health() -> dict:
+@app.api_route("/v1/ping", methods=["GET", "HEAD"])
+async def check_ping() -> dict:
+    """Answers to keep the server awake.
+
+    Returns:
+        Always ok.
+    """
+    return {"ok": True}
+
+
+@app.api_route("/v1/health", methods=["GET", "HEAD"])
+def check_health() -> JSONResponse:
     """Reports whether the database is reachable and the timetable is current.
 
     Returns:
-        The chunk count and the timetable's state, or what went wrong.
+        The chunk count and the timetable's state, with 503 when something is wrong.
     """
     timetable = timetable_health()
     try:
@@ -444,9 +464,13 @@ def check_health() -> dict:
             chunks = cursor.fetchone()[0]
     except psycopg.Error as error:
         print(f"health: database unreachable: {type(error).__name__}: {error}")
-        return {
+        report = {
             "ok": False,
             "error": "The database can't be reached",
             "timetable": timetable,
         }
-    return {"ok": timetable["ok"], "chunks": chunks, "timetable": timetable}
+    else:
+        report = {"ok": timetable["ok"], "chunks": chunks, "timetable": timetable}
+
+    # A monitor reads the status code
+    return JSONResponse(report, status_code=200 if report["ok"] else 503)

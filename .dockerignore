@@ -1,0 +1,7 @@
+*
+!backend/
+!prompts/
+!models/artifacts/delay.pkl
+!requirements-server.txt
+**/__pycache__
+**/.DS_Store

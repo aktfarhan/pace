@@ -1,0 +1,28 @@
+# The API on Render
+services:
+  - type: web
+    name: pace-api
+    runtime: docker
+    plan: free
+    region: virginia
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /v1/ping
+    autoDeployTrigger: commit
+    buildFilter:
+      paths:
+        - backend/**
+        - prompts/**
+        - models/artifacts/**
+        - requirements-server.txt
+        - Dockerfile
+        - .dockerignore
+        - render.yaml
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: MBTA_API_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
