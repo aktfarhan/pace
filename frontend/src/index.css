@@ -304,6 +304,7 @@
         animation:
             edge linear both,
             edge-end linear both;
+        animation-duration: auto;
         animation-timeline: scroll(self);
         animation-range:
             0 1.5rem,

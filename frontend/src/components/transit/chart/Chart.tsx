@@ -8,6 +8,7 @@ import Guide from './Guide';
 import Sweep from './Sweep';
 import Labels from './Labels';
 import Legend from './Legend';
+import Washes from './Washes';
 import { CARD } from '@/components/transit/tints';
 import Callout from './Callout';
 import Heading from './Heading';
@@ -87,6 +88,9 @@ function Chart({
                     >
                         <Axis box={box} start={start} end={end} />
                         <Sweep shown={shown} left={box.left} width={width} height={height}>
+                            {drawn.length > 1 && (
+                                <Washes drawn={drawn} box={box} strengthOf={strengthOf} />
+                            )}
                             {wash !== null && (
                                 <Wash
                                     path={wash.under}

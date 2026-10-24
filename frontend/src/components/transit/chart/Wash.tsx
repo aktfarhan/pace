@@ -6,9 +6,10 @@ interface WashProps {
     text: string;
     box: Box;
     upTo: number | null;
+    soft?: boolean;
 }
 
-function Wash({ path, text, box, upTo }: WashProps) {
+function Wash({ path, text, box, upTo, soft = false }: WashProps) {
     const tint = useId();
     const mask = useId();
 
@@ -23,8 +24,8 @@ function Wash({ path, text, box, upTo }: WashProps) {
                     y2={box.floor}
                     className={text}
                 >
-                    <stop stopColor="currentColor" stopOpacity={0.22} />
-                    <stop offset="100%" stopColor="currentColor" stopOpacity={0.05} />
+                    <stop stopColor="currentColor" stopOpacity={soft ? 0.09 : 0.22} />
+                    <stop offset="100%" stopColor="currentColor" stopOpacity={soft ? 0 : 0.05} />
                 </linearGradient>
                 {upTo !== null && (
                     <mask id={mask}>
