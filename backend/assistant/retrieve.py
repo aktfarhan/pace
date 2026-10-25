@@ -41,13 +41,6 @@ class Searchable:
         vectors = np.array([row[4].to_numpy() for row in rows], dtype=np.float32)
         self.vectors = vectors / np.linalg.norm(vectors, axis=1, keepdims=True)
 
-        # Stations as metadata->>'location_type' = '1' finds them
-        self.stations = [
-            (chunk_id, metadata["name"])
-            for chunk_id, _, _, metadata in self.chunks
-            if str(metadata.get("location_type")) == "1"
-        ]
-
         # Routes with the fields the matcher reads
         self.routes = [
             (meta.get("route_id"), meta.get("long_name"), meta.get("short_name"))
@@ -108,27 +101,6 @@ def embed_query(client: OpenAI, query: str) -> list[float]:
         model=MODEL, input=[query], dimensions=EMBEDDING_DIM
     )
     return response.data[0].embedding
-
-
-def match_station_ids(query: str) -> list[str]:
-    """Finds stations named in the query.
-
-    Args:
-        query: The user's question.
-
-    Returns:
-        Chunk IDs of stations whose name appears in the query.
-    """
-    matched = []
-    lowered = query.lower()
-    for chunk_id, name in searchable().stations:
-        # Split slash names so "Kendall/MIT" matches "kendall" or "mit"
-        for part in name.lower().split("/"):
-            # Word boundaries so "central" hits "central square" but not "centralized"
-            if re.search(rf"\b{re.escape(part)}\b", lowered):
-                matched.append(chunk_id)
-                break
-    return matched
 
 
 def line_of(route_id: str, long_name: str, short_name: str) -> str:
@@ -199,13 +171,19 @@ def match_route_ids(query: str) -> list[str]:
     return named
 
 
-def retrieve(query: str, k: int = 5, vector: list[float] | None = None) -> list[Row]:
+def retrieve(
+    query: str,
+    k: int = 5,
+    vector: list[float] | None = None,
+    stations: list[str] | None = None,
+) -> list[Row]:
     """Returns the k chunks most similar to the query.
 
     Args:
         query: The user's question.
         k: How many chunks to return.
         vector: The query's embedding, when it was already made.
+        stations: Station ids the question's places name.
 
     Returns:
         Up to k rows (id, kind, text, metadata, distance), resolved
@@ -216,10 +194,12 @@ def retrieve(query: str, k: int = 5, vector: list[float] | None = None) -> list[
     index = searchable()
     distances = index.distances(vector)
 
-    # Stations named in the query are fetched directly
+    # Stations named in the question are fetched directly
     rows = []
-    for chunk_id in match_station_ids(query):
-        rows.append(index.row(index.position[chunk_id], distances))
+    for station in stations or []:
+        position = index.position.get(f"stop:{station}")
+        if position is not None:
+            rows.append(index.row(position, distances))
     rows.sort(key=lambda row: row[4])
 
     # Vector search fills the rest

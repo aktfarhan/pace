@@ -302,12 +302,12 @@ def build_card(intent: str, chunks: list[Row]) -> Card | None:
 
 
 if __name__ == "__main__":
-    from backend.assistant.classify import classify
+    from backend.assistant.parse import read_question
     from backend.planner.trip import plan_trip
     from backend.mbta.schedules import fetch_departures
 
     query = sys.argv[1]
-    parsed = classify(query)
+    parsed = read_question(query)
     if parsed["intent"] == "route" or parsed["deadline"]:
         chunks = plan_trip(query, parsed)
     else:

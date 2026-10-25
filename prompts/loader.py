@@ -10,7 +10,7 @@ def load_prompt(name: str) -> str:
     """Reads a prompt file from prompts/ and strips its --- YAML --- header.
 
     Args:
-        name: The prompt filename, e.g. "intent.md".
+        name: The prompt filename, e.g. "generate.md".
 
     Returns:
         The prompt body with the YAML header removed.

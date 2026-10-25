@@ -5,7 +5,7 @@ from functools import lru_cache
 from typing import TypedDict
 
 from backend.assistant.cards import TripCard, trip_card
-from backend.assistant.classify import ParsedQuery
+from backend.assistant.parse import ParsedQuery
 from backend.assistant.retrieve import Row
 from backend.core.clock import now_in_boston
 from backend.planner.trip import plan_trip
@@ -49,6 +49,8 @@ def ends_only(origin: str, destination: str) -> ParsedQuery:
         "edge": None,
         "deadline": None,
         "reason": "",
+        "leave_at": None,
+        "headway": False,
     }
 
 

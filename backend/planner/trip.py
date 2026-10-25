@@ -3,8 +3,8 @@
 import sys
 from datetime import date, datetime, timedelta, timezone
 
-from backend.assistant.classify import ParsedQuery
-from backend.core.clock import moment_at, now_in_boston
+from backend.assistant.parse import ParsedQuery
+from backend.core.clock import moment_at, now_in_boston, parse_clock
 from backend.planner.ends import resolve_endpoint, trip_times, walk_between
 from backend.planner.days import load_service_day
 from backend.planner.legs import build_legs, mirror_footpaths, scan, unmirror_legs
@@ -13,14 +13,16 @@ from backend.planner.rows import (
     render_no_arrival,
     render_no_route,
     render_no_stop,
+    render_none,
     render_same_stop,
     render_walk,
 )
 from backend.assistant.retrieve import Row
-from backend.mbta.schedules import WEEKDAYS, requested_date
+from backend.mbta.schedules import WEEKDAYS, requested_date, spoken_day
 from backend.planner.timetable import (
     SERVICE_ROLLOVER_HOUR,
     gtfs_stamp,
+    last_service_date,
     load_footpaths,
     load_routes,
     load_stops,
@@ -34,35 +36,20 @@ from backend.core.db import borrow
 MAX_TRIP_WALK_SECONDS = 60 * 60
 
 
-def parse_clock(text: str) -> int | None:
-    """Turns a classifier clock string into seconds since midnight.
-
-    Args:
-        text: A clock time like "10:17 PM".
-
-    Returns:
-        Seconds since midnight, or None.
-    """
-    try:
-        moment = datetime.strptime(text, "%I:%M %p")
-    except ValueError:
-        return None
-    return moment.hour * 3600 + moment.minute * 60
-
-
 def deadline_moment(deadline: str, day: str | None, now: datetime) -> tuple | None:
-    """Places a deadline clock time on its service day.
+    """Places a clock time on its service day.
 
     Args:
-        deadline: The classifier's clock string ("10:17 PM").
-        day: The parsed day word, or None.
+        deadline: The clock string.
+        day: The parsed day word or date, or None.
         now: The time of the query.
 
     Returns:
-        Tuple of (service_date, deadline_seconds) or None.
+        Tuple of (service_date, seconds) or None.
     """
     clock_seconds = parse_clock(deadline)
     if clock_seconds is None:
+        print(f"plan: unreadable time {deadline!r}")
         return None
 
     if day in (None, "today", "tonight"):
@@ -135,6 +122,13 @@ def plan_trip(query: str, parsed: ParsedQuery) -> list[Row]:
         if placed is None:
             return []
         service_date, deadline = placed
+    elif parsed.get("leave_at"):
+        placed = deadline_moment(parsed["leave_at"], parsed["day"], now)
+        if placed is None:
+            return []
+        service_date, depart_seconds = placed
+        if (service_date, depart_seconds) < (now_date, now_seconds):
+            service_date, depart_seconds = now_date, now_seconds
     elif parsed["day"]:
         # A named day plans that date around the current time
         service_date = date.fromisoformat(requested_date(parsed["day"], now))
@@ -145,6 +139,15 @@ def plan_trip(query: str, parsed: ParsedQuery) -> list[Row]:
     else:
         service_date = now_date
         depart_seconds = now_seconds
+
+    # A date past the end of the downloaded timetable
+    end = last_service_date(gtfs_stamp())
+    if end is not None and service_date > end:
+        text = (
+            f"The timetable only goes through {spoken_day(end)}, "
+            f"so there are no trips for {spoken_day(service_date)} yet."
+        )
+        return render_none(text, retrieved_at)
 
     origin_walks = origin["walks"]
     destination_walks = destination["walks"]
@@ -264,9 +267,9 @@ def plan_trip(query: str, parsed: ParsedQuery) -> list[Row]:
 
 
 if __name__ == "__main__":
-    from backend.assistant.classify import classify
+    from backend.assistant.parse import read_question
 
     query = sys.argv[1]
-    parsed = classify(query)
+    parsed = read_question(query)
     for chunk_id, kind, text, metadata, distance in plan_trip(query, parsed):
         print(f"{chunk_id} {text}")

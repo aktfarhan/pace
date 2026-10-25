@@ -17,6 +17,7 @@ RUN pip install -r requirements-server.txt
 COPY backend backend
 COPY prompts prompts
 COPY models/artifacts/delay.pkl models/artifacts/delay.pkl
+COPY models/artifacts/parser.pkl models/artifacts/parser.pkl
 
 # The timetable and its cached days
 RUN python -m backend.planner.scrape_gtfs

@@ -4,7 +4,8 @@ from typing import TypedDict
 
 import psycopg
 
-from backend.geo.geocode import distance_km, resolve
+from backend.geo.geocode import Place, distance_km, resolve
+from backend.mbta.stations import station_named
 
 INFINITY = float("inf")
 
@@ -88,7 +89,18 @@ def resolve_endpoint(
     Returns:
         The endpoint, or None when the text names no place.
     """
-    found = resolve(text, near=near, cursor=cursor)
+    # A station named outright skips the map search
+    station = station_named(text)
+    if station is not None:
+        found = Place(
+            place_id=f"station:{station['id']}",
+            label=station["name"],
+            kind="station",
+            lat=station["lat"],
+            lon=station["lon"],
+        )
+    else:
+        found = resolve(text, near=near, cursor=cursor)
     if found is None:
         return None
 

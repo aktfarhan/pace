@@ -115,6 +115,42 @@ Run with `python -m eval.run_places`. Re-run after any change to ranking, normal
 
 ---
 
+## Parse set
+
+Each line in `parse.jsonl` is one question and what the question reader model should read from it.
+
+```
+{
+  "id": "x-0001",
+  "query": "harvard to back bay nov 16 at 7pm",
+  "intent": "route",
+  "origin": "harvard",
+  "destination": "back bay",
+  "day": "2026-11-16",
+  "leave_at": "7:00 PM",
+  "stations": ["place-harsq", "place-bbsta"],
+  "notes": "a written date with a leave time"
+}
+```
+
+Fields:
+
+| Field                  | Values                                                                |
+| ---------------------- | --------------------------------------------------------------------- |
+| `id`                   | the seed id for seed questions, `x-`, `b-`, `h-` or `f-` for the rest |
+| `query`                | the user-facing question                                              |
+| `intent`               | a domain                                                              |
+| `hard`                 | true when turning the question down as off-topic also counts as right |
+| `origin` ... `headway` | the read fields; a missing field means empty                          |
+| `stations`             | station ids the origin and destination point to                       |
+| `notes`                | author commentary                                                     |
+
+Every row is read as if asked on Wednesday, November 4, 2026 at 8:30 AM, so "tomorrow" and "nov 2" always mean the same date. Rows marked `off-topic` are scored on intent alone.
+
+Run with `python -m eval.run_parse`. Re-run after any change to `backend/assistant/parse.py` or `backend/mbta/stations.py`.
+
+---
+
 ## Answer set
 
 `run_answers.py` runs every query in `seed.jsonl` through the full pipeline and checks: answered when it should answer, refused when it should refuse.
@@ -130,6 +166,8 @@ Run with `python -m eval.run_answers`. Re-run after any prompt change.
 - `seed.jsonl` — dev set, tune freely
 - `retrieval.jsonl` — retrieval checks, re-run after any retrieval change
 - `places.jsonl` — destination resolution, re-run after any ranking or places-data change
+- `parse.jsonl` — the question reader, re-run after any parser, training or station change
+- `parse_holdout.jsonl` — the question reader's final-number set
 - `holdout.jsonl` — final-number set, never tuned against
 
 ---

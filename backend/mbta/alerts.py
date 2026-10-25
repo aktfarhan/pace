@@ -8,7 +8,7 @@ import httpx
 from backend.mbta.client import Alert, fetch
 from backend.mbta.lines import LINE_OF
 from backend.mbta.status import fetch_rail_alerts
-from backend.assistant.retrieve import Row, match_route_ids, match_station_ids
+from backend.assistant.retrieve import Row, match_route_ids
 
 # System-wide fetches keep the biggest alerts only
 TOP_ALERTS = 8
@@ -87,28 +87,26 @@ def read_scope(
 
 
 def fetch_alerts(
-    query: str, route: str | None = None, when: str | None = None
+    station_ids: list[str], route: str | None = None, when: str | None = None
 ) -> list[Row]:
     """Fetches the alerts for whatever the query names.
 
     Args:
-        query: The user's question.
-        route: The classifiers route read.
+        station_ids: Station ids the question's places name.
+        route: The route the question names.
         when: An ISO moment to ask about.
 
     Returns:
         Alert rows shaped like retrieved chunks. Zero alerts returns one
         no-active-alerts row so the answer can cite it.
     """
-    # Match the routes and stations the query names
+    # Match the routes the query names
     route_ids = match_route_ids(route) if route else []
-    station_ids = match_station_ids(query)
 
     # The route and the stop are asked separately
     scopes = []
     if station_ids:
-        stop_ids = [chunk_id.removeprefix("stop:") for chunk_id in station_ids]
-        scopes.append({"filter[stop]": ",".join(stop_ids)})
+        scopes.append({"filter[stop]": ",".join(station_ids)})
     if route_ids:
         scopes.append({"filter[route]": ",".join(route_ids)})
     if not scopes:
@@ -150,19 +148,21 @@ def fetch_alerts(
     return rows
 
 
-def blocking_alerts(query: str, route: str | None, when: str | None) -> list[Row]:
+def blocking_alerts(
+    station_ids: list[str], route: str | None, when: str | None
+) -> list[Row]:
     """Fetches the alerts that explain why nothing is scheduled.
 
     Args:
-        query: The user's question.
-        route: The classifiers route read.
+        station_ids: Station ids the question's places name.
+        route: The route the question names.
         when: An ISO moment to ask about.
 
     Returns:
         Alert rows whose effect leaves nothing to board.
     """
     try:
-        alerts = fetch_alerts(query, route, when)
+        alerts = fetch_alerts(station_ids, route, when)
     except httpx.HTTPError:
         return []
 
@@ -176,6 +176,8 @@ def blocking_alerts(query: str, route: str | None, when: str | None) -> list[Row
 
 
 if __name__ == "__main__":
-    query = sys.argv[1]
-    for chunk_id, kind, text, metadata, distance in fetch_alerts(query):
+    from backend.mbta.stations import find_stations
+
+    named = [station["id"] for station in find_stations(sys.argv[1])]
+    for chunk_id, kind, text, metadata, distance in fetch_alerts(named):
         print(f"{chunk_id} {text[:100]}")

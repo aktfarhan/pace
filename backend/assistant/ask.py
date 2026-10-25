@@ -7,9 +7,10 @@ from datetime import datetime
 
 import httpx
 
-from backend.assistant.classify import ParsedQuery, classify
+from backend.assistant.parse import ParsedQuery, read_question
 from backend.core.clock import ZONE, now_in_boston
 from backend.mbta.alerts import blocking_alerts, fetch_alerts
+from backend.mbta.stations import find_stations
 from backend.assistant.cards import build_card, card_sources
 from backend.assistant.generate import Answer, generate
 from backend.planner.trip import plan_trip
@@ -60,6 +61,23 @@ def service_moment(parsed: ParsedQuery) -> str | None:
     return midday.isoformat()
 
 
+def named_stations(parsed: ParsedQuery) -> list[str]:
+    """Finds the stations the question's places name.
+
+    Args:
+        parsed: The read of the query.
+
+    Returns:
+        Station ids, origin first.
+    """
+    ids = []
+    for place in (parsed["origin"], parsed["destination"]):
+        for station in find_stations(place):
+            if station["id"] not in ids:
+                ids.append(station["id"])
+    return ids
+
+
 def refused(reason: str, intent: str) -> Answer:
     """Builds the answer for refusals.
 
@@ -94,14 +112,15 @@ def ask_stream(query: str) -> Iterator[Event]:
     """
     yield ("stage", {"name": "classify"})
     embedding = _embedder.submit(embed_query, llm(), query)
-    parsed = classify(query)
+    parsed = read_question(query)
     intent = parsed["intent"]
     if intent == "off-topic":
         yield ("answer", refused("off-topic", intent))
         return
 
     yield ("stage", {"name": "retrieve"})
-    chunks = retrieve(query, vector=embedding.result())
+    stations = named_stations(parsed)
+    chunks = retrieve(query, vector=embedding.result(), stations=stations)
 
     # Trip answers ground in a computed plan
     if intent == "route":
@@ -115,11 +134,11 @@ def ask_stream(query: str) -> Iterator[Event]:
     # Alert answers ground in live alerts
     if intent == "alert":
         yield ("stage", {"name": "alerts"})
-        chunks = fetch_alerts(query, parsed["route"]) + chunks
+        chunks = fetch_alerts(stations, parsed["route"]) + chunks
 
-    # Schedule answers ground in live departures; leave-by questions in a plan
+    # Schedule answers ground in departures; leave-by questions in a plan
     if intent == "schedule":
-        if parsed["deadline"]:
+        if parsed["deadline"] and parsed["destination"]:
             yield ("stage", {"name": "plan"})
             plan = plan_trip(query, parsed)
             if not plan:
@@ -133,7 +152,7 @@ def ask_stream(query: str) -> Iterator[Event]:
             # The alert behind an empty schedule
             if not departures or departures[0][0] == NO_DEPARTURES:
                 moment = service_moment(parsed)
-                departures += blocking_alerts(query, parsed["route"], moment)
+                departures += blocking_alerts(stations, parsed["route"], moment)
             chunks = departures + chunks
 
     yield ("stage", {"name": "generate"})

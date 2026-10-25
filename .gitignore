@@ -34,6 +34,7 @@ models/artifacts/*.pkl
 models/artifacts/*.bin
 !models/artifacts/.gitkeep
 !models/artifacts/delay.pkl
+!models/artifacts/parser.pkl
 
 # Raw data and caches
 data/raw/
