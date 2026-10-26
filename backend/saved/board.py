@@ -66,7 +66,7 @@ def plan_during(origin: str, destination: str, bucket: int) -> list[Row]:
     Returns:
         The planner's rows.
     """
-    return plan_trip("", ends_only(origin, destination))
+    return plan_trip("", ends_only(origin, destination), guess=True)
 
 
 def plan_saved(code: str | None) -> list[Planned]:

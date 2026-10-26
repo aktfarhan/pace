@@ -11,7 +11,7 @@ from backend.assistant.parse import ParsedQuery, read_question
 from backend.core.clock import ZONE, now_in_boston
 from backend.mbta.alerts import blocking_alerts, fetch_alerts
 from backend.mbta.stations import find_stations
-from backend.assistant.cards import build_card, card_sources
+from backend.assistant.cards import build_card, card_sources, choices_card
 from backend.assistant.generate import Answer, generate
 from backend.planner.trip import plan_trip
 from backend.assistant.llm import llm
@@ -100,6 +100,28 @@ def refused(reason: str, intent: str) -> Answer:
     }
 
 
+def unfound(plan: list, intent: str) -> Answer:
+    """Builds the answer for a trip end that couldn't be found.
+
+    Args:
+        plan: The planner's unfound row.
+        intent: The query's domain label.
+
+    Returns:
+        The planner's own words, with places to pick from.
+    """
+    return {
+        "answer": plan[0][2],
+        "intent": intent,
+        "sources": [],
+        "risk": None,
+        "chance": None,
+        "should_refuse": False,
+        "refuse_reason": None,
+        "card": choices_card(plan),
+    }
+
+
 def ask_stream(query: str) -> Iterator[Event]:
     """Runs the full pipeline.
 
@@ -129,6 +151,11 @@ def ask_stream(query: str) -> Iterator[Event]:
         if not plan:
             yield ("answer", refused("low-confidence", intent))
             return
+
+        # A place that wasn't found needs no written answer
+        if plan[0][0] == "plan:unfound":
+            yield ("answer", unfound(plan, intent))
+            return
         chunks = plan + chunks
 
     # Alert answers ground in live alerts
@@ -143,6 +170,9 @@ def ask_stream(query: str) -> Iterator[Event]:
             plan = plan_trip(query, parsed)
             if not plan:
                 yield ("answer", refused("low-confidence", intent))
+                return
+            if plan[0][0] == "plan:unfound":
+                yield ("answer", unfound(plan, intent))
                 return
             chunks = plan + chunks
         else:

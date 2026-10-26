@@ -4,7 +4,7 @@ from typing import TypedDict
 
 import psycopg
 
-from backend.geo.geocode import Place, distance_km, resolve
+from backend.geo.geocode import Lookup, Place, distance_km, find_place
 from backend.mbta.stations import station_named
 
 INFINITY = float("inf")
@@ -75,7 +75,8 @@ def resolve_endpoint(
     children: dict,
     positions: dict,
     near: tuple | None = None,
-) -> Endpoint | None:
+    guess: bool = False,
+) -> tuple[Endpoint | None, Lookup]:
     """Reads one end of a trip as a place on the map.
 
     Args:
@@ -85,9 +86,11 @@ def resolve_endpoint(
         children: parent station id -> boarding platform ids.
         positions: stop_id -> (lat, lon) for every boardable stop.
         near: Where a chain is measured from, as (lat, lon).
+        guess: Whether an unclear name takes its best guess.
 
     Returns:
-        The endpoint, or None when the text names no place.
+        Tuple of (the endpoint, or None when the text names no one place;
+        the lookup, which says why).
     """
     # A station named outright skips the map search
     station = station_named(text)
@@ -99,10 +102,14 @@ def resolve_endpoint(
             lat=station["lat"],
             lon=station["lon"],
         )
+        lookup = Lookup(place=found, problem=None, choices=[])
     else:
-        found = resolve(text, near=near, cursor=cursor)
+        lookup = find_place(text, near=near, cursor=cursor)
+        found = lookup["place"]
+        if found is None and guess and lookup["problem"] == "unclear":
+            found = lookup["choices"][0]
     if found is None:
-        return None
+        return None, lookup
 
     point = (found["lat"], found["lon"])
 
@@ -131,10 +138,12 @@ def resolve_endpoint(
             walks[platform] = 0
         return Endpoint(
             label=found["label"], point=point, walks=walks, stations={parent}
-        )
+        ), lookup
 
     walks = nearby_platforms(point[0], point[1], positions, MAX_WALK_SECONDS)
-    return Endpoint(label=found["label"], point=point, walks=walks, stations=set())
+    return Endpoint(
+        label=found["label"], point=point, walks=walks, stations=set()
+    ), lookup
 
 
 def trip_times(legs: list[dict], origin: Endpoint, destination: Endpoint) -> tuple:

@@ -1,6 +1,7 @@
 import clsx from 'clsx';
 import { linesOf } from '@/lib/answer';
 import { RISE, SURFACE } from './tints';
+import Choices from './cards/Choices';
 import TripPlan from './cards/TripPlan';
 import FirstLast from './cards/FirstLast';
 import { sourcesOf } from '@/lib/sources';
@@ -11,9 +12,10 @@ interface AnswerCardProps {
     refresh: () => Promise<boolean>;
     refreshing: boolean;
     fresh: boolean;
+    ask: (query: string) => void;
 }
 
-function AnswerCard({ answer, refresh, refreshing, fresh }: AnswerCardProps) {
+function AnswerCard({ answer, refresh, refreshing, fresh, ask }: AnswerCardProps) {
     const sources = sourcesOf(answer.sources);
 
     // Build the body of the answer
@@ -43,6 +45,7 @@ function AnswerCard({ answer, refresh, refreshing, fresh }: AnswerCardProps) {
                         <p key={index}>{line.text}</p>
                     ),
                 )}
+                {answer.card?.kind === 'choices' && <Choices card={answer.card} ask={ask} />}
             </div>
         );
     }

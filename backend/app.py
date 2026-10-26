@@ -12,7 +12,7 @@ from functools import lru_cache
 
 import psycopg
 from anyio import to_thread
-from fastapi import Depends, FastAPI, Header, Request
+from fastapi import Depends, FastAPI, Header, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse, Response, StreamingResponse
@@ -22,7 +22,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 from backend.assistant.ask import ask_stream
 from backend.assistant.retrieve import searchable
 from backend.saved.board import Planned, plan_saved
-from backend.geo.geocode import forget_places
+from backend.geo.geocode import Place, forget_places, suggest
 from backend.core.clock import now_in_boston
 from backend.reliability.lateness import (
     bucket_of,
@@ -46,7 +46,7 @@ from backend.planner.timetable import (
 from backend.transit.page import Transit, read_readings, read_transit, read_usual
 from backend.planner.scrape_gtfs import refresh
 from backend.core.db import borrow, close_pool
-from backend.core.limits import limit_asks, limit_saves
+from backend.core.limits import limit_asks, limit_saves, limit_suggests
 
 # Where the frontend runs
 ORIGINS = [
@@ -387,6 +387,20 @@ def save_place(
         The stored place and the code it belongs to.
     """
     return add_place(x_pace_code, place.label, place.address)
+
+
+@app.get("/v1/places/suggest", dependencies=[Depends(limit_suggests)])
+def suggest_places(q: str = Query(min_length=1, max_length=MAX_ADDRESS)) -> list[Place]:
+    """Suggests the places a half-typed address or name could be.
+
+    Args:
+        q: What the user has typed so far.
+
+    Returns:
+        Up to five places, best first.
+    """
+    with borrow() as connection, connection.cursor() as cursor:
+        return suggest(cursor, q)
 
 
 @app.delete(

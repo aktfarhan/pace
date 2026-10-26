@@ -77,8 +77,20 @@ export interface TripCard {
     retrieved_at: string;
 }
 
+// One place offered when a trip's end wasn't clear
+export interface Choice {
+    label: string;
+    question: string;
+}
+
+// Places to pick from when a trip's end wasn't found or was unclear
+export interface ChoicesCard {
+    kind: 'choices';
+    choices: Choice[];
+}
+
 // The structure an answer draws
-export type Card = DeparturesCard | EdgeCard | TripCard;
+export type Card = DeparturesCard | EdgeCard | TripCard | ChoicesCard;
 
 // How risky a trip is
 export type Level = 'low' | 'mid' | 'high';

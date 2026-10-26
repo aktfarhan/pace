@@ -1,6 +1,6 @@
 import { readStored, writeStored } from '@/lib/prefs';
 import type { Live, Readings } from '@/types/transit';
-import type { SavedPlace } from '@/types/place';
+import type { SavedPlace, Suggestion } from '@/types/place';
 import type { SystemStatus } from '@/types/status';
 import type { Answer, Stage } from '@/types/answer';
 import type { Planned, SavedTrip } from '@/types/trip';
@@ -143,6 +143,16 @@ async function send(path: string, init: RequestInit): Promise<string> {
 // Reads the places saved against a code
 export async function readPlaces(signal: AbortSignal): Promise<SavedPlace[]> {
     const response = await fetch(`${API}/v1/places`, { signal, headers: codeHeader() });
+    if (!response.ok) {
+        throw new Error(`Pace returned ${response.status}`);
+    }
+    return response.json();
+}
+
+// Reads the places a half-typed address could be
+export async function suggestPlaces(typed: string, signal: AbortSignal): Promise<Suggestion[]> {
+    const query = new URLSearchParams({ q: typed });
+    const response = await fetch(`${API}/v1/places/suggest?${query}`, { signal });
     if (!response.ok) {
         throw new Error(`Pace returned ${response.status}`);
     }

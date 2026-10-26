@@ -92,7 +92,21 @@ class TripCard(TypedDict):
     retrieved_at: str
 
 
-type Card = DeparturesCard | EdgeCard | TripCard
+class Choice(TypedDict):
+    """One place offered when a trip's end wasn't clear."""
+
+    label: str
+    question: str
+
+
+class ChoicesCard(TypedDict):
+    """Places to pick from when a trip's end wasn't found or was unclear."""
+
+    kind: Literal["choices"]
+    choices: list[Choice]
+
+
+type Card = DeparturesCard | EdgeCard | TripCard | ChoicesCard
 
 
 def card_sources(card: Card | None) -> set[str]:
@@ -115,6 +129,9 @@ def card_sources(card: Card | None) -> set[str]:
 
     if card["kind"] == "edge":
         return {direction["source"] for direction in card["directions"]}
+
+    if card["kind"] == "choices":
+        return set()
 
     return {departure["source"] for departure in card["departures"]}
 
@@ -280,6 +297,21 @@ def trip_card(chunks: list[Row]) -> TripCard | None:
         "legs": legs,
         "retrieved_at": summary["retrieved_at"],
     }
+
+
+def choices_card(chunks: list[Row]) -> ChoicesCard | None:
+    """Builds the card an unfound trip end carries.
+
+    Args:
+        chunks: The rows the answer stands on.
+
+    Returns:
+        The card, or None when there is nothing to pick.
+    """
+    for chunk_id, _, _, metadata, _ in chunks:
+        if chunk_id == "plan:unfound" and metadata["choices"]:
+            return {"kind": "choices", "choices": metadata["choices"]}
+    return None
 
 
 def build_card(intent: str, chunks: list[Row]) -> Card | None:

@@ -7,7 +7,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from backend.geo.geocode import resolve
+from backend.geo.geocode import find_place, resolve
 from backend.core.db import connect
 
 # Reads the .env
@@ -55,6 +55,9 @@ with output_path.open("w") as output_file:
             found = resolve(query["query"], cursor=cursor)
             latency_ms = int((time.perf_counter() - start_time) * 1000)
 
+            # Why nothing, or several, were found
+            problem = find_place(query["query"], cursor=cursor)["problem"]
+
             # Addresses and streets have no id, use the label as their key
             returned = None
             kind = None
@@ -66,12 +69,17 @@ with output_path.open("w") as output_file:
                 found is None if expects_no_match else returned in query["expected"]
             )
 
+            # A row naming a problem needs that problem too
+            if "problem" in query:
+                is_correct = is_correct and problem == query["problem"]
+
             result = {
                 "query_id": query["id"],
                 "query": query["query"],
                 "expected": query["expected"],
                 "returned": returned,
                 "kind": kind,
+                "problem": problem,
                 "correct": is_correct,
                 "latency_ms": latency_ms,
                 "timestamp": datetime.now(timezone.utc).isoformat(),

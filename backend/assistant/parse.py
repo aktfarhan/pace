@@ -33,7 +33,7 @@ WEEKDAYS = {day[:3]: day for day in ("monday", "tuesday", "wednesday", "thursday
 DAY_CUTOFF = 0.7
 
 # Relative day words by how they start, and the day each one means
-RELATIVE = [("tmrw", "tomorrow"), ("tmr", "tomorrow"), ("tonight", "tonight"), ("tonite", "tonight"),
+RELATIVE = [("tom", "tomorrow"), ("tmrw", "tomorrow"), ("tmr", "tomorrow"), ("tonight", "tonight"), ("tonite", "tonight"),
     ("evening", "tonight"), ("today", "today"), ("morning", "today"), ("afternoon", "today"), ("weekend", "saturday")]
 
 # Dates inside a day phrase: "nov 16", "11/16"
@@ -69,6 +69,26 @@ TIME_VERBS = {"leave", "leaving", "depart", "departing", "go", "going", "head", 
 
 # Small words that sit inside long place names
 NAME_JOINERS = {"of", "the", "de"}
+
+# Words for an apartment or floor inside an address
+UNIT_WORDS = {"apt", "apartment", "unit", "ste", "suite", "fl", "floor", "rm", "room"}
+
+# Words that end a town written after an address
+PLACE_ENDS = {"to", "from", "by", "at", "before", "after", "arrive", "arriving", "leave", "leaving", "on", "in",
+    "and", "then", "today", "tonight", "tomorrow", ",", ".", "?", "!", ";"}
+
+# Most words a town after a comma can have
+TOWN_WORDS = 2
+
+# The state, written after a town
+STATES = {"ma", "mass", "massachusetts"}
+
+# Words a town after a comma never has
+NOT_TOWNS = {"how", "what", "when", "where", "which", "who", "is", "are", "do", "does", "can", "i", "please", "pls",
+    "thanks", "get", "go", "the", "a"}
+
+# A zip code
+ZIP = re.compile(r"\d{5}")
 
 # A clock time inside a time phrase
 CLOCK = re.compile(r"(\d{1,2})(?::(\d{2}))?\s*(am|pm)?|(noon|midnight)")
@@ -238,6 +258,29 @@ def spans(words: list[str], tags: list[str]) -> dict[str, str]:
         if tags[at] == "ROUTE" and words[at].isdigit() and tags[at + 1] in places and (at == 0 or tags[at - 1] == "O"):
             tags[at] = tags[at + 1]
 
+    # An apartment number belongs to its address
+    for at in range(1, len(words)):
+        if tags[at - 1] not in places:
+            continue
+        if words[at] in UNIT_WORDS and at + 1 < len(words):
+            tags[at] = tags[at + 1] = tags[at - 1]
+        elif words[at].startswith("#") and len(words[at]) > 1:
+            tags[at] = tags[at - 1]
+
+    # A town after a comma belongs to its address
+    for at in range(1, len(words) - 1):
+        if words[at] != "," or tags[at - 1] not in places or not words[at + 1].isalpha():
+            continue
+        end, town = at + 1, 0
+        while end < len(words) and words[end] not in PLACE_ENDS and words[end] not in NOT_TOWNS and (
+            tags[end] in ("O", tags[at - 1]) or (tags[end] == "DAY" and ZIP.fullmatch(words[end]))
+        ):
+            town += words[end] not in STATES and not ZIP.fullmatch(words[end])
+            end += 1
+        if town <= TOWN_WORDS:
+            for inside in range(at, end):
+                tags[inside] = tags[at - 1]
+
     # One place name keeps one label
     for at in range(1, len(words)):
         if tags[at] in places and tags[at - 1] in places:
@@ -329,7 +372,7 @@ def place_text(phrase: str | None) -> str | None:
     """
     if not phrase:
         return None
-    place = phrase.removeprefix("the ")
+    place = phrase.removeprefix("the ").strip(" ,")
     return None if place in NOT_PLACES else place
 
 

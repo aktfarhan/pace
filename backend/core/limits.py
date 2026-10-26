@@ -26,11 +26,15 @@ ASK_PER_DAY = 10
 # Each visitor's saves and removals per minute
 SAVE_PER_MINUTE = 20
 
+# Each visitor's address suggestions per minute
+SUGGEST_PER_MINUTE = 60
+
 # What a refused visitor reads
 RUSHED = "That's a lot of questions at once. Try again in a minute."
 TIRED = "You've asked a lot of questions today. Try again tomorrow."
 SPENT = "Pace has answered all the questions it can today. Try again tomorrow."
 HURRIED = "Too many changes at once. Try again in a minute."
+TYPED = "Too many lookups at once. Try again in a minute."
 
 # The one key the site-wide count is kept under
 SITE = "site"
@@ -97,6 +101,7 @@ ASK_MINUTE = Counter(ASK_PER_MINUTE, this_minute)
 ASK_DAY = Counter(ASK_PER_DAY, this_day)
 SITE_DAY = Counter(DAILY_QUESTIONS, this_day)
 SAVE_MINUTE = Counter(SAVE_PER_MINUTE, this_minute)
+SUGGEST_MINUTE = Counter(SUGGEST_PER_MINUTE, this_minute)
 
 
 def visitor(request: Request) -> str:
@@ -145,3 +150,16 @@ def limit_saves(request: Request) -> None:
     """
     if not SAVE_MINUTE.take(visitor(request)):
         raise HTTPException(status_code=429, detail=HURRIED)
+
+
+def limit_suggests(request: Request) -> None:
+    """Refuses an address suggestion past the visitor's cap.
+
+    Args:
+        request: The incoming request.
+
+    Raises:
+        HTTPException: 429 with the reason to show.
+    """
+    if not SUGGEST_MINUTE.take(visitor(request)):
+        raise HTTPException(status_code=429, detail=TYPED)

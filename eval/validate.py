@@ -29,6 +29,7 @@ SEED_FIELDS = [
     "notes",
 ]
 PLACES_FIELDS = ["id", "query", "expected", "display", "notes"]
+PLACES_PROBLEMS = {"unclear", "outside", "missing"}
 RETRIEVAL_FIELDS = ["id", "query", "expected", "notes"]
 
 DOMAINS = {
@@ -197,10 +198,12 @@ def check_shape(name: str, rows: list, prefix: str, fields: list[str]) -> list[s
         if index and number < numbers[index - 1]:
             problems.append(f"{name}: {prefix}-{number:04d} sits out of order")
 
-    # Same fields, same order
+    # Same fields, same order, with a places row's problem last
     for row in rows:
         present = list(row)
-        if present != fields:
+        if present != fields and not (
+            name == "places" and present == fields + ["problem"]
+        ):
             problems.append(f"{name}: {row['id']} field set is {present}")
 
     # No question appears twice
@@ -307,6 +310,12 @@ def check_places(rows: list) -> list[str]:
         # No id listed twice
         if len(expected) != len(set(expected)):
             problems.append(f"places: {row['id']} lists an id twice")
+
+        # A problem is one the search can report
+        if "problem" in row and row["problem"] not in PLACES_PROBLEMS:
+            problems.append(
+                f"places: {row['id']} has an unknown problem {row['problem']!r}"
+            )
 
     return problems
 

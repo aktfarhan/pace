@@ -82,6 +82,9 @@ function chipOf(card: Card | null, refused: boolean): string | null {
         const first = card.directions[0];
         return first === undefined ? null : fullClock(first.time);
     }
+    if (card.kind === 'choices') {
+        return null;
+    }
     const soonest = card.departures[0];
     return soonest === undefined ? null : fullClock(soonest.times[0]);
 }

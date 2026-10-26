@@ -62,6 +62,7 @@ function TurnList({ turns, stage, refresh, refreshing, ask, status }: TurnListPr
                         refresh={() => refresh(turn.id, turn.query, turn.failed)}
                         refreshing={refreshing === turn.id}
                         fresh={turn.id > known}
+                        ask={ask}
                     />
                 </div>
             ))}

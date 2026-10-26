@@ -1,20 +1,24 @@
 """Plan A-to-B transit trips by scanning the day's GTFS timetable."""
 
+import re
 import sys
 from datetime import date, datetime, timedelta, timezone
 
 from backend.assistant.parse import ParsedQuery
 from backend.core.clock import moment_at, now_in_boston, parse_clock
+from backend.geo.geocode import Lookup
 from backend.planner.ends import resolve_endpoint, trip_times, walk_between
 from backend.planner.days import load_service_day
 from backend.planner.legs import build_legs, mirror_footpaths, scan, unmirror_legs
 from backend.planner.rows import (
     render_legs,
     render_no_arrival,
+    render_no_end,
     render_no_route,
     render_no_stop,
     render_none,
     render_same_stop,
+    render_unfound,
     render_walk,
 )
 from backend.assistant.retrieve import Row
@@ -69,43 +73,118 @@ def deadline_moment(deadline: str, day: str | None, now: datetime) -> tuple | No
     return target, clock_seconds
 
 
-def plan_trip(query: str, parsed: ParsedQuery) -> list[Row]:
+def as_typed(query: str, phrase: str) -> str:
+    """Finds a place the reader found as the user wrote it.
+
+    Args:
+        query: The user's question.
+        phrase: The place in the reader's lowercase words.
+
+    Returns:
+        The place with the user's own capitals, or the phrase tidied.
+    """
+    found = typed_span(query, phrase)
+    if found is None:
+        return phrase.replace(" ,", ",")
+    return query[found[0] : found[1]]
+
+
+def typed_span(query: str, phrase: str) -> tuple[int, int] | None:
+    """Finds where a place the reader found sits in the question.
+
+    Args:
+        query: The user's question.
+        phrase: The place in the reader's lowercase words.
+
+    Returns:
+        Tuple of (start, end) in the question, or None.
+    """
+    words = [word for word in phrase.split() if word != ","]
+    if not words:
+        return None
+    pattern = r"[\s,.']*".join(re.escape(word) for word in words)
+    match = re.search(pattern, query, re.IGNORECASE)
+    return match.span() if match else None
+
+
+def asked_with(query: str, phrase: str, label: str) -> str:
+    """Asks the question again with a chosen place in the typed one's spot.
+
+    Args:
+        query: The user's question.
+        phrase: The place in the reader's lowercase words.
+        label: The chosen place.
+
+    Returns:
+        The new question.
+    """
+    found = typed_span(query, phrase)
+    if found is None:
+        return query
+    return query[: found[0]] + label + query[found[1] :]
+
+
+def unfound(query: str, phrase: str, lookup: Lookup, retrieved_at: str) -> list[Row]:
+    """Says one end couldn't be found, offering its choices as new questions.
+
+    Args:
+        query: The user's question.
+        phrase: The end the reader found.
+        lookup: What the place search found.
+        retrieved_at: When the plan was computed.
+
+    Returns:
+        A single unfound row.
+    """
+    questions = []
+    for choice in lookup["choices"]:
+        questions.append(asked_with(query, phrase, choice["label"]))
+    return render_unfound(as_typed(query, phrase), lookup, questions, retrieved_at)
+
+
+def plan_trip(query: str, parsed: ParsedQuery, guess: bool = False) -> list[Row]:
     """Plans the trip a query asks for from the GTFS timetable.
 
     Args:
         query: The user's question.
         parsed: The classifier's read of the query.
+        guess: Whether an unclear place takes its best guess.
 
     Returns:
         Plan rows shaped like retrieved chunks: a summary, then one row
-        per leg. Empty when either endpoint is missing or unknown; a
-        no-route row when the scan finds nothing.
+        per leg. An unfound row when an end is missing, unknown or
+        unclear; a no-route row when the scan finds nothing.
     """
     now = now_in_boston()
     retrieved_at = datetime.now(timezone.utc).isoformat()
 
     # The query has to name both ends
-    if not parsed["origin"] or not parsed["destination"]:
-        return []
+    if not parsed["origin"]:
+        return render_no_end(None, retrieved_at)
+    if not parsed["destination"]:
+        return render_no_end(as_typed(query, parsed["origin"]), retrieved_at)
 
     # Stop names and coordinates
     names, children, parents, positions = load_stops(gtfs_stamp())
 
     # Match the endpoints, origin first
     with borrow() as connection, connection.cursor() as cursor:
-        origin = resolve_endpoint(cursor, parsed["origin"], names, children, positions)
-        destination = None
-        if origin is not None:
-            destination = resolve_endpoint(
-                cursor,
-                parsed["destination"],
-                names,
-                children,
-                positions,
-                origin["point"],
-            )
-    if origin is None or destination is None:
-        return []
+        origin, lookup = resolve_endpoint(
+            cursor, parsed["origin"], names, children, positions, guess=guess
+        )
+        if origin is None:
+            return unfound(query, parsed["origin"], lookup, retrieved_at)
+        destination, lookup = resolve_endpoint(
+            cursor,
+            parsed["destination"],
+            names,
+            children,
+            positions,
+            origin["point"],
+            guess,
+        )
+        if destination is None:
+            return unfound(query, parsed["destination"], lookup, retrieved_at)
 
     # The same station on both ends
     if origin["stations"] & destination["stations"]:

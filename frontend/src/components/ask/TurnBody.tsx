@@ -12,9 +12,10 @@ interface TurnBodyProps {
     refresh: () => Promise<boolean>;
     refreshing: boolean;
     fresh: boolean;
+    ask: (query: string) => void;
 }
 
-function TurnBody({ turn, stage, refresh, refreshing, fresh }: TurnBodyProps) {
+function TurnBody({ turn, stage, refresh, refreshing, fresh, ask }: TurnBodyProps) {
     if (turn.answer !== null) {
         return (
             <AnswerCard
@@ -22,6 +23,7 @@ function TurnBody({ turn, stage, refresh, refreshing, fresh }: TurnBodyProps) {
                 refresh={refresh}
                 refreshing={refreshing}
                 fresh={fresh}
+                ask={ask}
             />
         );
     }

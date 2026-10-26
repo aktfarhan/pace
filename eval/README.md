@@ -106,8 +106,11 @@ Fields:
 | `expected` | place ids that answer the query; empty means no match |
 | `display`  | the answer in words, for reading a failure            |
 | `notes`    | author commentary                                     |
+| `problem`  | optional: `unclear`, `outside` or `missing`           |
 
 `expected` holds root ids, with the alias index dropped. Addresses and streets have no id, so their label is the key. Every id naming the same physical point is listed.
+
+A row with `problem` needs the search to say why it found no one place: `unclear` when two towns are about as near (then `expected` lists the guesses), `outside` when the town named has no such address but other towns do, and `missing` when nothing like it exists.
 
 Rows with an empty `expected` are scored on their own line, so a change that widens matching cannot hide inside the headline count.
 

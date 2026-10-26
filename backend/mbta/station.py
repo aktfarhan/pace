@@ -103,7 +103,7 @@ def station_for(cursor: psycopg.Cursor, address: str) -> Station | None:
     """
     names, children, parents, positions = load_stops(gtfs_stamp())
 
-    end = resolve_endpoint(cursor, address, names, children, positions)
+    end, _ = resolve_endpoint(cursor, address, names, children, positions, guess=True)
     if end is None:
         return None
 

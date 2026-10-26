@@ -1,12 +1,11 @@
-import clsx from 'clsx';
+import { X } from 'lucide-react';
 import Presets from './Presets';
-import { MapPin, X } from 'lucide-react';
+import AddressField from './AddressField';
 import { useRef, useState } from 'react';
 import PlaceActions from './PlaceActions';
 import type { KeyboardEvent, SubmitEvent } from 'react';
 
 const LABEL = 'font-mono text-label text-faint uppercase';
-const PIN = 'pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-faint';
 
 const FIELD =
     'h-10 w-full rounded-xl border border-edge bg-field px-3.5 text-sm text-cream transition-colors outline-none placeholder:text-quiet focus:border-accent/40 contrast-more:focus:border-accent pointer-coarse:text-base';
@@ -100,19 +99,13 @@ function PlaceForm({ keep, close }: PlaceFormProps) {
                 </label>
                 <label className="flex flex-col gap-1.5 sm:col-span-2">
                     <span className={LABEL}>Address</span>
-                    <span className="relative">
-                        <MapPin size={14} strokeWidth={2} className={PIN} />
-                        <input
-                            ref={addressRef}
-                            value={address}
-                            maxLength={MAX_ADDRESS}
-                            onChange={(event) => setAddress(event.target.value)}
-                            enterKeyHint="done"
-                            autoComplete="street-address"
-                            placeholder="1 Main Street, Boston"
-                            className={clsx(FIELD, 'pl-9.5')}
-                        />
-                    </span>
+                    <AddressField
+                        value={address}
+                        change={setAddress}
+                        fieldRef={addressRef}
+                        field={FIELD}
+                        maxLength={MAX_ADDRESS}
+                    />
                 </label>
             </div>
             <PlaceActions failed={failed} saving={saving} ready={ready} close={close} />

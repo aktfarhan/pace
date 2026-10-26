@@ -3,6 +3,7 @@
 from datetime import date, datetime
 
 from backend.core.clock import moment_at
+from backend.geo.geocode import Lookup
 from backend.planner.ends import Endpoint, trip_times
 from backend.assistant.retrieve import Row
 from backend.mbta.schedules import clock, route_label
@@ -74,6 +75,52 @@ def render_none(text: str, retrieved_at: str) -> list[Row]:
         A single no-route row.
     """
     return [("plan:none", "plan", text, {"retrieved_at": retrieved_at}, 0.0)]
+
+
+def render_unfound(
+    typed: str, lookup: Lookup, questions: list[str], retrieved_at: str
+) -> list[Row]:
+    """Says which end of the trip couldn't be found.
+
+    Args:
+        typed: The end as the user wrote it.
+        lookup: What the place search found.
+        questions: The question asked again with each choice in its place.
+        retrieved_at: When the plan was computed.
+
+    Returns:
+        A single unfound row carrying the choices.
+    """
+    choices = []
+    for choice, question in zip(lookup["choices"], questions):
+        choices.append({"label": choice["label"], "question": question})
+
+    if lookup["problem"] == "unclear":
+        text = f"There's more than one {typed}. Which one did you mean?"
+    elif choices:
+        text = f"Couldn't find {typed}. Did you mean one of these?"
+    else:
+        text = f"Couldn't find {typed}. Check the spelling, or add the town."
+    metadata = {"retrieved_at": retrieved_at, "choices": choices}
+    return [("plan:unfound", "plan", text, metadata, 0.0)]
+
+
+def render_no_end(origin: str | None, retrieved_at: str) -> list[Row]:
+    """Says the question names only one end of the trip.
+
+    Args:
+        origin: The start, or None when that is the missing end.
+        retrieved_at: When the plan was computed.
+
+    Returns:
+        A single unfound row with no choices.
+    """
+    if origin is None:
+        text = 'Where does the trip start? Try "from Park Street to Harvard".'
+    else:
+        text = f'Where are you going? Try "from {origin} to Park Street".'
+    metadata = {"retrieved_at": retrieved_at, "choices": []}
+    return [("plan:unfound", "plan", text, metadata, 0.0)]
 
 
 def render_same_stop(retrieved_at: str) -> list[Row]:
