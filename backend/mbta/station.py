@@ -4,7 +4,8 @@ from typing import TypedDict
 
 import psycopg
 
-from backend.planner.ends import Endpoint, resolve_endpoint
+from backend.geo.streets import Place
+from backend.planner.ends import Endpoint, endpoint_at
 from backend.planner.timetable import gtfs_stamp, load_route_order, load_stops
 
 INFINITY = float("inf")
@@ -91,20 +92,16 @@ def nearest_station(
     )
 
 
-def station_for(cursor: psycopg.Cursor, address: str) -> Station | None:
+def station_for(cursor: psycopg.Cursor, place: Place) -> Station | None:
     """Reads the station a saved place walks to.
 
     Args:
         cursor: An open cursor on the database.
-        address: The address as it was typed.
+        place: Where the saved place is.
 
     Returns:
         The nearest station, or None.
     """
     names, children, parents, positions = load_stops(gtfs_stamp())
-
-    end, _ = resolve_endpoint(cursor, address, names, children, positions, guess=True)
-    if end is None:
-        return None
-
+    end = endpoint_at(place, names, children, positions)
     return nearest_station(end, names, parents, station_lines(cursor))

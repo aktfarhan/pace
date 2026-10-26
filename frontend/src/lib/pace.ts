@@ -185,8 +185,16 @@ export async function countUnder(code: string) {
 }
 
 // Saves one place
-export async function savePlace(label: string, address: string): Promise<SavedPlace> {
-    const saved = await post<{ code: string; place: SavedPlace }>('/v1/places', { label, address });
+export async function savePlace(
+    label: string,
+    address: string,
+    spot: Suggestion | null,
+): Promise<SavedPlace> {
+    const saved = await post<{ code: string; place: SavedPlace }>('/v1/places', {
+        label,
+        address,
+        ...(spot && { lat: spot.lat, lon: spot.lon }),
+    });
     return saved.place;
 }
 
@@ -268,7 +276,7 @@ export async function ask(query: string, onStage: (name: Stage) => void): Promis
     try {
         const response = await fetch(`${API}/v1/ask`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...codeHeader() },
             body: JSON.stringify({ query }),
             signal: control.signal,
         });

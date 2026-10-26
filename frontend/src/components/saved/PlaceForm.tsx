@@ -4,6 +4,7 @@ import AddressField from './AddressField';
 import { useRef, useState } from 'react';
 import PlaceActions from './PlaceActions';
 import type { KeyboardEvent, SubmitEvent } from 'react';
+import type { Suggestion } from '@/types/place';
 
 const LABEL = 'font-mono text-label text-faint uppercase';
 
@@ -15,13 +16,14 @@ const MAX_LABEL = 60;
 const MAX_ADDRESS = 200;
 
 interface PlaceFormProps {
-    keep: (label: string, address: string) => Promise<void>;
+    keep: (label: string, address: string, spot: Suggestion | null) => Promise<void>;
     close: () => void;
 }
 
 function PlaceForm({ keep, close }: PlaceFormProps) {
     const [label, setLabel] = useState('');
     const [address, setAddress] = useState('');
+    const [spot, setSpot] = useState<Suggestion | null>(null);
     const [saving, setSaving] = useState(false);
     const [failed, setFailed] = useState(false);
     const addressRef = useRef<HTMLInputElement>(null);
@@ -33,7 +35,7 @@ function PlaceForm({ keep, close }: PlaceFormProps) {
         setSaving(true);
         setFailed(false);
         try {
-            await keep(label.trim(), address.trim());
+            await keep(label.trim(), address.trim(), spot);
             close();
         } catch (error) {
             console.error(error);
@@ -45,6 +47,12 @@ function PlaceForm({ keep, close }: PlaceFormProps) {
     // Escape closes the form
     const handleKey = (event: KeyboardEvent<HTMLFormElement>) => {
         if (event.key === 'Escape' && !saving) close();
+    };
+
+    // A picked suggestion keeps its spot until the address is typed over
+    const changeAddress = (value: string, picked?: Suggestion) => {
+        setAddress(value);
+        setSpot(picked ?? null);
     };
 
     // A preset fills the name and moves on to the address
@@ -101,7 +109,7 @@ function PlaceForm({ keep, close }: PlaceFormProps) {
                     <span className={LABEL}>Address</span>
                     <AddressField
                         value={address}
-                        change={setAddress}
+                        change={changeAddress}
                         fieldRef={addressRef}
                         field={FIELD}
                         maxLength={MAX_ADDRESS}

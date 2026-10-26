@@ -12,7 +12,7 @@ from functools import lru_cache
 
 import psycopg
 from anyio import to_thread
-from fastapi import Depends, FastAPI, Header, Query, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse, Response, StreamingResponse
@@ -32,7 +32,14 @@ from backend.reliability.lateness import (
     resume,
     save_open,
 )
-from backend.saved.places import Saved, SavedPlace, add_place, read_places, remove_place
+from backend.saved.places import (
+    Saved,
+    SavedPlace,
+    Unfound,
+    add_place,
+    read_places,
+    remove_place,
+)
 from backend.saved.trips import Kept, SavedTrip, add_trip, read_trips, remove_trip
 from backend.reliability.risk import warm as warm_model
 from backend.mbta.status import SystemStatus, read_status, without_alerts
@@ -63,6 +70,13 @@ MAX_ADDRESS = 200
 
 # The longest a saved trip's ends may be
 MAX_END = 120
+
+# Where a picked place may be
+LAT_RANGE = (41.0, 43.5)
+LON_RANGE = (-74.0, -69.5)
+
+# What a visitor reads when a saved address can't be found
+NOT_FOUND = "We couldn't find that address"
 
 # Seconds before the alert feed is read again
 STATUS_TTL = 20.0
@@ -206,6 +220,8 @@ class NewPlace(BaseModel):
 
     label: str = Field(min_length=1, max_length=MAX_LABEL)
     address: str = Field(min_length=1, max_length=MAX_ADDRESS)
+    lat: float | None = Field(default=None, ge=LAT_RANGE[0], le=LAT_RANGE[1])
+    lon: float | None = Field(default=None, ge=LON_RANGE[0], le=LON_RANGE[1])
 
 
 class NewTrip(BaseModel):
@@ -230,17 +246,18 @@ def event(name: str, data: dict) -> str:
     return f"event: {name}\ndata: {json.dumps(data)}\n\n"
 
 
-def stream(query: str) -> Iterator[str]:
+def stream(query: str, code: str | None) -> Iterator[str]:
     """Runs the pipeline and formats every step as an event.
 
     Args:
         query: The user's question.
+        code: The user's code.
 
     Yields:
         One event per stage, then the answer.
     """
     try:
-        for name, data in ask_stream(query):
+        for name, data in ask_stream(query, code):
             yield event(name, data)
     except OpenAIError as error:
         print(f"ask: OpenAI failed: {type(error).__name__}: {error}")
@@ -251,12 +268,17 @@ def stream(query: str) -> Iterator[str]:
 
 
 @app.post("/v1/ask")
-def answer_query(question: Question, request: Request) -> StreamingResponse:
+def answer_query(
+    question: Question,
+    request: Request,
+    x_pace_code: str | None = Header(default=None),
+) -> StreamingResponse:
     """Answers one question as a stream of stage events.
 
     Args:
         question: The posted query.
         request: Who sent it.
+        x_pace_code: The user's code.
 
     Returns:
         A text/event-stream response.
@@ -264,7 +286,7 @@ def answer_query(question: Question, request: Request) -> StreamingResponse:
     limit_asks(request)
 
     return StreamingResponse(
-        stream(question.query),
+        stream(question.query, x_pace_code),
         media_type="text/event-stream",
         headers=STREAM_HEADERS,
     )
@@ -386,7 +408,15 @@ def save_place(
     Returns:
         The stored place and the code it belongs to.
     """
-    return add_place(x_pace_code, place.label, place.address)
+    # Both halves of a picked spot, or neither
+    spot = None
+    if place.lat is not None and place.lon is not None:
+        spot = (place.lat, place.lon)
+
+    try:
+        return add_place(x_pace_code, place.label, place.address, spot)
+    except Unfound:
+        raise HTTPException(status_code=422, detail=NOT_FOUND) from None
 
 
 @app.get("/v1/places/suggest", dependencies=[Depends(limit_suggests)])

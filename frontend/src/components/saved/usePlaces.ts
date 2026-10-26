@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { readPlaces, removePlace, savePlace } from '@/lib/pace';
-import type { SavedPlace } from '@/types/place';
+import type { SavedPlace, Suggestion } from '@/types/place';
 
 export function usePlaces() {
     const [places, setPlaces] = useState<SavedPlace[] | null>(null);
@@ -31,8 +31,8 @@ export function usePlaces() {
         setAttempt((count) => count + 1);
     };
 
-    async function keep(label: string, address: string) {
-        const place = await savePlace(label, address);
+    async function keep(label: string, address: string, spot: Suggestion | null) {
+        const place = await savePlace(label, address, spot);
         if (places === null) retry();
         else setPlaces((saved) => saved && [...saved, place]);
     }

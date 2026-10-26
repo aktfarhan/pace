@@ -4,6 +4,7 @@ import { useId, useState } from 'react';
 import { useSuggest } from './useSuggest';
 import { MENU, RAISED, UNPICKED } from '@/components/layout/tints';
 import type { KeyboardEvent, RefObject } from 'react';
+import type { Suggestion } from '@/types/place';
 
 const PIN = 'pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-faint';
 
@@ -18,7 +19,7 @@ const KINDS: Record<string, string> = {
 
 interface AddressFieldProps {
     value: string;
-    change: (value: string) => void;
+    change: (value: string, picked?: Suggestion) => void;
     fieldRef: RefObject<HTMLInputElement | null>;
     field: string;
     maxLength: number;
@@ -42,8 +43,8 @@ function AddressField({ value, change, fieldRef, field, maxLength }: AddressFiel
         setLit(-1);
     };
 
-    const pick = (label: string) => {
-        change(label);
+    const pick = (place: Suggestion) => {
+        change(place.label, place);
         setHidden(true);
         setLit(-1);
     };
@@ -57,7 +58,7 @@ function AddressField({ value, change, fieldRef, field, maxLength }: AddressFiel
             setLit(next < -1 ? found.length - 1 : next >= found.length ? -1 : next);
             event.preventDefault();
         } else if (event.key === 'Enter' && active >= 0) {
-            pick(found[active].label);
+            pick(found[active]);
             event.preventDefault();
         } else if (event.key === 'Escape') {
             setHidden(true);
@@ -99,7 +100,7 @@ function AddressField({ value, change, fieldRef, field, maxLength }: AddressFiel
                             role="option"
                             aria-selected={index === active}
                             onPointerDown={(event) => event.preventDefault()}
-                            onClick={() => pick(place.label)}
+                            onClick={() => pick(place)}
                             onPointerEnter={() => setLit(index)}
                             className={clsx(
                                 'flex cursor-pointer items-center justify-between gap-3 rounded-chip px-2.5 py-2 text-sm transition ease-out pointer-coarse:py-2.75',

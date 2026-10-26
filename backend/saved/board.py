@@ -9,7 +9,10 @@ from backend.assistant.parse import ParsedQuery
 from backend.assistant.retrieve import Row
 from backend.core.clock import now_in_boston
 from backend.planner.trip import plan_trip
+from backend.geo.streets import Place
 from backend.reliability.risk import risk_for
+from backend.saved.keywords import name_key
+from backend.saved.places import saved_spots
 from backend.saved.trips import read_trips
 
 # Seconds one saved trip's plan is shared
@@ -55,18 +58,22 @@ def ends_only(origin: str, destination: str) -> ParsedQuery:
 
 
 @lru_cache(maxsize=PLANS_KEPT)
-def plan_during(origin: str, destination: str, bucket: int) -> list[Row]:
+def plan_during(origin: str, destination: str, bucket: int, mine: tuple) -> list[Row]:
     """Plans one saved trip once per bucket of time.
 
     Args:
         origin: Where the trip starts.
         destination: Where it ends.
         bucket: The PLAN_TTL-wide window.
+        mine: (key, label, lat, lon) per saved name used.
 
     Returns:
         The planner's rows.
     """
-    return plan_trip("", ends_only(origin, destination), guess=True)
+    saved = {}
+    for key, label, lat, lon in mine:
+        saved[key] = Place(place_id=None, label=label, kind="saved", lat=lat, lon=lon)
+    return plan_trip("", ends_only(origin, destination), guess=True, saved=saved)
 
 
 def plan_saved(code: str | None) -> list[Planned]:
@@ -79,11 +86,20 @@ def plan_saved(code: str | None) -> list[Planned]:
         One entry per saved trip, oldest first.
     """
     now = now_in_boston()
+    trips = read_trips(code)
+    spots = saved_spots(code) if trips else {}
 
     planned = []
-    for trip in read_trips(code):
+    for trip in trips:
+        # The saved names this trip uses
+        mine = []
+        for end in (trip["origin"], trip["destination"]):
+            spot = spots.get(name_key(end))
+            if spot is not None:
+                mine.append((name_key(end), spot["label"], spot["lat"], spot["lon"]))
+
         bucket = int(time.monotonic() // PLAN_TTL)
-        rows = plan_during(trip["origin"], trip["destination"], bucket)
+        rows = plan_during(trip["origin"], trip["destination"], bucket, tuple(mine))
 
         # The risk pill and the chance beside it
         found = risk_for(rows, now) if rows else None

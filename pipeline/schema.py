@@ -103,8 +103,15 @@ CREATE_SAVED_PLACES = """
         address      text NOT NULL,
         station      text,
         route_id     text,
-        walk_seconds int
+        walk_seconds int,
+        lat          double precision,
+        lon          double precision
     );
+"""
+ADD_SAVED_PLACES_SPOT = """
+    ALTER TABLE saved_places
+        ADD COLUMN IF NOT EXISTS lat double precision,
+        ADD COLUMN IF NOT EXISTS lon double precision;
 """
 CREATE_SAVED_PLACES_INDEX = """
     CREATE INDEX IF NOT EXISTS saved_places_code
@@ -143,6 +150,7 @@ def ensure_schema(connection: psycopg.Connection) -> None:
         cursor.execute(CREATE_PLACES)
         cursor.execute(CREATE_PLACES_INDEX)
         cursor.execute(CREATE_SAVED_PLACES)
+        cursor.execute(ADD_SAVED_PLACES_SPOT)
         cursor.execute(CREATE_SAVED_PLACES_INDEX)
         cursor.execute(CREATE_SAVED_TRIPS)
         cursor.execute(CREATE_SAVED_TRIPS_INDEX)

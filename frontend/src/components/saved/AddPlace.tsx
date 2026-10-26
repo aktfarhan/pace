@@ -3,9 +3,10 @@ import { flushSync } from 'react-dom';
 import { useRef, useState } from 'react';
 import { MapPin, Plus } from 'lucide-react';
 import Empty from '@/components/layout/Empty';
+import type { Suggestion } from '@/types/place';
 
 interface AddPlaceProps {
-    keep: (label: string, address: string) => Promise<void>;
+    keep: (label: string, address: string, spot: Suggestion | null) => Promise<void>;
     first: boolean;
 }
 

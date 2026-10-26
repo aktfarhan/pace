@@ -7,6 +7,7 @@ from datetime import date, datetime, timedelta, timezone
 from backend.assistant.parse import ParsedQuery
 from backend.core.clock import moment_at, now_in_boston, parse_clock
 from backend.geo.geocode import Lookup
+from backend.geo.streets import Place
 from backend.planner.ends import resolve_endpoint, trip_times, walk_between
 from backend.planner.days import load_service_day
 from backend.planner.legs import build_legs, mirror_footpaths, scan, unmirror_legs
@@ -142,13 +143,19 @@ def unfound(query: str, phrase: str, lookup: Lookup, retrieved_at: str) -> list[
     return render_unfound(as_typed(query, phrase), lookup, questions, retrieved_at)
 
 
-def plan_trip(query: str, parsed: ParsedQuery, guess: bool = False) -> list[Row]:
+def plan_trip(
+    query: str,
+    parsed: ParsedQuery,
+    guess: bool = False,
+    saved: dict[str, Place] | None = None,
+) -> list[Row]:
     """Plans the trip a query asks for from the GTFS timetable.
 
     Args:
         query: The user's question.
         parsed: The classifier's read of the query.
         guess: Whether an unclear place takes its best guess.
+        saved: The user's saved name key -> place.
 
     Returns:
         Plan rows shaped like retrieved chunks: a summary, then one row
@@ -170,7 +177,13 @@ def plan_trip(query: str, parsed: ParsedQuery, guess: bool = False) -> list[Row]
     # Match the endpoints, origin first
     with borrow() as connection, connection.cursor() as cursor:
         origin, lookup = resolve_endpoint(
-            cursor, parsed["origin"], names, children, positions, guess=guess
+            cursor,
+            parsed["origin"],
+            names,
+            children,
+            positions,
+            guess=guess,
+            saved=saved,
         )
         if origin is None:
             return unfound(query, parsed["origin"], lookup, retrieved_at)
@@ -182,6 +195,7 @@ def plan_trip(query: str, parsed: ParsedQuery, guess: bool = False) -> list[Row]
             positions,
             origin["point"],
             guess,
+            saved,
         )
         if destination is None:
             return unfound(query, parsed["destination"], lookup, retrieved_at)
@@ -346,9 +360,14 @@ def plan_trip(query: str, parsed: ParsedQuery, guess: bool = False) -> list[Row]
 
 
 if __name__ == "__main__":
-    from backend.assistant.parse import read_question
+    from backend.saved.keywords import read_with_saved
+    from backend.saved.places import saved_spots
 
+    # An optional code makes its saved names count as places
     query = sys.argv[1]
-    parsed = read_question(query)
-    for chunk_id, kind, text, metadata, distance in plan_trip(query, parsed):
+    saved = saved_spots(sys.argv[2] if len(sys.argv) > 2 else None)
+    parsed = read_with_saved(query, saved)
+    for chunk_id, kind, text, metadata, distance in plan_trip(
+        query, parsed, saved=saved
+    ):
         print(f"{chunk_id} {text}")

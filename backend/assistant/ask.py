@@ -7,7 +7,7 @@ from datetime import datetime
 
 import httpx
 
-from backend.assistant.parse import ParsedQuery, read_question
+from backend.assistant.parse import ParsedQuery
 from backend.core.clock import ZONE, now_in_boston
 from backend.mbta.alerts import blocking_alerts, fetch_alerts
 from backend.mbta.stations import find_stations
@@ -24,6 +24,8 @@ from backend.mbta.schedules import (
     requested_date,
 )
 from backend.planner.timetable import service_date_at
+from backend.saved.keywords import read_with_saved
+from backend.saved.places import saved_spots
 
 # Midday on the asked date
 ALERT_HOUR = 12
@@ -61,17 +63,20 @@ def service_moment(parsed: ParsedQuery) -> str | None:
     return midday.isoformat()
 
 
-def named_stations(parsed: ParsedQuery) -> list[str]:
+def named_stations(parsed: ParsedQuery, saved: dict) -> list[str]:
     """Finds the stations the question's places name.
 
     Args:
         parsed: The read of the query.
+        saved: The user's saved name keys.
 
     Returns:
         Station ids, origin first.
     """
     ids = []
     for place in (parsed["origin"], parsed["destination"]):
+        if place in saved:
+            continue
         for station in find_stations(place):
             if station["id"] not in ids:
                 ids.append(station["id"])
@@ -122,11 +127,12 @@ def unfound(plan: list, intent: str) -> Answer:
     }
 
 
-def ask_stream(query: str) -> Iterator[Event]:
+def ask_stream(query: str, code: str | None = None) -> Iterator[Event]:
     """Runs the full pipeline.
 
     Args:
         query: The user's question.
+        code: The user's code.
 
     Yields:
         ("stage", the stage starting) for each step,
@@ -134,20 +140,21 @@ def ask_stream(query: str) -> Iterator[Event]:
     """
     yield ("stage", {"name": "classify"})
     embedding = _embedder.submit(embed_query, llm(), query)
-    parsed = read_question(query)
+    saved = saved_spots(code)
+    parsed = read_with_saved(query, saved)
     intent = parsed["intent"]
     if intent == "off-topic":
         yield ("answer", refused("off-topic", intent))
         return
 
     yield ("stage", {"name": "retrieve"})
-    stations = named_stations(parsed)
+    stations = named_stations(parsed, saved)
     chunks = retrieve(query, vector=embedding.result(), stations=stations)
 
     # Trip answers ground in a computed plan
     if intent == "route":
         yield ("stage", {"name": "plan"})
-        plan = plan_trip(query, parsed)
+        plan = plan_trip(query, parsed, saved=saved)
         if not plan:
             yield ("answer", refused("low-confidence", intent))
             return
@@ -167,7 +174,7 @@ def ask_stream(query: str) -> Iterator[Event]:
     if intent == "schedule":
         if parsed["deadline"] and parsed["destination"]:
             yield ("stage", {"name": "plan"})
-            plan = plan_trip(query, parsed)
+            plan = plan_trip(query, parsed, saved=saved)
             if not plan:
                 yield ("answer", refused("low-confidence", intent))
                 return
