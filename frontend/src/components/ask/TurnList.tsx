@@ -2,6 +2,9 @@ import clsx from 'clsx';
 import { RISE } from './tints';
 import TurnBody from './TurnBody';
 import Starters from './Starters';
+import PlacePill from './PlacePill';
+import { placesNamed } from './named';
+import { useSavedPlaces } from './useSavedPlaces';
 import { useLayoutEffect, useRef, useState } from 'react';
 import type { Turn } from '@/types/turn';
 import type { Picked, Stage } from '@/types/answer';
@@ -18,6 +21,10 @@ interface TurnListProps {
 
 function TurnList({ turns, stage, refresh, refreshing, ask, status }: TurnListProps) {
     const list = useRef<HTMLDivElement>(null);
+    const places = useSavedPlaces();
+
+    // The saved places a question names
+    const named = (turn: Turn) => placesNamed(turn.query, places);
 
     // New questions fade in
     const [known] = useState(() => {
@@ -50,12 +57,19 @@ function TurnList({ turns, stage, refresh, refreshing, ask, status }: TurnListPr
                 <div key={turn.id} className="flex flex-col gap-2">
                     <p
                         className={clsx(
-                            'max-w-md self-end rounded-tile bg-field px-4.5 py-3 text-sm/snug wrap-break-word text-cream',
+                            'max-w-md self-end rounded-tile bg-field px-4.5 py-2.5 text-sm/snug wrap-break-word text-cream',
                             turn.id > known && RISE,
                         )}
                     >
                         {turn.query}
                     </p>
+                    {named(turn).length > 0 && (
+                        <div className="-mt-0.5 flex flex-wrap justify-end gap-1">
+                            {named(turn).map((place) => (
+                                <PlacePill key={place.id} place={place} size="sent" />
+                            ))}
+                        </div>
+                    )}
                     <TurnBody
                         turn={turn}
                         stage={stage}

@@ -32,7 +32,7 @@ function App() {
     const switches = useSyncExternalStore(onSwitch, switchesSoFar);
 
     // The question box
-    const inputRef = useRef<HTMLInputElement>(null);
+    const inputRef = useRef<HTMLTextAreaElement>(null);
 
     // Go straight to the question box
     const toAsk = () => {

@@ -18,12 +18,18 @@ interface AnswerCardProps {
 function AnswerCard({ answer, refresh, refreshing, fresh, ask }: AnswerCardProps) {
     const sources = sourcesOf(answer.sources);
 
+    // A trip asked for a set time or day
+    const pick = answer.again ?? null;
+    const timed =
+        pick !== null && (pick.leave_at !== null || (pick.day !== null && pick.day !== 'today'));
+
     // Build the body of the answer
     let body;
     if (answer.card?.kind === 'trip') {
         body = (
             <TripPlan
                 card={answer.card}
+                timed={timed}
                 risk={answer.risk}
                 chance={answer.chance}
                 refresh={refresh}

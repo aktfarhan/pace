@@ -13,5 +13,7 @@ export function keyedPage(key: string): Page | undefined {
 // Keys with a modifier, typed in the text box, or the drawer's
 export function claimed(event: KeyboardEvent) {
     if (event.metaKey || event.ctrlKey || event.altKey) return true;
-    return event.target instanceof HTMLInputElement || drawerOpen();
+    const { target } = event;
+    const typing = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement;
+    return typing || drawerOpen();
 }

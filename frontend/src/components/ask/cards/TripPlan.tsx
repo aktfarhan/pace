@@ -11,13 +11,14 @@ import type { Level, TripCard } from '@/types/answer';
 
 interface TripPlanProps {
     card: TripCard;
+    timed: boolean;
     risk: Level | null;
     chance: number | null;
     refresh: () => Promise<boolean>;
     refreshing: boolean;
 }
 
-function TripPlan({ card, risk, chance, refresh, refreshing }: TripPlanProps) {
+function TripPlan({ card, timed, risk, chance, refresh, refreshing }: TripPlanProps) {
     const [saved, setSaved] = useState(() => isKept(card.origin, card.destination));
     const [failed, setFailed] = useMoment<'save' | 'refresh' | null>(null, FAILED_MS);
 
@@ -93,7 +94,7 @@ function TripPlan({ card, risk, chance, refresh, refreshing }: TripPlanProps) {
                         : "Couldn't refresh this plan. Showing the last one."}
                 </span>
             )}
-            <Plan card={card} risk={risk} chance={chance} />
+            <Plan card={card} timed={timed} risk={risk} chance={chance} />
         </div>
     );
 }

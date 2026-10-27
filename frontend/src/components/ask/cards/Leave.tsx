@@ -7,11 +7,12 @@ import type { TripCard } from '@/types/answer';
 
 interface LeaveProps {
     card: TripCard;
+    timed: boolean;
 }
 
-function Leave({ card }: LeaveProps) {
+function Leave({ card, timed }: LeaveProps) {
     const now = useNow();
-    const leave = leaveOf(card, now);
+    const leave = leaveOf(card, now, timed);
 
     const { ticking, settle } = useTicks([
         ['label', leave.label],

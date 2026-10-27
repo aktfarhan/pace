@@ -4,7 +4,7 @@ import type { RefObject } from 'react';
 
 // Keys typed outside the ask input box are still registered
 export function useStrayKeys(
-    boxRef: RefObject<HTMLInputElement | null>,
+    boxRef: RefObject<HTMLInputElement | HTMLTextAreaElement | null>,
     add: (key: string) => void,
 ) {
     const press = useEffectEvent((event: KeyboardEvent) => {

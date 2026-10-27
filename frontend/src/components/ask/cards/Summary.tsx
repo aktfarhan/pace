@@ -11,13 +11,14 @@ const FACT = `${META} relative before:absolute before:inset-y-0 before:right-ful
 
 interface SummaryProps {
     card: TripCard;
+    timed: boolean;
     risk: Level | null;
     chance: number | null;
 }
 
-function Summary({ card, risk, chance }: SummaryProps) {
+function Summary({ card, timed, risk, chance }: SummaryProps) {
     const now = useNow();
-    const idle = leaveOf(card, now).kind === 'none';
+    const idle = leaveOf(card, now, timed).kind === 'none';
 
     return (
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 pt-0.75">

@@ -103,7 +103,7 @@ function laterDay(serviceDate: string, now: number) {
 }
 
 // The leave line
-export function leaveOf(card: TripCard, now: number) {
+export function leaveOf(card: TripCard, now: number, timed = false) {
     // A boarded first ride ends the plan
     const ride = card.legs.find((leg) => leg.kind === 'ride');
     if (ride !== undefined && Date.parse(ride.depart) < now) {
@@ -132,6 +132,12 @@ export function leaveOf(card: TripCard, now: number) {
     // Under an hour, show leave in minutes
     if (wait <= NO_SERVICE_MINUTES) {
         return { kind: 'in', label: 'LEAVE IN', time: `${Math.ceil(wait)}`, unit: 'MIN' };
+    }
+
+    // A trip asked for later today shows its time
+    if (timed) {
+        const { time, meridiem } = clockParts(card.depart);
+        return { kind: 'at', label: 'LEAVE AT', time, unit: meridiem };
     }
 
     // Over an hour, nothing is running
