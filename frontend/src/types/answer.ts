@@ -67,6 +67,8 @@ export interface TripCard {
     kind: 'trip';
     origin: string;
     destination: string;
+    origin_at: [number, number];
+    destination_at: [number, number];
     depart: string;
     arrive: string;
     transfers: number;
@@ -77,10 +79,28 @@ export interface TripCard {
     retrieved_at: string;
 }
 
+// One trip end already found
+export interface Spot {
+    label: string;
+    lat: number;
+    lon: number;
+}
+
+// A trip to plan with no question to read
+export interface Picked {
+    query: string;
+    origin: string | Spot;
+    destination: string | Spot;
+    day: string | null;
+    deadline: string | null;
+    leave_at: string | null;
+}
+
 // One place offered when a trip's end wasn't clear
 export interface Choice {
     label: string;
     question: string;
+    pick: Picked;
 }
 
 // Places to pick from when a trip's end wasn't found or was unclear
@@ -105,6 +125,7 @@ export interface Answer {
     should_refuse: boolean;
     refuse_reason: string | null;
     card: Card | null;
+    again?: Picked | null;
 }
 
 // The domain of the query

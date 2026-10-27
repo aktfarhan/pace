@@ -1,9 +1,9 @@
 import Plan from './Plan';
 import Stamp from './Stamp';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Bookmark } from 'lucide-react';
 import Spin from '@/components/layout/Spin';
-import { isKept, saveTrip } from '@/lib/pace';
+import { isKept, readKept, saveTrip } from '@/lib/pace';
 import { SURFACE } from '@/components/ask/tints';
 import { FAILED_MS, useMoment } from '@/hooks/useMoment';
 import { BUBBLE, STAMP } from '@/components/layout/tints';
@@ -21,13 +21,24 @@ function TripPlan({ card, risk, chance, refresh, refreshing }: TripPlanProps) {
     const [saved, setSaved] = useState(() => isKept(card.origin, card.destination));
     const [failed, setFailed] = useMoment<'save' | 'refresh' | null>(null, FAILED_MS);
 
+    // A trip saved on an earlier visit shows as saved
+    useEffect(() => {
+        let live = true;
+        readKept().then(() => {
+            if (live && isKept(card.origin, card.destination)) setSaved(true);
+        });
+        return () => {
+            live = false;
+        };
+    }, [card.origin, card.destination]);
+
     const keep = async () => {
         if (saved) return;
 
         setSaved(true);
         setFailed(null);
         try {
-            await saveTrip(card.origin, card.destination);
+            await saveTrip(card);
         } catch (error) {
             console.error(error);
             setSaved(false);

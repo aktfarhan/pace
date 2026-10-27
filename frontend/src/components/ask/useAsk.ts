@@ -1,7 +1,7 @@
-import { ask, Notice } from '@/lib/pace';
+import { ask, Notice, plan } from '@/lib/pace';
 import { keep } from '@/lib/history';
 import { useCallback, useRef, useState } from 'react';
-import type { Stage } from '@/types/answer';
+import type { Picked, Stage } from '@/types/answer';
 import type { Turn, TurnFields } from '@/types/turn';
 
 export type AskController = ReturnType<typeof useAsk>;
@@ -37,7 +37,7 @@ export function useAsk() {
     }, []);
 
     const send = useCallback(
-        async (query: string) => {
+        async (query: string, pick?: Picked) => {
             // Nothing to ask, or a question is already running
             const asked = query.trim();
             if (asked === '' || running.current) {
@@ -50,10 +50,11 @@ export function useAsk() {
             // Open the turn this question fills in
             const id = nextId.current;
             nextId.current += 1;
-            setTurns((old) => [...old, { id, query: asked, answer: null, failed: false }]);
+            setTurns((old) => [...old, { id, query: asked, pick, answer: null, failed: false }]);
 
             try {
-                const answer = await ask(asked, setStage);
+                // A picked place plans the trip without reading the question again
+                const answer = pick ? await plan(pick) : await ask(asked, setStage);
                 amend(id, { answer });
                 keep(asked, answer);
             } catch (error) {
@@ -70,7 +71,8 @@ export function useAsk() {
 
     // Runs a turn's question again and swaps the answer in place
     const refresh = useCallback(
-        async (id: number, query: string, failed: boolean) => {
+        async (turn: Turn) => {
+            const { id, query, failed } = turn;
             if (running.current) {
                 return true;
             }
@@ -80,9 +82,14 @@ export function useAsk() {
             setRefreshing(id);
 
             try {
-                const answer = await ask(query, () => {});
+                // A planned trip is planned again with its ends as found
+                const again = turn.answer?.again ?? turn.pick;
+                const answer = again ? await plan(again) : await ask(query, () => {});
                 if (!failed && answer.card?.kind !== 'trip') return false;
-                amend(id, { answer, failed: false });
+
+                // The sources the first answer drew on still stand
+                const sources = turn.answer?.sources ?? answer.sources;
+                amend(id, { answer: { ...answer, sources }, failed: false });
 
                 // Keep the question even tho it failed
                 if (failed) keep(query, answer);

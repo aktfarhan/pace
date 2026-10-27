@@ -1,9 +1,10 @@
-import type { Answer } from '@/types/answer';
+import type { Answer, Picked } from '@/types/answer';
 
 // One question and its answer
 export interface Turn {
     id: number;
     query: string;
+    pick?: Picked;
     answer: Answer | null;
     failed: boolean;
     said?: string;

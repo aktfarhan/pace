@@ -34,7 +34,11 @@ export function usePlaces() {
     async function keep(label: string, address: string, spot: Suggestion | null) {
         const place = await savePlace(label, address, spot);
         if (places === null) retry();
-        else setPlaces((saved) => saved && [...saved, place]);
+        
+        // Saving a place again returns the same one
+        else if (places.some((one) => one.id === place.id)) {
+            setPlaces((saved) => saved && saved.map((one) => (one.id === place.id ? place : one)));
+        } else setPlaces((saved) => saved && [...saved, place]);
     }
 
     async function drop(id: number) {

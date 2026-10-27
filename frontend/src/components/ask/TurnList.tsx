@@ -4,15 +4,15 @@ import TurnBody from './TurnBody';
 import Starters from './Starters';
 import { useLayoutEffect, useRef, useState } from 'react';
 import type { Turn } from '@/types/turn';
-import type { Stage } from '@/types/answer';
+import type { Picked, Stage } from '@/types/answer';
 import type { SystemStatus } from '@/types/status';
 
 interface TurnListProps {
     turns: Turn[];
     stage: Stage | null;
-    refresh: (id: number, query: string, failed: boolean) => Promise<boolean>;
+    refresh: (turn: Turn) => Promise<boolean>;
     refreshing: number | null;
-    ask: (query: string) => void;
+    ask: (query: string, pick?: Picked) => void;
     status: SystemStatus | null;
 }
 
@@ -59,7 +59,7 @@ function TurnList({ turns, stage, refresh, refreshing, ask, status }: TurnListPr
                     <TurnBody
                         turn={turn}
                         stage={stage}
-                        refresh={() => refresh(turn.id, turn.query, turn.failed)}
+                        refresh={() => refresh(turn)}
                         refreshing={refreshing === turn.id}
                         fresh={turn.id > known}
                         ask={ask}

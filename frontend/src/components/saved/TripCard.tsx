@@ -58,7 +58,11 @@ function TripCard({ trip, drop, titleRef }: TripCardProps) {
                 {trip.card === null ? (
                     <div className="flex items-center gap-2.5 pb-1">
                         <Risk risk={trip.risk} />
-                        <span className="text-row text-faint">No route right now.</span>
+                        <span className="text-row text-faint">
+                            {trip.failed
+                                ? "Couldn't plan this trip right now."
+                                : 'No route right now.'}
+                        </span>
                     </div>
                 ) : (
                     <Plan card={trip.card} risk={trip.risk} chance={trip.chance} />

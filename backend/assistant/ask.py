@@ -11,11 +11,20 @@ from backend.assistant.parse import ParsedQuery
 from backend.core.clock import ZONE, now_in_boston
 from backend.mbta.alerts import blocking_alerts, fetch_alerts
 from backend.mbta.stations import find_stations
-from backend.assistant.cards import build_card, card_sources, choices_card
+from backend.assistant.cards import (
+    Picked,
+    Spot,
+    TripCard,
+    build_card,
+    card_sources,
+    choices_card,
+    trip_card,
+)
 from backend.assistant.generate import Answer, generate
-from backend.planner.trip import plan_trip
+from backend.planner.trip import ends_only, plan_trip
 from backend.assistant.llm import llm
-from backend.assistant.retrieve import embed_query, retrieve
+from backend.assistant.retrieve import Row, embed_query, retrieve
+from backend.geo.streets import Place
 from backend.reliability.risk import risk_for
 from backend.mbta.schedules import (
     NO_DEPARTURES,
@@ -24,7 +33,7 @@ from backend.mbta.schedules import (
     requested_date,
 )
 from backend.planner.timetable import service_date_at
-from backend.saved.keywords import read_with_saved
+from backend.saved.keywords import name_key, read_with_saved
 from backend.saved.places import saved_spots
 
 # Midday on the asked date
@@ -127,6 +136,111 @@ def unfound(plan: list, intent: str) -> Answer:
     }
 
 
+def with_next_trains(card: TripCard, chunks: list[Row]) -> None:
+    """Adds the next live departures to each ride on a trip card.
+
+    Args:
+        card: The trip card, changed in place.
+        chunks: The rows the card was built from.
+    """
+    rides = []
+    for leg in card["legs"]:
+        if leg["kind"] == "ride":
+            rides.append(leg)
+
+    # The plan's ride rows come in the same order as the card's rides
+    index = 0
+    try:
+        for _, kind, _, metadata, _ in chunks:
+            if kind == "plan" and "route_id" in metadata and index < len(rides):
+                rides[index]["next_departures"] = live_departures(
+                    metadata["route_id"],
+                    metadata["board_stop"],
+                    metadata["alight_stop"],
+                )
+                index += 1
+    except httpx.HTTPError:
+        pass
+
+
+def again_for(query: str, parsed: ParsedQuery, card: TripCard) -> Picked:
+    """Shapes a planned trip so it can be planned again without the question.
+
+    Args:
+        query: The user's question.
+        parsed: The read of the query.
+        card: The trip card.
+
+    Returns:
+        The trip with both ends as found.
+    """
+    origin_lat, origin_lon = card["origin_at"]
+    end_lat, end_lon = card["destination_at"]
+    return {
+        "query": query,
+        "origin": Spot(label=card["origin"], lat=origin_lat, lon=origin_lon),
+        "destination": Spot(label=card["destination"], lat=end_lat, lon=end_lon),
+        "day": parsed["day"],
+        "deadline": parsed["deadline"],
+        "leave_at": parsed.get("leave_at"),
+    }
+
+
+def plan_picked(pick: Picked, code: str | None = None) -> Answer:
+    """Plans a trip whose ends were picked, with no question to read.
+
+    Args:
+        pick: The trip, each end as text or a spot.
+        code: The user's code.
+
+    Returns:
+        The trip's answer, or places to pick from.
+    """
+    saved = saved_spots(code)
+
+    # A spot stands in for its end's text
+    ends = []
+    for end in (pick["origin"], pick["destination"]):
+        if isinstance(end, str):
+            ends.append(end)
+            continue
+        ends.append(end["label"])
+        saved[name_key(end["label"])] = Place(
+            place_id=None,
+            label=end["label"],
+            kind="picked",
+            lat=end["lat"],
+            lon=end["lon"],
+        )
+
+    parsed = ends_only(
+        ends[0], ends[1], pick["day"], pick["deadline"], pick["leave_at"]
+    )
+    plan = plan_trip(pick["query"], parsed, saved=saved)
+    if not plan:
+        return refused("low-confidence", "route")
+    if plan[0][0] == "plan:unfound":
+        return unfound(plan, "route")
+
+    # The planner's own words stand in for a written answer
+    card = trip_card(plan)
+    found = None
+    if card is not None:
+        with_next_trains(card, plan)
+        found = risk_for(plan, now_in_boston())
+    return {
+        "answer": plan[0][2],
+        "intent": "route",
+        "sources": sorted(card_sources(card)),
+        "risk": found["level"] if found else None,
+        "chance": found["chance"] if found else None,
+        "should_refuse": False,
+        "refuse_reason": None,
+        "card": card,
+        "again": again_for(pick["query"], parsed, card) if card else None,
+    }
+
+
 def ask_stream(query: str, code: str | None = None) -> Iterator[Event]:
     """Runs the full pipeline.
 
@@ -206,24 +320,8 @@ def ask_stream(query: str, code: str | None = None) -> Iterator[Event]:
 
     # Trip cards get the next trains for each ride
     if card is not None and card["kind"] == "trip":
-        rides = []
-        for leg in card["legs"]:
-            if leg["kind"] == "ride":
-                rides.append(leg)
-
-        # The plan's ride rows come in the same order as the card's rides
-        index = 0
-        try:
-            for _, kind, _, metadata, _ in chunks:
-                if kind == "plan" and "route_id" in metadata and index < len(rides):
-                    rides[index]["next_departures"] = live_departures(
-                        metadata["route_id"],
-                        metadata["board_stop"],
-                        metadata["alight_stop"],
-                    )
-                    index += 1
-        except httpx.HTTPError:
-            pass
+        with_next_trains(card, chunks)
+        answer["again"] = again_for(query, parsed, card)
 
     answer["card"] = card
 

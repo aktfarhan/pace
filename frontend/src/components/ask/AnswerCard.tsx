@@ -5,14 +5,14 @@ import Choices from './cards/Choices';
 import TripPlan from './cards/TripPlan';
 import FirstLast from './cards/FirstLast';
 import { sourcesOf } from '@/lib/sources';
-import type { Answer } from '@/types/answer';
+import type { Answer, Picked } from '@/types/answer';
 
 interface AnswerCardProps {
     answer: Answer;
     refresh: () => Promise<boolean>;
     refreshing: boolean;
     fresh: boolean;
-    ask: (query: string) => void;
+    ask: (query: string, pick?: Picked) => void;
 }
 
 function AnswerCard({ answer, refresh, refreshing, fresh, ask }: AnswerCardProps) {

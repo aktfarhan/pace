@@ -1,5 +1,6 @@
 """Read and write the places saved against a code."""
 
+import re
 import secrets
 from typing import TypedDict
 
@@ -19,6 +20,12 @@ ADD = """
     INSERT INTO saved_places
         (code, label, address, station, route_id, walk_seconds, lat, lon)
     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+    ON CONFLICT (code, label, address) DO UPDATE SET
+        station = EXCLUDED.station,
+        route_id = EXCLUDED.route_id,
+        walk_seconds = EXCLUDED.walk_seconds,
+        lat = EXCLUDED.lat,
+        lon = EXCLUDED.lon
     RETURNING id, label, address, station, route_id, walk_seconds;
 """
 REMOVE = "DELETE FROM saved_places WHERE id = %s AND code = %s;"
@@ -78,6 +85,9 @@ LETTERS = "23456789abcdefghjkmnpqrstuvwxyz"
 # How many of those trail the two words
 TAIL = 8
 
+# What a code looks like
+CODE_SHAPE = re.compile(rf"[a-z]+-[a-z]+-[{LETTERS}]{{{TAIL}}}")
+
 
 class SavedPlace(TypedDict):
     """One place saved, and the station it walks to."""
@@ -109,6 +119,18 @@ def mint_code() -> str:
     """
     tail = "".join(secrets.choice(LETTERS) for _ in range(TAIL))
     return f"{secrets.choice(WORDS)}-{secrets.choice(WORDS)}-{tail}"
+
+
+def well_formed(code: str) -> bool:
+    """Checks a code could have been minted.
+
+    Args:
+        code: A code a user sent.
+
+    Returns:
+        Whether it has the shape of one.
+    """
+    return CODE_SHAPE.fullmatch(code) is not None
 
 
 def shaped(row: tuple) -> SavedPlace:
@@ -258,15 +280,19 @@ def add_place(
     return {"code": against, "place": shaped(row)}
 
 
-def remove_place(code: str | None, place_id: int) -> None:
+def remove_place(code: str | None, place_id: int) -> bool:
     """Removes one place from a user's code.
 
     Args:
         code: The user's code, or None.
         place_id: The place to remove.
+
+    Returns:
+        Whether there was such a place to remove.
     """
     if code is None:
-        return
+        return False
 
     with borrow() as connection, connection.cursor() as cursor:
         cursor.execute(REMOVE, (place_id, code))
+        return cursor.rowcount > 0

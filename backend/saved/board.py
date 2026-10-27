@@ -5,15 +5,14 @@ from functools import lru_cache
 from typing import TypedDict
 
 from backend.assistant.cards import TripCard, trip_card
-from backend.assistant.parse import ParsedQuery
 from backend.assistant.retrieve import Row
 from backend.core.clock import now_in_boston
-from backend.planner.trip import plan_trip
+from backend.planner.trip import ends_only, plan_trip
 from backend.geo.streets import Place
 from backend.reliability.risk import risk_for
 from backend.saved.keywords import name_key
 from backend.saved.places import saved_spots
-from backend.saved.trips import read_trips
+from backend.saved.trips import SavedTrip, read_trips
 
 # Seconds one saved trip's plan is shared
 PLAN_TTL = 30.0
@@ -31,30 +30,7 @@ class Planned(TypedDict):
     card: TripCard | None
     risk: str | None
     chance: float | None
-
-
-def ends_only(origin: str, destination: str) -> ParsedQuery:
-    """Shapes a saved trip's two ends the way the planner reads a query.
-
-    Args:
-        origin: Where the trip starts.
-        destination: Where it ends.
-
-    Returns:
-        A parsed query carrying the two ends.
-    """
-    return {
-        "intent": "route",
-        "origin": origin,
-        "destination": destination,
-        "route": None,
-        "day": None,
-        "edge": None,
-        "deadline": None,
-        "reason": "",
-        "leave_at": None,
-        "headway": False,
-    }
+    failed: bool
 
 
 @lru_cache(maxsize=PLANS_KEPT)
@@ -65,7 +41,7 @@ def plan_during(origin: str, destination: str, bucket: int, mine: tuple) -> list
         origin: Where the trip starts.
         destination: Where it ends.
         bucket: The PLAN_TTL-wide window.
-        mine: (key, label, lat, lon) per saved name used.
+        mine: (key, label, lat, lon) per end with a spot.
 
     Returns:
         The planner's rows.
@@ -74,6 +50,35 @@ def plan_during(origin: str, destination: str, bucket: int, mine: tuple) -> list
     for key, label, lat, lon in mine:
         saved[key] = Place(place_id=None, label=label, kind="saved", lat=lat, lon=lon)
     return plan_trip("", ends_only(origin, destination), guess=True, saved=saved)
+
+
+def ends_known(trip: SavedTrip, spots: dict[str, Place]) -> tuple:
+    """Collects the spots a saved trip's ends are planned from.
+
+    Args:
+        trip: The saved trip.
+        spots: The user's saved name key -> place.
+
+    Returns:
+        (key, label, lat, lon) per end with a spot.
+    """
+    mine = []
+    ends = (
+        (trip["origin"], trip["origin_at"]),
+        (trip["destination"], trip["destination_at"]),
+    )
+    for end, kept in ends:
+        key = name_key(end)
+        if not key:
+            continue
+
+        # A saved name first, then the spot kept with the trip
+        spot = spots.get(key)
+        if spot is not None:
+            mine.append((key, spot["label"], spot["lat"], spot["lon"]))
+        elif kept is not None:
+            mine.append((key, end, kept[0], kept[1]))
+    return tuple(mine)
 
 
 def plan_saved(code: str | None) -> list[Planned]:
@@ -91,27 +96,28 @@ def plan_saved(code: str | None) -> list[Planned]:
 
     planned = []
     for trip in trips:
-        # The saved names this trip uses
-        mine = []
-        for end in (trip["origin"], trip["destination"]):
-            spot = spots.get(name_key(end))
-            if spot is not None:
-                mine.append((name_key(end), spot["label"], spot["lat"], spot["lon"]))
-
         bucket = int(time.monotonic() // PLAN_TTL)
-        rows = plan_during(trip["origin"], trip["destination"], bucket, tuple(mine))
 
-        # The risk pill and the chance beside it
-        found = risk_for(rows, now) if rows else None
+        # One trip that can't be planned leaves the others alone
+        card, found, failed = None, None, False
+        try:
+            mine = ends_known(trip, spots)
+            rows = plan_during(trip["origin"], trip["destination"], bucket, mine)
+            if rows:
+                card, found = trip_card(rows), risk_for(rows, now)
+        except Exception as error:
+            print(f"board: trip {trip['id']} failed: {type(error).__name__}: {error}")
+            failed = True
 
         planned.append(
             {
                 "id": trip["id"],
                 "origin": trip["origin"],
                 "destination": trip["destination"],
-                "card": trip_card(rows) if rows else None,
+                "card": card,
                 "risk": found["level"] if found else None,
                 "chance": found["chance"] if found else None,
+                "failed": failed,
             }
         )
 

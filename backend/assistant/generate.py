@@ -2,9 +2,9 @@
 
 import json
 import sys
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
-from backend.assistant.cards import Card
+from backend.assistant.cards import Card, Picked
 from backend.core.clock import now_in_boston
 from backend.assistant.llm import llm
 from backend.assistant.retrieve import Row, retrieve
@@ -26,6 +26,7 @@ class Answer(TypedDict):
     should_refuse: bool
     refuse_reason: str | None
     card: Card | None
+    again: NotRequired[Picked | None]
 
 
 def generate(

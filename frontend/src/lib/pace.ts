@@ -2,7 +2,7 @@ import { readStored, writeStored } from '@/lib/prefs';
 import type { Live, Readings } from '@/types/transit';
 import type { SavedPlace, Suggestion } from '@/types/place';
 import type { SystemStatus } from '@/types/status';
-import type { Answer, Stage } from '@/types/answer';
+import type { Answer, Picked, Stage, TripCard } from '@/types/answer';
 import type { Planned, SavedTrip } from '@/types/trip';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -26,11 +26,27 @@ const DATA_PREFIX = 'data: ';
 // Trips saved in a visit
 const kept = new Set<string>();
 
+// The read of trips already saved under this code
+let keptRead: Promise<void> | null = null;
+
+// The first save without a code
+let minting: Promise<void> | null = null;
+
 // Code switches so far
 let switches = 0;
 const SWITCHED = 'pace:switched';
 
 export class Notice extends Error {}
+
+// A request the server turned down
+class Refused extends Error {
+    status: number;
+
+    constructor(status: number) {
+        super(`Pace returned ${status}`);
+        this.status = status;
+    }
+}
 
 // One event and data pair from the stream
 interface Frame {
@@ -75,7 +91,10 @@ export function readCode(): string | null {
 
 // Points this device at another code
 function writeCode(code: string) {
-    if (code !== readCode()) kept.clear();
+    if (code !== readCode()) {
+        kept.clear();
+        keptRead = null;
+    }
     writeStored(CODE_KEY, code);
 }
 
@@ -132,7 +151,7 @@ async function send(path: string, init: RequestInit): Promise<string> {
     try {
         const response = await fetch(`${API}${path}`, { ...init, signal: control.signal });
         if (!response.ok) {
-            throw new Error(`Pace returned ${response.status}`);
+            throw new Refused(response.status);
         }
         return await response.text();
     } finally {
@@ -161,15 +180,36 @@ export async function suggestPlaces(typed: string, signal: AbortSignal): Promise
 
 // Sends one save and keeps a newly minted code
 async function post<Reply extends { code: string }>(path: string, payload: object): Promise<Reply> {
+    // A save while another mints the code waits to share it
+    if (readCode() === null && minting !== null) await minting;
+
     const had = readCode();
-    const body = await send(path, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...codeHeader() },
-        body: JSON.stringify(payload),
-    });
-    const saved: Reply = JSON.parse(body);
-    if (had === null) writeCode(saved.code);
-    return saved;
+    const saving = (async () => {
+        const body = await send(path, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...codeHeader() },
+            body: JSON.stringify(payload),
+        });
+        const saved: Reply = JSON.parse(body);
+        if (had === null) writeCode(saved.code);
+        return saved;
+    })();
+    if (had === null) {
+        minting = saving.then(
+            () => {},
+            () => {},
+        );
+    }
+    return saving;
+}
+
+// Removes one saved thing
+async function removeAt(path: string) {
+    try {
+        await send(path, { method: 'DELETE', headers: codeHeader(), keepalive: true });
+    } catch (error) {
+        if (!(error instanceof Refused && error.status === 404)) throw error;
+    }
 }
 
 // What a code holds
@@ -200,7 +240,7 @@ export async function savePlace(
 
 // Removes one saved place
 export async function removePlace(id: number) {
-    await send(`/v1/places/${id}`, { method: 'DELETE', headers: codeHeader(), keepalive: true });
+    await removeAt(`/v1/places/${id}`);
 }
 
 // The key a trip is kept under this visit
@@ -211,16 +251,38 @@ export function isKept(origin: string, destination: string) {
     return kept.has(tripKey(origin, destination));
 }
 
+// Learns which trips are already saved
+export function readKept(): Promise<void> {
+    const code = readCode();
+    if (code === null) return Promise.resolve();
+
+    keptRead ??= send('/v1/trips', { headers: { 'X-Pace-Code': code } }).then(
+        (body) => {
+            if (code !== readCode()) return;
+            const trips: SavedTrip[] = JSON.parse(body);
+            for (const trip of trips) kept.add(tripKey(trip.origin, trip.destination));
+        },
+        (error) => {
+            console.error(error);
+            keptRead = null;
+        },
+    );
+    return keptRead;
+}
+
 // A removed trip stops counting as saved
 export function forget(origin: string, destination: string) {
     kept.delete(tripKey(origin, destination));
 }
 
-// Saves one trip
-export async function saveTrip(origin: string, destination: string): Promise<SavedTrip> {
+// Saves one trip with where its ends are
+export async function saveTrip(card: TripCard): Promise<SavedTrip> {
+    const { origin, destination, origin_at, destination_at } = card;
     const saved = await post<{ code: string; trip: SavedTrip }>('/v1/trips', {
         origin,
         destination,
+        origin_at,
+        destination_at,
     });
     kept.add(tripKey(origin, destination));
     return saved.trip;
@@ -228,7 +290,7 @@ export async function saveTrip(origin: string, destination: string): Promise<Sav
 
 // Removes one saved trip
 export async function removeTrip(id: number) {
-    await send(`/v1/trips/${id}`, { method: 'DELETE', headers: codeHeader(), keepalive: true });
+    await removeAt(`/v1/trips/${id}`);
 }
 
 // Reads the plan for every trip saved against a code
@@ -261,6 +323,24 @@ export async function readTransit(signal: AbortSignal): Promise<Live> {
 // Reads how every line has run today
 export async function readReadings(signal: AbortSignal): Promise<Readings> {
     const response = await fetch(`${API}/v1/readings`, { signal });
+    if (!response.ok) {
+        throw new Error(`Pace returned ${response.status}`);
+    }
+    return response.json();
+}
+
+// Plans a trip whose ends were picked
+export async function plan(pick: Picked): Promise<Answer> {
+    const response = await fetch(`${API}/v1/plan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...codeHeader() },
+        body: JSON.stringify(pick),
+        signal: AbortSignal.timeout(WRITE_MS),
+    });
+    if (response.status === 429) {
+        const { detail } = await response.json();
+        throw new Notice(detail);
+    }
     if (!response.ok) {
         throw new Error(`Pace returned ${response.status}`);
     }

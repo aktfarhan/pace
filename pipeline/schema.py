@@ -117,13 +117,36 @@ CREATE_SAVED_PLACES_INDEX = """
     CREATE INDEX IF NOT EXISTS saved_places_code
         ON saved_places (code);
 """
+DROP_SAVED_PLACES_REPEATS = """
+    DELETE FROM saved_places AS later
+    USING saved_places AS earlier
+    WHERE later.code = earlier.code
+        AND later.label = earlier.label
+        AND later.address = earlier.address
+        AND later.id > earlier.id;
+"""
+CREATE_SAVED_PLACES_ONCE = """
+    CREATE UNIQUE INDEX IF NOT EXISTS saved_places_once
+        ON saved_places (code, label, address);
+"""
 CREATE_SAVED_TRIPS = """
     CREATE TABLE IF NOT EXISTS saved_trips (
-        id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-        code        text NOT NULL,
-        origin      text NOT NULL,
-        destination text NOT NULL
+        id              bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        code            text NOT NULL,
+        origin          text NOT NULL,
+        destination     text NOT NULL,
+        origin_lat      double precision,
+        origin_lon      double precision,
+        destination_lat double precision,
+        destination_lon double precision
     );
+"""
+ADD_SAVED_TRIPS_SPOTS = """
+    ALTER TABLE saved_trips
+        ADD COLUMN IF NOT EXISTS origin_lat double precision,
+        ADD COLUMN IF NOT EXISTS origin_lon double precision,
+        ADD COLUMN IF NOT EXISTS destination_lat double precision,
+        ADD COLUMN IF NOT EXISTS destination_lon double precision;
 """
 CREATE_SAVED_TRIPS_INDEX = """
     CREATE UNIQUE INDEX IF NOT EXISTS saved_trips_once
@@ -152,7 +175,10 @@ def ensure_schema(connection: psycopg.Connection) -> None:
         cursor.execute(CREATE_SAVED_PLACES)
         cursor.execute(ADD_SAVED_PLACES_SPOT)
         cursor.execute(CREATE_SAVED_PLACES_INDEX)
+        cursor.execute(DROP_SAVED_PLACES_REPEATS)
+        cursor.execute(CREATE_SAVED_PLACES_ONCE)
         cursor.execute(CREATE_SAVED_TRIPS)
+        cursor.execute(ADD_SAVED_TRIPS_SPOTS)
         cursor.execute(CREATE_SAVED_TRIPS_INDEX)
     connection.commit()
 

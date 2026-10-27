@@ -2,7 +2,7 @@ import Thinking from './Thinking';
 import AnswerCard from './AnswerCard';
 import Failed from '@/components/layout/Failed';
 import type { Turn } from '@/types/turn';
-import type { Stage } from '@/types/answer';
+import type { Picked, Stage } from '@/types/answer';
 
 const UNREACHABLE = "Couldn't get an answer";
 
@@ -12,7 +12,7 @@ interface TurnBodyProps {
     refresh: () => Promise<boolean>;
     refreshing: boolean;
     fresh: boolean;
-    ask: (query: string) => void;
+    ask: (query: string, pick?: Picked) => void;
 }
 
 function TurnBody({ turn, stage, refresh, refreshing, fresh, ask }: TurnBodyProps) {

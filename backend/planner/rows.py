@@ -2,6 +2,7 @@
 
 from datetime import date, datetime
 
+from backend.assistant.cards import Choice
 from backend.core.clock import moment_at
 from backend.geo.geocode import Lookup
 from backend.planner.ends import Endpoint, trip_times
@@ -78,23 +79,19 @@ def render_none(text: str, retrieved_at: str) -> list[Row]:
 
 
 def render_unfound(
-    typed: str, lookup: Lookup, questions: list[str], retrieved_at: str
+    typed: str, lookup: Lookup, choices: list[Choice], retrieved_at: str
 ) -> list[Row]:
     """Says which end of the trip couldn't be found.
 
     Args:
         typed: The end as the user wrote it.
         lookup: What the place search found.
-        questions: The question asked again with each choice in its place.
+        choices: One per place found, with the trip to plan if picked.
         retrieved_at: When the plan was computed.
 
     Returns:
         A single unfound row carrying the choices.
     """
-    choices = []
-    for choice, question in zip(lookup["choices"], questions):
-        choices.append({"label": choice["label"], "question": question})
-
     if lookup["problem"] == "unclear":
         text = f"There's more than one {typed}. Which one did you mean?"
     elif choices:
@@ -279,6 +276,8 @@ def render_walk(
         "destination_stop": None,
         "origin_label": origin["label"],
         "destination_label": destination["label"],
+        "origin_at": origin["point"],
+        "destination_at": destination["point"],
         "depart": service_moment(service_date, depart_seconds).isoformat(),
         "arrive": service_moment(service_date, arrive_seconds).isoformat(),
         "transfers": 0,
@@ -367,6 +366,8 @@ def render_legs(
         "destination_stop": end_stop,
         "origin_label": origin["label"],
         "destination_label": destination["label"],
+        "origin_at": origin["point"],
+        "destination_at": destination["point"],
         "depart": service_moment(service_date, depart_seconds).isoformat(),
         "arrive": service_moment(service_date, arrive_seconds).isoformat(),
         "transfers": transfers,

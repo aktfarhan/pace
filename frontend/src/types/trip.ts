@@ -15,4 +15,5 @@ export interface Planned {
     card: TripCard | null;
     risk: Level | null;
     chance: number | null;
+    failed: boolean;
 }

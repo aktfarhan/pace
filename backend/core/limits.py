@@ -29,6 +29,9 @@ SAVE_PER_MINUTE = 20
 # Each visitor's address suggestions per minute
 SUGGEST_PER_MINUTE = 60
 
+# Each visitor's picked or refreshed trips per minute
+PLAN_PER_MINUTE = 20
+
 # What a refused visitor reads
 RUSHED = "That's a lot of questions at once. Try again in a minute."
 TIRED = "You've asked a lot of questions today. Try again tomorrow."
@@ -102,6 +105,7 @@ ASK_DAY = Counter(ASK_PER_DAY, this_day)
 SITE_DAY = Counter(DAILY_QUESTIONS, this_day)
 SAVE_MINUTE = Counter(SAVE_PER_MINUTE, this_minute)
 SUGGEST_MINUTE = Counter(SUGGEST_PER_MINUTE, this_minute)
+PLAN_MINUTE = Counter(PLAN_PER_MINUTE, this_minute)
 
 
 def visitor(request: Request) -> str:
@@ -163,3 +167,16 @@ def limit_suggests(request: Request) -> None:
     """
     if not SUGGEST_MINUTE.take(visitor(request)):
         raise HTTPException(status_code=429, detail=TYPED)
+
+
+def limit_plans(request: Request) -> None:
+    """Refuses a picked or refreshed trip past the visitor's cap.
+
+    Args:
+        request: The incoming request.
+
+    Raises:
+        HTTPException: 429 with the reason to show.
+    """
+    if not PLAN_MINUTE.take(visitor(request)):
+        raise HTTPException(status_code=429, detail=RUSHED)

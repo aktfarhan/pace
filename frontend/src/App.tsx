@@ -18,6 +18,7 @@ import Settings from '@/components/settings/Settings';
 import Drawer from '@/components/layout/sidebar/Drawer';
 import Sidebar from '@/components/layout/sidebar/Sidebar';
 import { Activity, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import type { Picked } from '@/types/answer';
 import type { Page } from '@/components/layout/sidebar/tints';
 
 function App() {
@@ -52,8 +53,8 @@ function App() {
     }, [page]);
 
     // A picked starter leaves the cursor in the box
-    const start = (query: string) => {
-        send(query);
+    const start = (query: string, pick?: Picked) => {
+        send(query, pick);
         if (pointing()) inputRef.current?.focus();
     };
 

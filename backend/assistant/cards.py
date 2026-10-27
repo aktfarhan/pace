@@ -82,6 +82,8 @@ class TripCard(TypedDict):
     kind: Literal["trip"]
     origin: str
     destination: str
+    origin_at: tuple[float, float]
+    destination_at: tuple[float, float]
     depart: str
     arrive: str
     transfers: int
@@ -92,11 +94,31 @@ class TripCard(TypedDict):
     retrieved_at: str
 
 
+class Spot(TypedDict):
+    """One trip end already found."""
+
+    label: str
+    lat: float
+    lon: float
+
+
+class Picked(TypedDict):
+    """A trip to plan with no question to read."""
+
+    query: str
+    origin: str | Spot
+    destination: str | Spot
+    day: str | None
+    deadline: str | None
+    leave_at: str | None
+
+
 class Choice(TypedDict):
     """One place offered when a trip's end wasn't clear."""
 
     label: str
     question: str
+    pick: Picked
 
 
 class ChoicesCard(TypedDict):
@@ -288,6 +310,8 @@ def trip_card(chunks: list[Row]) -> TripCard | None:
         "kind": "trip",
         "origin": summary["origin_label"],
         "destination": summary["destination_label"],
+        "origin_at": summary["origin_at"],
+        "destination_at": summary["destination_at"],
         "depart": summary["depart"],
         "arrive": summary["arrive"],
         "transfers": summary["transfers"],

@@ -9,6 +9,7 @@ from collections.abc import AsyncGenerator, Iterator
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
+from typing import Annotated
 
 import psycopg
 from anyio import to_thread
@@ -17,9 +18,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from openai import OpenAIError
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, field_validator
 
-from backend.assistant.ask import ask_stream
+from backend.assistant.ask import ask_stream, plan_picked
+from backend.assistant.generate import Answer
 from backend.assistant.retrieve import searchable
 from backend.saved.board import Planned, plan_saved
 from backend.geo.geocode import Place, forget_places, suggest
@@ -39,9 +41,11 @@ from backend.saved.places import (
     add_place,
     read_places,
     remove_place,
+    well_formed,
 )
 from backend.saved.trips import Kept, SavedTrip, add_trip, read_trips, remove_trip
 from backend.reliability.risk import warm as warm_model
+from backend.mbta.schedules import requested_date
 from backend.mbta.status import SystemStatus, read_status, without_alerts
 from backend.planner.days import forget, warm
 from backend.planner.timetable import (
@@ -53,7 +57,7 @@ from backend.planner.timetable import (
 from backend.transit.page import Transit, read_readings, read_transit, read_usual
 from backend.planner.scrape_gtfs import refresh
 from backend.core.db import borrow, close_pool
-from backend.core.limits import limit_asks, limit_saves, limit_suggests
+from backend.core.limits import limit_asks, limit_plans, limit_saves, limit_suggests
 
 # Where the frontend runs
 ORIGINS = [
@@ -77,6 +81,24 @@ LON_RANGE = (-74.0, -69.5)
 
 # What a visitor reads when a saved address can't be found
 NOT_FOUND = "We couldn't find that address"
+
+# What a visitor reads when a code isn't one
+BAD_CODE = "That code isn't valid"
+
+# What a visitor reads when there's nothing to remove
+NOTHING_THERE = "Not found"
+
+# The longest clock time a picked trip may carry
+MAX_CLOCK = 20
+
+# A trip end as typed
+type EndText = Annotated[str, Field(min_length=1, max_length=MAX_END)]
+
+# A point in Massachusetts, as (lat, lon)
+type Point = tuple[
+    Annotated[float, Field(ge=LAT_RANGE[0], le=LAT_RANGE[1])],
+    Annotated[float, Field(ge=LON_RANGE[0], le=LON_RANGE[1])],
+]
 
 # Seconds before the alert feed is read again
 STATUS_TTL = 20.0
@@ -231,6 +253,64 @@ class NewTrip(BaseModel):
 
     origin: str = Field(min_length=1, max_length=MAX_END)
     destination: str = Field(min_length=1, max_length=MAX_END)
+    origin_at: Point | None = None
+    destination_at: Point | None = None
+
+
+class PickedSpot(BaseModel):
+    """One trip end already found."""
+
+    label: str = Field(min_length=1, max_length=MAX_END)
+    lat: float = Field(ge=LAT_RANGE[0], le=LAT_RANGE[1])
+    lon: float = Field(ge=LON_RANGE[0], le=LON_RANGE[1])
+
+
+class PickedTrip(BaseModel):
+    """One trip posted to /v1/plan, each end as text or a spot."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    query: str = Field(min_length=1, max_length=MAX_QUERY)
+    origin: PickedSpot | EndText
+    destination: PickedSpot | EndText
+    day: str | None = Field(default=None, max_length=MAX_CLOCK)
+    deadline: str | None = Field(default=None, max_length=MAX_CLOCK)
+    leave_at: str | None = Field(default=None, max_length=MAX_CLOCK)
+
+    @field_validator("day")
+    @classmethod
+    def known_day(cls, day: str | None) -> str | None:
+        """Refuses a day the planner can't place.
+
+        Args:
+            day: The day word or date, or None.
+
+        Returns:
+            The day as sent.
+
+        Raises:
+            ValueError: When the day isn't one.
+        """
+        if day is not None and requested_date(day, now_in_boston()) is None:
+            raise ValueError("unknown day")
+        return day
+
+
+def pace_code(x_pace_code: str | None = Header(default=None)) -> str | None:
+    """Reads the user's code, refusing one that couldn't have been minted.
+
+    Args:
+        x_pace_code: The code header, if sent.
+
+    Returns:
+        The code, or None.
+
+    Raises:
+        HTTPException: 400 when the code isn't one.
+    """
+    if x_pace_code is not None and not well_formed(x_pace_code):
+        raise HTTPException(status_code=400, detail=BAD_CODE)
+    return x_pace_code
 
 
 def event(name: str, data: dict) -> str:
@@ -271,14 +351,14 @@ def stream(query: str, code: str | None) -> Iterator[str]:
 def answer_query(
     question: Question,
     request: Request,
-    x_pace_code: str | None = Header(default=None),
+    code: str | None = Depends(pace_code),
 ) -> StreamingResponse:
     """Answers one question as a stream of stage events.
 
     Args:
         question: The posted query.
         request: Who sent it.
-        x_pace_code: The user's code.
+        code: The user's code.
 
     Returns:
         A text/event-stream response.
@@ -286,7 +366,7 @@ def answer_query(
     limit_asks(request)
 
     return StreamingResponse(
-        stream(question.query, x_pace_code),
+        stream(question.query, code),
         media_type="text/event-stream",
         headers=STREAM_HEADERS,
     )
@@ -383,27 +463,25 @@ def check_readings() -> Response:
 
 
 @app.get("/v1/places")
-def list_places(x_pace_code: str | None = Header(default=None)) -> list[SavedPlace]:
+def list_places(code: str | None = Depends(pace_code)) -> list[SavedPlace]:
     """Reads the places saved against the user's code.
 
     Args:
-        x_pace_code: The user's code.
+        code: The user's code.
 
     Returns:
         The saved places, oldest first.
     """
-    return read_places(x_pace_code)
+    return read_places(code)
 
 
 @app.post("/v1/places", dependencies=[Depends(limit_saves)])
-def save_place(
-    place: NewPlace, x_pace_code: str | None = Header(default=None)
-) -> Saved:
+def save_place(place: NewPlace, code: str | None = Depends(pace_code)) -> Saved:
     """Saves one place, giving a code to a user without one.
 
     Args:
         place: The posted label and address.
-        x_pace_code: The user's code.
+        code: The user's code.
 
     Returns:
         The stored place and the code it belongs to.
@@ -414,7 +492,7 @@ def save_place(
         spot = (place.lat, place.lon)
 
     try:
-        return add_place(x_pace_code, place.label, place.address, spot)
+        return add_place(code, place.label, place.address, spot)
     except Unfound:
         raise HTTPException(status_code=422, detail=NOT_FOUND) from None
 
@@ -436,67 +514,91 @@ def suggest_places(q: str = Query(min_length=1, max_length=MAX_ADDRESS)) -> list
 @app.delete(
     "/v1/places/{place_id}", status_code=204, dependencies=[Depends(limit_saves)]
 )
-def drop_place(place_id: int, x_pace_code: str | None = Header(default=None)) -> None:
+def drop_place(place_id: int, code: str | None = Depends(pace_code)) -> None:
     """Removes one of the user's saved places.
 
     Args:
         place_id: The place to remove.
-        x_pace_code: The user's code.
+        code: The user's code.
+
+    Raises:
+        HTTPException: 404 when the user has no such place.
     """
-    remove_place(x_pace_code, place_id)
+    if not remove_place(code, place_id):
+        raise HTTPException(status_code=404, detail=NOTHING_THERE)
 
 
 @app.get("/v1/trips")
-def list_trips(x_pace_code: str | None = Header(default=None)) -> list[SavedTrip]:
+def list_trips(code: str | None = Depends(pace_code)) -> list[SavedTrip]:
     """Reads the trips saved against the user's code.
 
     Args:
-        x_pace_code: The user's code.
+        code: The user's code.
 
     Returns:
         The saved trips, oldest first.
     """
-    return read_trips(x_pace_code)
+    return read_trips(code)
 
 
 @app.post("/v1/trips", dependencies=[Depends(limit_saves)])
-def save_trip(trip: NewTrip, x_pace_code: str | None = Header(default=None)) -> Kept:
+def save_trip(trip: NewTrip, code: str | None = Depends(pace_code)) -> Kept:
     """Saves one trip, giving a code to a user without one.
 
     Args:
-        trip: The posted origin and destination.
-        x_pace_code: The user's code.
+        trip: The posted ends, and where each is when known.
+        code: The user's code.
 
     Returns:
         The stored trip and the code it belongs to.
     """
-    return add_trip(x_pace_code, trip.origin, trip.destination)
+    return add_trip(
+        code, trip.origin, trip.destination, trip.origin_at, trip.destination_at
+    )
 
 
 @app.delete(
     "/v1/trips/{trip_id}", status_code=204, dependencies=[Depends(limit_saves)]
 )
-def drop_trip(trip_id: int, x_pace_code: str | None = Header(default=None)) -> None:
+def drop_trip(trip_id: int, code: str | None = Depends(pace_code)) -> None:
     """Removes one of the user's saved trips.
 
     Args:
         trip_id: The trip to remove.
-        x_pace_code: The user's code.
+        code: The user's code.
+
+    Raises:
+        HTTPException: 404 when the user has no such trip.
     """
-    remove_trip(x_pace_code, trip_id)
+    if not remove_trip(code, trip_id):
+        raise HTTPException(status_code=404, detail=NOTHING_THERE)
+
+
+@app.post("/v1/plan", dependencies=[Depends(limit_plans)])
+def plan_trip_picked(trip: PickedTrip, code: str | None = Depends(pace_code)) -> Answer:
+    """Plans a trip whose ends were picked, without reading a question.
+
+    Args:
+        trip: The posted trip, each end as text or a spot.
+        code: The user's code.
+
+    Returns:
+        The trip's answer, or places to pick from.
+    """
+    return plan_picked(trip.model_dump(), code)
 
 
 @app.get("/v1/board")
-def list_board(x_pace_code: str | None = Header(default=None)) -> list[Planned]:
+def list_board(code: str | None = Depends(pace_code)) -> list[Planned]:
     """Plans every trip saved against the user's code.
 
     Args:
-        x_pace_code: The user's code.
+        code: The user's code.
 
     Returns:
         One entry per saved trip, oldest first.
     """
-    return plan_saved(x_pace_code)
+    return plan_saved(code)
 
 
 def timetable_health() -> dict:
